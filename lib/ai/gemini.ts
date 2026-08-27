@@ -46,9 +46,15 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
   const ai = new GoogleGenAI({ apiKey });
   const started = Date.now();
 
+  // Sağlayıcı yanıt vermezse iş sonsuza dek "processing" kalmasın.
+  const timeoutMs = Number(process.env.COMPOSE_TIMEOUT_MS ?? 120_000);
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("compose-timeout")), timeoutMs),
+  );
+
   let response;
   try {
-    response = await ai.models.generateContent({
+    const call = ai.models.generateContent({
       model,
       contents: [
         {
@@ -66,6 +72,7 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
         imageConfig: { aspectRatio: req.aspect, imageSize },
       },
     });
+    response = await Promise.race([call, timeout]);
   } catch (cause) {
     console.error("Sağlayıcı çağrısı başarısız:", cause);
     throw new ComposeError(explainProviderError(cause), cause);
@@ -136,6 +143,9 @@ function explainProviderError(cause: unknown): string {
   }
   if (lower.includes("not found") || lower.includes("404")) {
     return `Model bulunamadı (${composeModel()}). COMPOSE_MODEL değerini kontrol edin.`;
+  }
+  if (lower.includes("compose-timeout")) {
+    return "Model 2 dakika içinde yanıt vermedi. Tekrar deneyin.";
   }
   if (lower.includes("timeout") || lower.includes("etimedout") || lower.includes("fetch failed")) {
     return "Sağlayıcıya ulaşılamadı. Bağlantıyı kontrol edip tekrar deneyin.";

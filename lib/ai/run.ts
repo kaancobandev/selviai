@@ -18,13 +18,15 @@ export async function runJob(id: string): Promise<void> {
   }
   if (job.status === "completed" || job.status === "processing") return;
 
-  await patchJob(id, { status: "processing" });
+  await patchJob(id, { status: "processing", step: "model-cagriliyor" });
 
   try {
     const result = await generateComposite(job.request);
+    await patchJob(id, { step: "sonuc-yaziliyor" });
     await patchJob(id, {
       status: "completed",
       completedAt: new Date().toISOString(),
+      step: "bitti",
       resultDataUrl: `data:${result.mimeType};base64,${result.data}`,
       meta: { model: result.model, ms: result.ms },
       // Girdi görsellerini sonuç yazıldıktan sonra tutmuyoruz.
@@ -39,6 +41,7 @@ export async function runJob(id: string): Promise<void> {
     await patchJob(id, {
       status: "failed",
       completedAt: new Date().toISOString(),
+      step: "hata",
       error: message,
       request: undefined,
     });

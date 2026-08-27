@@ -1,5 +1,6 @@
 import type { Config } from "@netlify/functions";
 import { runJob } from "../../lib/ai/run";
+import { patchJob } from "../../lib/ai/jobs";
 
 /* ------------------------------------------------------------------
    Arka plan fonksiyonu — 15 dakikaya kadar çalışır ve çağrıldığı anda
@@ -23,10 +24,24 @@ export default async function handler(request: Request) {
     return;
   }
 
-  await runJob(jobId);
+  // runJob kendi hatalarını yakalar; buradaki kalkan, modül yükleme ya da
+  // beklenmeyen bir çökme durumunda işin sonsuza dek "processing" kalmasını önler.
+  try {
+    await runJob(jobId);
+  } catch (error) {
+    console.error("compose-background çöktü:", error);
+    await patchJob(jobId, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      step: "fonksiyon-cokmesi",
+      error: `Arka plan işi beklenmedik şekilde durdu: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      request: undefined,
+    }).catch(() => {});
+  }
 }
 
 export const config: Config = {
   background: true,
-  path: "/.netlify/functions/compose-background",
 };
