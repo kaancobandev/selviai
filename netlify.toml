@@ -1,0 +1,13 @@
+# Netlify — Next.js sunucu çalışma zamanı.
+# OpenNext adaptörü ilk derlemede otomatik kurulur; publish dizini onun tarafından ayarlanır.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Uzun süren üretim işleri: senkron fonksiyonlar 10 sn'de kesildiği için
+# kompozisyon üretimi arka plan fonksiyonunda çalışır (15 dk sınırı).
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
