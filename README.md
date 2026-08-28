@@ -67,6 +67,27 @@ Anahtar yoksa arayüz çalışır ama üretim "GEMINI_API_KEY tanımlı değil" 
 üretim arka plan fonksiyonunda çalışır; istemci `/api/jobs/:id` ucundan durumu yoklar.
 Yerelde `npm run dev` tek süreç olduğundan iş doğrudan çalıştırılır — davranış aynıdır.
 
+Ortam ayrımı `NODE_ENV` ile yapılır. `process.env.NETLIFY` bayrağına **bakmayın**:
+Netlify'ın Next.js çalışma zamanında tanımlı değildir ve ona güvenmek hem üretimi
+yanlış dala düşürüyor hem de iki süreci ayrı iş deposuna yazdırıyordu.
+
+### Model seçimi
+
+Modeller sabit bir altın set üzerinde ölçülür; düzenek `scripts/olcum/` altında.
+Karar kabul edilen kare başına maliyete göre verilir:
+
+| Model | Rol | Kabul | p50 | Kabul başına |
+|---|---|---|---|---|
+| `gemini-3.1-flash-image` | birincil | %88 | 11,6 sn | 0,068 $ |
+| `gemini-3.1-flash-lite-image` | hızlı önizleme | %88 | 4,6 sn | 0,040 $ |
+| `gemini-3-pro-image` | yeniden deneme, zor vaka | %100 | 17,5 sn | 0,142 $ |
+| `gemini-2.5-flash-image` | kullanılmıyor | %50 | 13,7 sn | 0,068 $ |
+
+Ölçümün ilk bulduğu şey model değil promptun kendisiydi: `detay` kırpması istendiğinde
+Flash ve Lite normal portre üretiyordu. Kırpma yönergesi sayısallaştırılınca kabul oranı
+Flash'ta %63 → %88, Lite'ta %50 → %88 oldu. Prompt değiştirildiğinde ölçüm yenilenmeli —
+kayıtlardaki `promptOzet` alanı hangi sürümle üretildiğini söyler.
+
 ## Yayınlama (Netlify + selviai.com)
 
 Proje sunucu çalışma zamanı kullanır (API uçları var), bu yüzden **Git bağlantısı gerekir** —
