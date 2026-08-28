@@ -61,11 +61,22 @@ export async function getJob(id: string): Promise<Job | null> {
   return memory().get(id) ?? null;
 }
 
-/** Var olan kaydı kısmi olarak günceller; kayıt yoksa null döner. */
+/**
+ * Kaydı kısmi olarak günceller. Kayıt bulunamazsa yeniden oluşturur:
+ * Netlify Blobs kaydı zaman zaman kaybediyor ve sessizce yazmamak,
+ * tamamlanmış bir üretimin sonucunu çöpe atmak demek oluyordu.
+ */
 export async function patchJob(id: string, patch: Partial<Job>): Promise<Job | null> {
   const current = await getJob(id);
-  if (!current) return null;
-  const next: Job = { ...current, ...patch, updatedAt: new Date().toISOString() };
+  if (!current) {
+    console.warn(`patchJob: kayıt bulunamadı, yeniden oluşturuluyor (${id})`);
+  }
+  const base: Job = current ?? {
+    id,
+    status: "processing",
+    createdAt: new Date().toISOString(),
+  };
+  const next: Job = { ...base, ...patch, updatedAt: new Date().toISOString() };
   await putJob(next);
   return next;
 }
