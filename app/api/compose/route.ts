@@ -32,7 +32,12 @@ export async function GET() {
   const started = Date.now();
   const yoklama = await probeReachability(apiKey);
   return NextResponse.json(
-    { ortam: "next-route-handler", netlify: Boolean(process.env.NETLIFY), yoklama, ms: Date.now() - started },
+    {
+      ortam: "next-route-handler",
+      uretimDali: process.env.NODE_ENV === "development" ? "dogrudan" : "arka-plan-fonksiyonu",
+      yoklama,
+      ms: Date.now() - started,
+    },
     { headers: { "cache-control": "no-store" } },
   );
 }
@@ -65,39 +70,48 @@ export async function POST(request: Request) {
   };
   await putJob(job);
 
-  // Netlify'da senkron fonksiyonlar 10 sn'de kesilir; üretim arka plan
-  // fonksiyonuna devredilir. Yerelde süreç uzun yaşadığı için doğrudan
-  // çalıştırmak yeterli.
-  if (process.env.NETLIFY) {
-    const triggered = await triggerBackground(job.id);
+  // Sunucusuz ortamda yanıt döndükten sonra çalışan iş donduruluyor;
+  // üretim mutlaka arka plan fonksiyonuna devredilmeli. Yalnızca yerel
+  // geliştirmede (süreç uzun yaşar) doğrudan çalıştırılır.
+  //
+  // NOT: process.env.NETLIFY, Next.js çalışma zamanında tanımlı DEĞİL —
+  // ona bakmak üretimde yanlış dala düşürüyordu.
+  if (process.env.NODE_ENV === "development") {
+    void runJob(job.id);
+  } else {
+    const triggered = await triggerBackground(job.id, request);
     if (!triggered) {
       return NextResponse.json(
         { error: "Üretim işi başlatılamadı. Birazdan tekrar deneyin." },
         { status: 502 },
       );
     }
-  } else {
-    void runJob(job.id);
   }
 
   return NextResponse.json({ jobId: job.id }, { status: 202 });
 }
 
-async function triggerBackground(jobId: string): Promise<boolean> {
-  const base = process.env.URL ?? process.env.DEPLOY_PRIME_URL;
-  if (!base) {
-    console.error("triggerBackground: URL ortam değişkeni yok.");
-    return false;
-  }
+async function triggerBackground(jobId: string, request: Request): Promise<boolean> {
+  // Ortam değişkenlerine güvenmiyoruz: taban adres isteğin kendisinden
+  // türetilir, sağlayıcı ne verirse versin çalışır.
+  const base =
+    process.env.URL ??
+    process.env.DEPLOY_PRIME_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    new URL(request.url).origin;
   try {
     const res = await fetch(`${base}/.netlify/functions/compose-background`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jobId }),
     });
-    return res.status === 202 || res.ok;
+    if (res.status !== 202 && !res.ok) {
+      console.error("triggerBackground: beklenmedik yanıt", res.status, base);
+      return false;
+    }
+    return true;
   } catch (error) {
-    console.error("triggerBackground başarısız:", error);
+    console.error("triggerBackground başarısız:", base, error);
     return false;
   }
 }
