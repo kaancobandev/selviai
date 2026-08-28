@@ -32,7 +32,7 @@ export class ComposeError extends Error {
 
 const DEFAULT_MODEL = "gemini-3.1-flash-image";
 const DEFAULT_SIZE = "1K";
-const DEFAULT_TIMEOUT_MS = 240_000;
+const DEFAULT_TIMEOUT_MS = 120_000;
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export function composeModel(): string {
@@ -190,16 +190,23 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
  * Sonuç hata metnine iliştirilir; gizli bilgi taşımaz.
  */
 async function probeReachability(apiKey: string): Promise<string> {
+  const [google, neutral] = await Promise.all([
+    timedFetch("google", `${ENDPOINT}?pageSize=1`, { "x-goog-api-key": apiKey }),
+    // Google dışı bir adres: sorun sağlayıcıya mı özgü, yoksa çıkış yolu
+    // genel olarak mı bozuk — ayırmak için.
+    timedFetch("notr", "https://api.github.com/zen"),
+  ]);
+  return `${google} · ${neutral}`;
+}
+
+async function timedFetch(label: string, url: string, headers?: Record<string, string>): Promise<string> {
   const started = Date.now();
   try {
-    const res = await fetch(`${ENDPOINT}?pageSize=1`, {
-      headers: { "x-goog-api-key": apiKey },
-      signal: AbortSignal.timeout(20_000),
-    });
-    return `liste HTTP ${res.status} · ${Date.now() - started} ms`;
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
+    return `${label} HTTP ${res.status} · ${Date.now() - started} ms`;
   } catch (error) {
     const name = error instanceof Error ? error.name : "Error";
-    return `liste basarisiz (${name}) · ${Date.now() - started} ms`;
+    return `${label} basarisiz (${name}) · ${Date.now() - started} ms`;
   }
 }
 
