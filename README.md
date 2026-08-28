@@ -58,7 +58,8 @@ Anahtar yoksa arayüz çalışır ama üretim "GEMINI_API_KEY tanımlı değil" 
 | Prompt | `lib/ai/prompt.ts` | Üç görselin rolünü tanımlar, yasakları listeler |
 | Sağlayıcı | `lib/ai/gemini.ts` | Model çağrısı, hata çevirisi |
 | İş kaydı | `lib/ai/jobs.ts` | Netlify Blobs (yayında) / süreç içi Map (yerelde) |
-| Çalıştırıcı | `lib/ai/run.ts` | İşi baştan sona yürütür |
+| Çalıştırıcı | `lib/ai/run.ts` | Üret → denetle → gerekirse yükselt |
+| Kabul kapısı | `lib/ai/judge.ts` | Kareyi gösterilmeden önce puanlar |
 | Uçlar | `app/api/compose`, `app/api/jobs/[id]` | İş başlatma ve durum yoklama |
 | Arka plan | `netlify/functions/compose-background.mts` | Yayında üretimi 15 dk sınırıyla çalıştırır |
 | Arayüz | `components/compose-studio.tsx` | Üç slot, parametreler, sonuç |
@@ -70,6 +71,23 @@ Yerelde `npm run dev` tek süreç olduğundan iş doğrudan çalıştırılır �
 Ortam ayrımı `NODE_ENV` ile yapılır. `process.env.NETLIFY` bayrağına **bakmayın**:
 Netlify'ın Next.js çalışma zamanında tanımlı değildir ve ona güvenmek hem üretimi
 yanlış dala düşürüyor hem de iki süreci ayrı iş deposuna yazdırıyordu.
+
+### Kabul kapısı ve kademeli yeniden deneme
+
+Üretilen kare kullanıcıya gösterilmeden önce ucuz bir görsel modeline
+(`gemini-3.1-flash-lite`) puanlatılır — Faz 2'deki skor kartının aynısıyla.
+Eşiği geçemezse daha güçlü modelle bir kez daha denenir.
+
+Kapı **başarısızlık değil yükseltme** tetikler. Hakem kasten katı; reddi
+başarısızlık saymak ürünü kullanılamaz hale getirirdi. Kullanıcı her
+hâlükârda en iyi kareyi görür, kapıyı geçmediyse arayüzde bunu söyleriz.
+
+Eşikler 30 etiketli kare üzerinde seçildi (`node scripts/olcum/hakem.mjs`).
+Hakem ürün sadakatinde iyi ayarlı, anatomide insandan 0,80 puan daha sert —
+eşik bunu telafi ediyor.
+
+Maliyet etkisi: istek başına ~0,068 $ yerine **~0,13 $**, kötü durumda
+gecikme ~40 sn. `COMPOSE_QUALITY_GATE=0` ile kapatılabilir.
 
 ### Model seçimi
 

@@ -47,7 +47,14 @@ type ApiResponse = {
   error?: { code?: number; status?: string; message?: string };
 };
 
-export async function generateComposite(req: ComposeRequest): Promise<ComposeResult> {
+/**
+ * @param modelAdi Zincirdeki modeli çağıran taraf seçer (bkz. run.ts);
+ *   verilmezse ortam değişkenindeki birincil model kullanılır.
+ */
+export async function generateComposite(
+  req: ComposeRequest,
+  modelAdi?: string,
+): Promise<ComposeResult> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new ComposeError(
@@ -55,7 +62,7 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
     );
   }
 
-  const model = composeModel();
+  const model = modelAdi?.trim() || composeModel();
   const imageSize = process.env.COMPOSE_IMAGE_SIZE?.trim() || DEFAULT_SIZE;
   const timeoutMs = Number(process.env.COMPOSE_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
 
@@ -109,7 +116,7 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
         apiStatus: json.error?.status,
         message: detail.slice(0, 300),
       });
-      throw new ComposeError(explainProviderError(res.status, detail), detail);
+      throw new ComposeError(explainProviderError(res.status, detail, model), detail);
     }
   } catch (cause) {
     if (cause instanceof ComposeError) throw cause;
@@ -211,7 +218,7 @@ async function timedFetch(label: string, url: string, headers?: Record<string, s
 }
 
 /** Sağlayıcı hatalarını kullanıcının anlayacağı tek cümleye indirger. */
-function explainProviderError(status: number, detail: string): string {
+function explainProviderError(status: number, detail: string, model: string): string {
   const lower = detail.toLowerCase();
 
   if (status === 401 || status === 403 || lower.includes("api key")) {
@@ -224,7 +231,7 @@ function explainProviderError(status: number, detail: string): string {
     return "Bu model faturalandırma açık bir proje gerektiriyor. Google AI Studio'da faturalandırmayı etkinleştirin.";
   }
   if (status === 404) {
-    return `Model bulunamadı (${composeModel()}). COMPOSE_MODEL değerini kontrol edin.`;
+    return `Model bulunamadı (${model}). COMPOSE_MODEL değerini kontrol edin.`;
   }
   if (status >= 500) {
     return "Sağlayıcı geçici olarak yanıt veremiyor. Birazdan tekrar deneyin.";

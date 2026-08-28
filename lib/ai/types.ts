@@ -49,7 +49,31 @@ export type Job = {
   request?: ComposeRequest;
   /** Sonuç: data URL. Faz 3'te kalıcı depoya taşınacak. */
   resultDataUrl?: string;
-  meta?: { model: string; ms: number };
+  meta?: JobMeta;
+};
+
+/** Tek bir üretim denemesinin özeti. */
+export type Attempt = {
+  model: string;
+  ms: number;
+  /** Kabul kapısından geçti mi; kapı kapalıysa ya da hakem çökerse null */
+  kabul: boolean | null;
+  /** Ağırlıklı hakem puanı — denemeler arasında en iyisini seçmek için */
+  puan?: number;
+  /** Hakemin tek cümlelik gerekçesi */
+  gerekce?: string;
+  /** Üretim hiç görsel döndürmediyse sebebi */
+  hata?: string;
+};
+
+export type JobMeta = {
+  model: string;
+  ms: number;
+  /** Kapıdan geçen bir kare bulunabildi mi */
+  kabul?: boolean | null;
+  /** Kaçıncı denemede sonuca varıldı (1 tabanlı) */
+  deneme?: number;
+  denemeler?: Attempt[];
 };
 
 /** İstemciye dönen hafif kayıt — girdi görselleri gönderilmez. */

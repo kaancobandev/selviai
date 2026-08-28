@@ -291,6 +291,7 @@ export function ComposeStudio() {
               {job?.meta && (
                 <span className="eyebrow tabular-nums text-ash">
                   {job.meta.model.replace("gemini-", "")} · {(job.meta.ms / 1000).toFixed(1)} sn
+                  {job.meta.deneme && job.meta.deneme > 1 ? ` · ${job.meta.deneme}. deneme` : ""}
                 </span>
               )}
             </div>
@@ -330,6 +331,13 @@ export function ComposeStudio() {
                 </div>
               )}
             </div>
+
+            {result && job?.meta?.kabul === false && (
+              <p className="mt-4 border-l-2 border-mist pl-3 text-[11px] leading-4 text-smoke">
+                Bu kare iç kalite eşiğimizi geçemedi — genelde el, parmak ya da ürün detayında
+                bir kusur vardır. Yeniden üretmek çoğu zaman düzeltir.
+              </p>
+            )}
 
             {result && (
               <div className="mt-5 flex items-center justify-between gap-4">

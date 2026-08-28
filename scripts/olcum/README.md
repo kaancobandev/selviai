@@ -29,6 +29,7 @@ node scripts/olcum/rapor.mjs            # skor kartı tablosu
 | `kiyas-sayfasi.mjs` | `cikti/kiyas/<vaka>.html` — girdiler + dört çıktı yan yana |
 | `skorlar.json` | Gözle verilen puanlar (0–5) |
 | `rapor.mjs` | Skor kartını hesaplar, `cikti/rapor.json` yazar |
+| `hakem.mjs` | Kabul kapısını etiketli karelere karşı doğrular |
 
 ## Bilinmesi gerekenler
 
@@ -43,6 +44,12 @@ node scripts/olcum/rapor.mjs            # skor kartı tablosu
   Uzantı gerçek türü yansıtır.
 - **Kıyas sayfası diskteki dosyaya değil son ölçüm kaydına bakar.**
   Başarısız bir koşudan sonra önceki denemenin dosyası diskte kalıyor.
+- **Faz 2'nin anatomi puanları iyimser çıktı.** Hakem doğrulaması
+  (`node scripts/olcum/hakem.mjs`) anatomide insandan 0,80 puan daha sert
+  puanladı; işaretlediği karelere tam çözünürlükte bakıldığında kusurlar
+  gerçekti — bozuk parmak eklemleri, deforme ayak. Puanlama 460 piksellik
+  kıyas sayfalarından yapıldığı için kaçmışlar. Kabul oranları bu yüzden
+  bir miktar iyimser; sıralama değişmiyor.
 - Puanlama gözle yapılır ve özneldir; n=8, tek koşu. Güvenlik filtresi
   (`IMAGE_SAFETY`) aynı girdide bir koşuda tetiklenip diğerinde
   tetiklenmeyebiliyor — koşular arası oynaklık gerçek.

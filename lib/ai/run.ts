@@ -1,18 +1,47 @@
-import { ComposeError, generateComposite } from "./gemini";
+import { ComposeError, generateComposite, composeModel } from "./gemini";
+import { agirlikliPuan, judgeComposite, qualityGateEnabled } from "./judge";
 import { getJob, patchJob } from "./jobs";
+import type { Attempt, ComposeRequest } from "./types";
 
 /* ------------------------------------------------------------------
    Bir işi baştan sona çalıştırır. İki yerden çağrılır:
    · yerelde  → /api/compose içinden, yanıt döndükten sonra
-   · Netlify  → netlify/functions/compose-background.mts içinden
+   · sunucuda → netlify/functions/compose-background.mts içinden
+
+   Akış (Faz 3):
+     üret → kabul kapısı → geçtiyse bitir
+                         → geçmediyse daha güçlü modelle bir kez daha dene
+                         → yine geçmezse iki karenin iyisini göster
+
+   Kapı BAŞARISIZLIK değil YÜKSELTME tetikler. Hakem kasten katı
+   (bkz. scripts/olcum/hakem.mjs); reddi başarısızlık saymak ürünü
+   kullanılamaz hale getirirdi. Kullanıcı her hâlükârda en iyi kareyi
+   görür, kabul edilmediyse de bunu meta'dan biliriz.
 
    Girdi görselleri işin başında kayıttan silinir: sonraki her yazma
-   yarım megabaytlık veriyi tekrar tekrar taşımasın (ve görseller
-   gereğinden uzun saklanmasın). Model çağrısı sürerken 10 saniyede bir
-   kalp atışı yazılır — iş takılırsa sürecin ne zaman öldüğü görünür.
+   yarım megabaytlık veriyi tekrar tekrar taşımasın. Model çağrısı
+   sürerken 10 saniyede bir kalp atışı yazılır.
    ------------------------------------------------------------------ */
 
 const HEARTBEAT_MS = 10_000;
+const DEFAULT_ESCALATE = "gemini-3-pro-image";
+
+/** Sırayla denenecek modeller. İkincisi yalnız birincisi tökezlerse çalışır. */
+function modelZinciri(): string[] {
+  const birincil = composeModel();
+  const yedek = process.env.COMPOSE_ESCALATE_MODEL?.trim() ?? DEFAULT_ESCALATE;
+  const izin = process.env.COMPOSE_MAX_ATTEMPTS ? Number(process.env.COMPOSE_MAX_ATTEMPTS) : 2;
+  const zincir = yedek && yedek !== birincil ? [birincil, yedek] : [birincil];
+  return zincir.slice(0, Math.max(1, izin));
+}
+
+type Aday = {
+  mimeType: string;
+  data: string;
+  model: string;
+  ms: number;
+  attempt: Attempt;
+};
 
 export async function runJob(id: string): Promise<void> {
   const job = await getJob(id);
@@ -30,36 +59,112 @@ export async function runJob(id: string): Promise<void> {
   const request = job.request;
   await patchJob(id, { status: "processing", step: "model-cagriliyor", request: undefined });
 
-  const started = Date.now();
-  let beats = 0;
-  const heartbeat = setInterval(() => {
-    beats += 1;
-    const seconds = Math.round((Date.now() - started) / 1000);
-    void patchJob(id, { step: `model-cagriliyor · ${seconds} sn` }).catch(() => {});
-  }, HEARTBEAT_MS);
+  const zincir = modelZinciri();
+  const kapiAcik = qualityGateEnabled();
+  const adaylar: Aday[] = [];
+  const denemeler: Attempt[] = [];
+  let sonHata: unknown = null;
 
-  try {
-    const result = await generateComposite(request);
-    clearInterval(heartbeat);
-    await patchJob(id, {
-      status: "completed",
-      completedAt: new Date().toISOString(),
-      step: "bitti",
-      resultDataUrl: `data:${result.mimeType};base64,${result.data}`,
-      meta: { model: result.model, ms: result.ms },
-    });
-  } catch (error) {
-    clearInterval(heartbeat);
-    const message =
-      error instanceof ComposeError
-        ? error.userMessage
-        : `Beklenmeyen hata: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(`runJob başarısız (${id}) · ${beats} kalp atışı:`, error);
+  for (let i = 0; i < zincir.length; i += 1) {
+    const model = zincir[i];
+    const sonDeneme = i === zincir.length - 1;
+
+    const aday = await birDeneme(id, request, model, i);
+    if ("hata" in aday) {
+      denemeler.push(aday.hata);
+      sonHata = aday.cause;
+      if (sonDeneme) break;
+      continue;
+    }
+
+    denemeler.push(aday.aday.attempt);
+    adaylar.push(aday.aday);
+    if (aday.aday.attempt.kabul !== false) break; // geçti ya da kapı yok
+    if (!sonDeneme) {
+      await patchJob(id, { step: `kabul-edilmedi · daha guclu modelle yeniden` });
+    }
+  }
+
+  const kazanan = enIyisi(adaylar);
+  if (!kazanan) {
+    const mesaj =
+      sonHata instanceof ComposeError
+        ? sonHata.userMessage
+        : `Beklenmeyen hata: ${sonHata instanceof Error ? sonHata.message : String(sonHata)}`;
+    console.error(`runJob başarısız (${id}):`, sonHata);
     await patchJob(id, {
       status: "failed",
       completedAt: new Date().toISOString(),
       step: "hata",
-      error: message,
+      error: mesaj,
+      meta: { model: zincir[0], ms: 0, denemeler },
     });
+    return;
   }
+
+  await patchJob(id, {
+    status: "completed",
+    completedAt: new Date().toISOString(),
+    step: "bitti",
+    resultDataUrl: `data:${kazanan.mimeType};base64,${kazanan.data}`,
+    meta: {
+      model: kazanan.model,
+      ms: kazanan.ms,
+      kabul: kapiAcik ? kazanan.attempt.kabul : null,
+      deneme: adaylar.indexOf(kazanan) + 1,
+      denemeler,
+    },
+  });
+}
+
+/** Tek bir modelle üretir ve kapıdan geçirir. */
+async function birDeneme(
+  id: string,
+  request: ComposeRequest,
+  model: string,
+  sira: number,
+): Promise<{ aday: Aday } | { hata: Attempt; cause: unknown }> {
+  const basladi = Date.now();
+  const kalp = setInterval(() => {
+    const sn = Math.round((Date.now() - basladi) / 1000);
+    void patchJob(id, { step: `model-cagriliyor · ${sn} sn` }).catch(() => {});
+  }, HEARTBEAT_MS);
+
+  try {
+    const sonuc = await generateComposite(request, model);
+    clearInterval(kalp);
+
+    let kabul: boolean | null = null;
+    let puan: number | undefined;
+    let gerekce: string | undefined;
+
+    if (qualityGateEnabled()) {
+      await patchJob(id, { step: "kare-denetleniyor" });
+      const karar = await judgeComposite(request, sonuc);
+      if (karar) {
+        kabul = karar.kabul;
+        puan = agirlikliPuan(karar);
+        gerekce = karar.gerekce;
+      }
+    }
+
+    const attempt: Attempt = { model, ms: sonuc.ms, kabul, puan, gerekce };
+    return { aday: { mimeType: sonuc.mimeType, data: sonuc.data, model, ms: sonuc.ms, attempt } };
+  } catch (error) {
+    clearInterval(kalp);
+    const mesaj = error instanceof ComposeError ? error.userMessage : String(error);
+    console.error(`Deneme ${sira + 1} başarısız (${model}):`, mesaj);
+    return {
+      hata: { model, ms: Date.now() - basladi, kabul: null, hata: mesaj.slice(0, 200) },
+      cause: error,
+    };
+  }
+}
+
+/** Kapıdan geçen ilk kare, yoksa en yüksek puanlı kare. */
+function enIyisi(adaylar: Aday[]): Aday | null {
+  if (!adaylar.length) return null;
+  const gecen = adaylar.find((a) => a.attempt.kabul === true);
+  if (gecen) return gecen;
+  return adaylar.reduce((en, a) => ((a.attempt.puan ?? 0) > (en.attempt.puan ?? 0) ? a : en));
 }
