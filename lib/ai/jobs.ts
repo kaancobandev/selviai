@@ -65,7 +65,7 @@ export async function getJob(id: string): Promise<Job | null> {
 export async function patchJob(id: string, patch: Partial<Job>): Promise<Job | null> {
   const current = await getJob(id);
   if (!current) return null;
-  const next: Job = { ...current, ...patch };
+  const next: Job = { ...current, ...patch, updatedAt: new Date().toISOString() };
   await putJob(next);
   return next;
 }

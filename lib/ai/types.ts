@@ -44,6 +44,8 @@ export type Job = {
   error?: string;
   /** Son tamamlanan adım — takılan işlerde teşhis için */
   step?: string;
+  /** Her yazmada tazelenir; bekçi bunun eskimesine bakar */
+  updatedAt?: string;
   request?: ComposeRequest;
   /** Sonuç: data URL. Faz 3'te kalıcı depoya taşınacak. */
   resultDataUrl?: string;
@@ -61,6 +63,7 @@ export function toJobView(job: Job): JobView {
     completedAt: job.completedAt,
     error: job.error,
     step: job.step,
+    updatedAt: job.updatedAt,
     resultDataUrl: job.resultDataUrl,
     meta: job.meta,
   };
