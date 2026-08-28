@@ -114,15 +114,17 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
   } catch (cause) {
     if (cause instanceof ComposeError) throw cause;
     const aborted = cause instanceof Error && cause.name === "AbortError";
+    const reach = await probeReachability(apiKey);
     console.error("Sağlayıcı çağrısı başarısız:", {
       aborted,
       ms: Date.now() - started,
+      yoklama: reach,
       message: cause instanceof Error ? cause.message : String(cause),
     });
     throw new ComposeError(
-      aborted
-        ? `Model ${Math.round(timeoutMs / 1000)} saniye içinde yanıt vermedi. Tekrar deneyin.`
-        : "Sağlayıcıya ulaşılamadı. Bağlantıyı kontrol edip tekrar deneyin.",
+      (aborted
+        ? `Model ${Math.round(timeoutMs / 1000)} saniye içinde yanıt vermedi.`
+        : "Sağlayıcıya ulaşılamadı.") + ` [yoklama: ${reach}]`,
       cause,
     );
   } finally {
@@ -180,6 +182,25 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
     model,
     ms,
   };
+}
+
+/**
+ * Küçük bir istekle sağlayıcıya erişimi ölçer. Üretim çağrısı takıldığında
+ * sorunun genel bağlantı mı yoksa üretim isteğine özgü mü olduğunu ayırt eder.
+ * Sonuç hata metnine iliştirilir; gizli bilgi taşımaz.
+ */
+async function probeReachability(apiKey: string): Promise<string> {
+  const started = Date.now();
+  try {
+    const res = await fetch(`${ENDPOINT}?pageSize=1`, {
+      headers: { "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(20_000),
+    });
+    return `liste HTTP ${res.status} · ${Date.now() - started} ms`;
+  } catch (error) {
+    const name = error instanceof Error ? error.name : "Error";
+    return `liste basarisiz (${name}) · ${Date.now() - started} ms`;
+  }
 }
 
 /** Sağlayıcı hatalarını kullanıcının anlayacağı tek cümleye indirger. */
