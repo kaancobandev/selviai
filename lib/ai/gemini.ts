@@ -189,7 +189,7 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
  * sorunun genel bağlantı mı yoksa üretim isteğine özgü mü olduğunu ayırt eder.
  * Sonuç hata metnine iliştirilir; gizli bilgi taşımaz.
  */
-async function probeReachability(apiKey: string): Promise<string> {
+export async function probeReachability(apiKey: string): Promise<string> {
   const [google, neutral] = await Promise.all([
     timedFetch("google", `${ENDPOINT}?pageSize=1`, { "x-goog-api-key": apiKey }),
     // Google dışı bir adres: sorun sağlayıcıya mı özgü, yoksa çıkış yolu
