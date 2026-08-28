@@ -11,5 +11,3 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  # SDK paketlenmeden gönderilir; dinamik require'lar bundle içinde bozulabiliyor.
-  external_node_modules = ["@google/genai"]

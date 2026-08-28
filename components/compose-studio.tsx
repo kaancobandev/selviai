@@ -17,7 +17,9 @@ import { site } from "@/lib/site";
 
 const MAX_EDGE = 1280;
 const POLL_MS = 2000;
-const POLL_TIMEOUT_MS = 3 * 60 * 1000;
+/** Sunucu tarafı zaman aşımından (4 dk) uzun olmalı; yoksa arayüz
+    hâlâ çalışan bir işi terk eder. */
+const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 
 type SlotId = "person" | "product" | "scene";
 

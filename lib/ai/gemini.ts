@@ -1,9 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
 import { buildPrompt } from "./prompt";
 import type { ComposeRequest } from "./types";
 
 /* ------------------------------------------------------------------
-   Sağlayıcı katmanı — tek giriş noktası.
+   Sağlayıcı katmanı — Google Generative Language REST API'sine doğrudan
+   çağrı. SDK yerine `fetch` kullanılıyor çünkü:
+   · Netlify fonksiyonunda paketleme/dış modül sorunu kalmıyor
+   · soğuk başlangıç ucuz (büyük bağımlılık yüklenmiyor)
+   · zaman aşımı AbortController ile gerçekten isteği iptal ediyor
+
    Model, ortam değişkeninden okunur; ölçüm sonucunda değişecek olan
    tek şey budur (bkz. planın 07. bölümü).
    ------------------------------------------------------------------ */
@@ -28,57 +32,104 @@ export class ComposeError extends Error {
 
 const DEFAULT_MODEL = "gemini-3.1-flash-image";
 const DEFAULT_SIZE = "1K";
+const DEFAULT_TIMEOUT_MS = 240_000;
+const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export function composeModel(): string {
   return process.env.COMPOSE_MODEL?.trim() || DEFAULT_MODEL;
 }
 
+/* Yanıtın ihtiyacımız olan kısmı */
+type Part = { text?: string; inlineData?: { mimeType?: string; data?: string } };
+type ApiResponse = {
+  candidates?: { content?: { parts?: Part[] }; finishReason?: string }[];
+  promptFeedback?: { blockReason?: string };
+  error?: { code?: number; status?: string; message?: string };
+};
+
 export async function generateComposite(req: ComposeRequest): Promise<ComposeResult> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new ComposeError(
-      "Sunucuda GEMINI_API_KEY tanımlı değil. .env.local dosyasına anahtarı ekleyip sunucuyu yeniden başlatın.",
+      "Sunucuda GEMINI_API_KEY tanımlı değil. Ortam değişkenini ekleyip sunucuyu yeniden başlatın.",
     );
   }
 
   const model = composeModel();
   const imageSize = process.env.COMPOSE_IMAGE_SIZE?.trim() || DEFAULT_SIZE;
-  const ai = new GoogleGenAI({ apiKey });
-  const started = Date.now();
+  const timeoutMs = Number(process.env.COMPOSE_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
 
-  // Sağlayıcı yanıt vermezse iş sonsuza dek "processing" kalmasın.
-  const timeoutMs = Number(process.env.COMPOSE_TIMEOUT_MS ?? 120_000);
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error("compose-timeout")), timeoutMs),
-  );
-
-  let response;
-  try {
-    const call = ai.models.generateContent({
-      model,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: buildPrompt(req) },
-            { inlineData: { mimeType: req.person.mimeType, data: req.person.data } },
-            { inlineData: { mimeType: req.product.mimeType, data: req.product.data } },
-            { inlineData: { mimeType: req.scene.mimeType, data: req.scene.data } },
-          ],
-        },
-      ],
-      config: {
-        responseModalities: ["IMAGE"],
-        imageConfig: { aspectRatio: req.aspect, imageSize },
+  const body = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: buildPrompt(req) },
+          { inline_data: { mime_type: req.person.mimeType, data: req.person.data } },
+          { inline_data: { mime_type: req.product.mimeType, data: req.product.data } },
+          { inline_data: { mime_type: req.scene.mimeType, data: req.scene.data } },
+        ],
       },
+    ],
+    generationConfig: {
+      responseModalities: ["IMAGE"],
+      imageConfig: { aspectRatio: req.aspect, imageSize },
+    },
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const started = Date.now();
+  let sentMs = 0;
+
+  let json: ApiResponse;
+  try {
+    const res = await fetch(`${ENDPOINT}/${model}:generateContent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify(body),
+      signal: controller.signal,
     });
-    response = await Promise.race([call, timeout]);
+    sentMs = Date.now() - started;
+
+    const text = await res.text();
+    try {
+      json = JSON.parse(text) as ApiResponse;
+    } catch {
+      throw new ComposeError(
+        `Sağlayıcı beklenmedik bir yanıt döndürdü (HTTP ${res.status}).`,
+      );
+    }
+
+    if (!res.ok || json.error) {
+      const detail = json.error?.message ?? `HTTP ${res.status}`;
+      console.error("Sağlayıcı hatası:", {
+        status: res.status,
+        code: json.error?.code,
+        apiStatus: json.error?.status,
+        message: detail.slice(0, 300),
+      });
+      throw new ComposeError(explainProviderError(res.status, detail), detail);
+    }
   } catch (cause) {
-    console.error("Sağlayıcı çağrısı başarısız:", cause);
-    throw new ComposeError(explainProviderError(cause), cause);
+    if (cause instanceof ComposeError) throw cause;
+    const aborted = cause instanceof Error && cause.name === "AbortError";
+    console.error("Sağlayıcı çağrısı başarısız:", {
+      aborted,
+      ms: Date.now() - started,
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
+    throw new ComposeError(
+      aborted
+        ? `Model ${Math.round(timeoutMs / 1000)} saniye içinde yanıt vermedi. Tekrar deneyin.`
+        : "Sağlayıcıya ulaşılamadı. Bağlantıyı kontrol edip tekrar deneyin.",
+      cause,
+    );
+  } finally {
+    clearTimeout(timer);
   }
 
-  const candidate = response.candidates?.[0];
+  const candidate = json.candidates?.[0];
   const parts = candidate?.content?.parts ?? [];
   const image = parts.find((p) => p.inlineData?.data)?.inlineData;
 
@@ -87,18 +138,19 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
     console.error("Görsel gelmedi:", {
       model,
       finishReason: candidate?.finishReason,
-      blockReason: response.promptFeedback?.blockReason,
+      blockReason: json.promptFeedback?.blockReason,
       partKinds: parts.map((p) => (p.text ? "text" : p.inlineData ? "image" : "other")),
+      ms: Date.now() - started,
     });
 
-    const blocked = response.promptFeedback?.blockReason;
+    const blocked = json.promptFeedback?.blockReason;
     if (blocked) {
       throw new ComposeError(
         `Model isteği güvenlik nedeniyle reddetti (${blocked}). Başka bir fotoğrafla deneyin.`,
       );
     }
 
-    const reason = String(candidate?.finishReason ?? "");
+    const reason = candidate?.finishReason ?? "";
     if (reason === "IMAGE_SAFETY" || reason === "SAFETY" || reason === "PROHIBITED_CONTENT") {
       throw new ComposeError(
         "Model güvenlik filtresine takıldı. Bu genelde tanınmış bir kişiye benzeyen ya da " +
@@ -119,36 +171,35 @@ export async function generateComposite(req: ComposeRequest): Promise<ComposeRes
     );
   }
 
+  const ms = Date.now() - started;
+  console.log("Kompozisyon üretildi:", { model, ms, aktarimMs: sentMs, boyutKB: Math.round(image.data.length / 1024) });
+
   return {
     mimeType: image.mimeType ?? "image/png",
     data: image.data,
     model,
-    ms: Date.now() - started,
+    ms,
   };
 }
 
 /** Sağlayıcı hatalarını kullanıcının anlayacağı tek cümleye indirger. */
-function explainProviderError(cause: unknown): string {
-  const raw = cause instanceof Error ? cause.message : String(cause);
-  const lower = raw.toLowerCase();
+function explainProviderError(status: number, detail: string): string {
+  const lower = detail.toLowerCase();
 
-  if (lower.includes("api key") || lower.includes("api_key_invalid") || lower.includes("401")) {
-    return "API anahtarı geçersiz. Google AI Studio'da anahtarı kontrol edin.";
+  if (status === 401 || status === 403 || lower.includes("api key")) {
+    return "API anahtarı geçersiz ya da yetkisiz. Google AI Studio'da anahtarı kontrol edin.";
   }
-  if (lower.includes("quota") || lower.includes("resource_exhausted") || lower.includes("429")) {
+  if (status === 429 || lower.includes("quota") || lower.includes("resource_exhausted")) {
     return "Kota doldu ya da istek hızı aşıldı. Bir dakika sonra tekrar deneyin.";
   }
-  if (lower.includes("billing") || lower.includes("free tier") || lower.includes("permission")) {
+  if (lower.includes("billing") || lower.includes("free tier")) {
     return "Bu model faturalandırma açık bir proje gerektiriyor. Google AI Studio'da faturalandırmayı etkinleştirin.";
   }
-  if (lower.includes("not found") || lower.includes("404")) {
+  if (status === 404) {
     return `Model bulunamadı (${composeModel()}). COMPOSE_MODEL değerini kontrol edin.`;
   }
-  if (lower.includes("compose-timeout")) {
-    return "Model 2 dakika içinde yanıt vermedi. Tekrar deneyin.";
+  if (status >= 500) {
+    return "Sağlayıcı geçici olarak yanıt veremiyor. Birazdan tekrar deneyin.";
   }
-  if (lower.includes("timeout") || lower.includes("etimedout") || lower.includes("fetch failed")) {
-    return "Sağlayıcıya ulaşılamadı. Bağlantıyı kontrol edip tekrar deneyin.";
-  }
-  return `Üretim başarısız: ${raw.slice(0, 200)}`;
+  return `Üretim başarısız: ${detail.slice(0, 200)}`;
 }
