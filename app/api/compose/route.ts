@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { putJob } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
-import { probeReachability } from "@/lib/ai/gemini";
 import {
   ASPECTS,
   CROPS,
@@ -18,29 +17,6 @@ export const maxDuration = 60;
 /** Toplam gövde sınırı — istemci görselleri 1280 px'e küçültüp gönderir. */
 const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-/**
- * Teşhis: bu çalışma ortamından dışarıya erişimi ölçer. Üretim yapmaz,
- * ücret doğurmaz. Arka plan fonksiyonundaki yoklamayla karşılaştırınca
- * sorunun hangi katmanda olduğu ayrılır.
- */
-export async function GET() {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json({ error: "GEMINI_API_KEY tanımlı değil." }, { status: 500 });
-  }
-  const started = Date.now();
-  const yoklama = await probeReachability(apiKey);
-  return NextResponse.json(
-    {
-      ortam: "next-route-handler",
-      uretimDali: process.env.NODE_ENV === "development" ? "dogrudan" : "arka-plan-fonksiyonu",
-      yoklama,
-      ms: Date.now() - started,
-    },
-    { headers: { "cache-control": "no-store" } },
-  );
-}
 
 export async function POST(request: Request) {
   let body: unknown;
