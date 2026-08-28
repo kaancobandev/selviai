@@ -2,9 +2,14 @@ import type { Job } from "./types";
 
 /* ------------------------------------------------------------------
    İş kaydı — iki arka uç:
-   · Netlify'da  → Netlify Blobs (route handler ile arka plan fonksiyonu
-     ayrı süreçlerde çalıştığı için paylaşılan bir depo şart).
-   · Yerelde     → süreç içi Map (next dev tek süreçtir).
+   · Sunucuda → Netlify Blobs. Route handler ile arka plan fonksiyonu
+     AYRI süreçlerde çalışır; paylaşılan bir depo şart.
+   · Yerelde  → süreç içi Map (next dev tek süreçtir).
+
+   Seçim NODE_ENV'e göre yapılır. Ortam bayrağına (NETLIFY) bakmak
+   yanlıştı: o bayrak Next.js çalışma zamanında tanımlı değil, bu yüzden
+   route handler belleğe, arka plan fonksiyonu Blobs'a yazıyordu — iki
+   taraf birbirinin kaydını hiç görmedi.
 
    Faz 3'te Postgres'e taşınacak; kredi hareketi ilişkisel olmalı.
    ------------------------------------------------------------------ */
@@ -28,15 +33,17 @@ function memory(): Map<string, Job> {
 
 let storePromise: Promise<Store | null> | undefined;
 
-/** Netlify ortamında Blobs deposunu döndürür; yerelde null. */
+/** Sunucuda paylaşılan Blobs deposunu döndürür; yerel geliştirmede null. */
 function blobStore(): Promise<Store | null> {
   storePromise ??= (async () => {
-    if (!process.env.NETLIFY) return null;
+    if (process.env.NODE_ENV === "development") return null;
     try {
       const { getStore } = await import("@netlify/blobs");
       return getStore({ name: STORE_NAME, consistency: "strong" }) as unknown as Store;
     } catch (error) {
-      console.error("Netlify Blobs açılamadı, süreç içi belleğe düşülüyor:", error);
+      // Burada belleğe düşmek sessiz bir tuzak: iki süreç birbirini
+      // göremez. Gürültülü olsun ki teşhis kolay olsun.
+      console.error("Netlify Blobs açılamadı — iş kayıtları paylaşılmayacak:", error);
       return null;
     }
   })();
