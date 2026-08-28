@@ -1,0 +1,56 @@
+{
+  "_not": "Gözle, yan yana kıyas sayfaları üzerinden verilen skorlar (0-5). Ölçütler ve eşikler altin-set.mjs içindeki OLCUTLER'de. kimlik null ise yüz karede yok (detay kırpması) ve ağırlıklı ortalamadan çıkarılır. Model için hiç kayıt yoksa üretim başarısız olmuştur ve kare reddedilir.",
+  "_tarih": "2026-08-28",
+  "_promptSurumu": "85823ef4",
+  "_puanlayan": "Claude (tek geçiş, tek koşu)",
+  "skorlar": {
+    "kolye-portre": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": 5, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Kolye referansa en yakın; boncuk zincir tipi ve taş sırası doğru" },
+      "gemini-3.1-flash-image":      null,
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": 5, "anatomi": 5, "isik": 4, "sahne": 5, "not": "Sadık ve doğal; kalp biraz küçük" },
+      "gemini-2.5-flash-image":      { "urun": 3, "kimlik": 4, "anatomi": 3, "isik": 4, "sahne": 4, "not": "Portre istendi ama figür küçük ve yüzü dönük; kolye okunmuyor" }
+    },
+    "kupe-profil": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": 5, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Küpe kulağa doğru oturmuş, burulmuş altın halka korunmuş" },
+      "gemini-3.1-flash-image":      { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 3, "sahne": 4, "not": "Yüzün üstünden geçen tuhaf gölge bandı" },
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Küpe belirgin; ten biraz pürüzsüzleştirilmiş" },
+      "gemini-2.5-flash-image":      { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Bu koşuda kıyafeti korudu" }
+    },
+    "yuzuk-el": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": null, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Gerçek makro; hem tektaş hem pavé alyans yerinde" },
+      "gemini-3.1-flash-image":      { "urun": 5, "kimlik": null, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Yeni kırpma yönergesiyle Pro seviyesine çıktı" },
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": null, "anatomi": 4, "isik": 4, "sahne": 4, "not": "İki yüzük de var, taşlar biraz yumuşak" },
+      "gemini-2.5-flash-image":      { "urun": 3, "kimlik": null, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Düz alyans yok; iki yüzüğü tek parçaya indirdi" }
+    },
+    "kolye-erkek": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": 5, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Poz ve kimlik birebir" },
+      "gemini-3.1-flash-image":      { "urun": 5, "kimlik": 5, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Pro'dan ayırt edilemiyor" },
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": 3, "anatomi": 4, "isik": 4, "sahne": 3, "not": "Gömleği çıkardı, pozu değiştirdi — kıyafet ürününde kabul edilemez" },
+      "gemini-2.5-flash-image":      { "urun": 5, "kimlik": 4, "anatomi": 5, "isik": 4, "sahne": 4, "not": "Kolye net; yüz hafif değişmiş" }
+    },
+    "yuzuk-koyu": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": null, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Gece ışığı ve mağaza sahnesi tutarlı; halo net" },
+      "gemini-3.1-flash-image":      { "urun": 4, "kimlik": null, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Yakın çekim doğru; halo biraz sadeleşmiş" },
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": null, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Yüzük okunuyor, sahne biraz jenerik" },
+      "gemini-2.5-flash-image":      { "urun": 3, "kimlik": null, "anatomi": 4, "isik": 3, "sahne": 3, "not": "Kare fazla karanlık, halo kayboldu" }
+    },
+    "panco-ic-mekan": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": 4, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Örgü dokusu ve saçak korunmuş, mekâna doğal oturmuş" },
+      "gemini-3.1-flash-image":      { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Panço omuzdan kaymış; duruş biraz zorlama" },
+      "gemini-3.1-flash-lite-image": { "urun": 5, "kimlik": 4, "anatomi": 5, "isik": 4, "sahne": 5, "not": "Bu vakada Pro ile başa baş" },
+      "gemini-2.5-flash-image":      { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Kollar pançonun içinde kalmış" }
+    },
+    "esofman-studyo": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": 5, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Kişinin kendi tişörtünü korudu; pantolon rengi ve cepler birebir" },
+      "gemini-3.1-flash-image":      { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 4, "sahne": 5, "not": "Pantolon rengi kiremite kaymış, ayakkabılar silinmiş" },
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": 4, "anatomi": 4, "isik": 4, "sahne": 4, "not": "Üstü fonla aynı renk atlete çevirdi" },
+      "gemini-2.5-flash-image":      { "urun": 5, "kimlik": 5, "anatomi": 4, "isik": 4, "sahne": 5, "not": "Renk ve tişört doğru; bacaklar hafif uzatılmış" }
+    },
+    "canta-dis-mekan": {
+      "gemini-3-pro-image":          { "urun": 5, "kimlik": 5, "anatomi": 5, "isik": 5, "sahne": 5, "not": "Gün batımı arkadan aydınlatması yüze doğru taşınmış" },
+      "gemini-3.1-flash-image":      { "urun": 5, "kimlik": 5, "anatomi": 4, "isik": 5, "sahne": 5, "not": "Bu koşuda ışığı da tutturdu" },
+      "gemini-3.1-flash-lite-image": { "urun": 4, "kimlik": 4, "anatomi": 3, "isik": 4, "sahne": 4, "not": "Bilekte açıklanamayan bir kayış; el kavrayışı bozuk" },
+      "gemini-2.5-flash-image":      null
+    }
+  }
+}

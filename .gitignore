@@ -43,3 +43,9 @@ next-env.d.ts
 
 # netlify
 .netlify/
+
+# model ölçümü — girdi/çıktı görselleri ağır; kayıtlar (jsonl/json) izlenir
+/scripts/olcum/girdi/
+/scripts/olcum/cikti/*
+!/scripts/olcum/cikti/sonuclar.jsonl
+!/scripts/olcum/cikti/rapor.json

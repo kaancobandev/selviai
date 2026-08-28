@@ -10,11 +10,21 @@ import type { Aspect, ComposeRequest, Crop, Lighting, Placement } from "./types"
    Şablon İngilizcedir: modeller bu dilde belirgin biçimde tutarlıdır.
    ------------------------------------------------------------------ */
 
+/* Kırpma yönergesi ölçümde en zayıf halka çıktı: "detay" istendiğinde
+   Flash ve Flash Lite normal portre üretiyordu (bkz. scripts/olcum).
+   Bu yüzden her kırpma, karede neyin ne kadar yer kaplayacağını sayıyla
+   söylüyor — "yakın çekim" gibi göreli ifadeler yeterli olmuyor. */
 const CROP_TEXT: Record<Crop, string> = {
-  portre: "head-and-shoulders portrait, the product clearly visible",
-  yarim: "waist-up three-quarter shot",
+  portre:
+    "head-and-shoulders portrait; the head and shoulders fill most of the frame " +
+    "and the product is clearly legible",
+  yarim: "waist-up three-quarter shot, the subject filling most of the frame height",
   tam: "full-body shot, the whole figure inside the frame",
-  detay: "tight product close-up on the body, shallow depth of field",
+  detay:
+    "EXTREME CLOSE-UP on the product where it sits on the body. The product must " +
+    "fill at least one third of the frame. Crop away the rest of the body and show " +
+    "at most part of the face — a full portrait is wrong for this framing. " +
+    "Shallow depth of field, the product in sharp focus",
 };
 
 const PLACEMENT_TEXT: Record<Placement, string> = {
@@ -64,6 +74,8 @@ export function buildPrompt(req: ComposeRequest): string {
     "  - Add no other jewellery, garments, text, logos, borders or watermarks.",
     "  - Exactly two hands with five fingers each; no duplicated or missing limbs.",
     "  - No visible cut-out edges or seams between the subject and the background.",
+    "  - Respect the requested framing exactly. It outranks the instinct to show the",
+    "    whole person: if a close-up is asked for, deliver a close-up.",
     "",
     "OUTPUT",
     "  One photorealistic editorial fashion photograph. Neutral colour grade.",

@@ -1,0 +1,70 @@
+{
+  "tarih": "2026-08-28T08:16:57.411Z",
+  "satirlar": [
+    {
+      "model": "gemini-3.1-flash-lite-image",
+      "etiket": "3.1 Flash Lite",
+      "uretilen": "8/8",
+      "kabulOrani": 0.875,
+      "kabulSayisi": "7/8",
+      "agirlikliOrt": 4.083333333333333,
+      "p50": 4571,
+      "p95": 5080,
+      "kareBasiUsd": 0.034538468749999995,
+      "toplamGider": 0.27630774999999996,
+      "kabulBasiUsd": 0.03947253571428571,
+      "dusenler": [
+        "canta-dis-mekan"
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-image",
+      "etiket": "3.1 Flash",
+      "uretilen": "7/8",
+      "kabulOrani": 0.875,
+      "kabulSayisi": "7/8",
+      "agirlikliOrt": 4.478458049886622,
+      "p50": 11592,
+      "p95": 13417,
+      "kareBasiUsd": 0.0593839375,
+      "toplamGider": 0.4750715,
+      "kabulBasiUsd": 0.06786735714285715,
+      "dusenler": [
+        "kolye-portre"
+      ]
+    },
+    {
+      "model": "gemini-2.5-flash-image",
+      "etiket": "2.5 Flash",
+      "uretilen": "7/8",
+      "kabulOrani": 0.5,
+      "kabulSayisi": "4/8",
+      "agirlikliOrt": 3.9319727891156466,
+      "p50": 13658,
+      "p95": 16235,
+      "kareBasiUsd": 0.034212862499999996,
+      "toplamGider": 0.27370289999999997,
+      "kabulBasiUsd": 0.06842572499999999,
+      "dusenler": [
+        "kolye-portre",
+        "yuzuk-el",
+        "yuzuk-koyu",
+        "canta-dis-mekan"
+      ]
+    },
+    {
+      "model": "gemini-3-pro-image",
+      "etiket": "3 Pro",
+      "uretilen": "8/8",
+      "kabulOrani": 1,
+      "kabulSayisi": "8/8",
+      "agirlikliOrt": 4.972222222222222,
+      "p50": 17480,
+      "p95": 19494,
+      "kareBasiUsd": 0.14150425,
+      "toplamGider": 1.132034,
+      "kabulBasiUsd": 0.14150425,
+      "dusenler": []
+    }
+  ]
+}
