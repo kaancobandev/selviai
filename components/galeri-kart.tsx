@@ -38,11 +38,15 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
 
   if (silindi) return null;
 
+  // Saat dilimi açıkça verilmeli: sunucu UTC'de, tarayıcı yerel
+  // dilimde biçimlendirince metinler tutmuyor ve hidrasyon patlıyor
+  // (React #418). Yerelde görünmez — dev makinesi de UTC+3.
   const tarih = new Date(kayit.olusturuldu).toLocaleDateString("tr-TR", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Istanbul",
   });
 
   return (
