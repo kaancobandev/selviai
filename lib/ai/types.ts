@@ -47,8 +47,13 @@ export type Job = {
   /** Her yazmada tazelenir; bekçi bunun eskimesine bakar */
   updatedAt?: string;
   request?: ComposeRequest;
-  /** Sonuç: data URL. Faz 3'te kalıcı depoya taşınacak. */
+  /**
+   * Sonuç: data URL. Yalnızca kalıcı depo kapalıyken doldurulur —
+   * yarım megabaytlık veriyi iş kaydında taşımak pahalı ve geçici.
+   */
   resultDataUrl?: string;
+  /** Kalıcı depodaki dosya yolu (Supabase Storage). */
+  imagePath?: string;
   meta?: JobMeta;
 };
 
@@ -76,8 +81,12 @@ export type JobMeta = {
   denemeler?: Attempt[];
 };
 
-/** İstemciye dönen hafif kayıt — girdi görselleri gönderilmez. */
-export type JobView = Omit<Job, "request">;
+/**
+ * İstemciye dönen hafif kayıt — girdi görselleri ve depo yolu gönderilmez.
+ * Görsel, kalıcı depodaysa kendi ucumuzdan servis edilir: kova özeldir,
+ * imzalı URL'in süresi dolmaz, yetki kontrolü tek yerde kalır.
+ */
+export type JobView = Omit<Job, "request" | "imagePath"> & { resultUrl?: string };
 
 export function toJobView(job: Job): JobView {
   return {
@@ -89,6 +98,7 @@ export function toJobView(job: Job): JobView {
     step: job.step,
     updatedAt: job.updatedAt,
     resultDataUrl: job.resultDataUrl,
+    resultUrl: job.imagePath ? `/api/kare/${job.id}` : undefined,
     meta: job.meta,
   };
 }

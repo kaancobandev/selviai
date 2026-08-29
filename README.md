@@ -60,6 +60,8 @@ Anahtar yoksa arayüz çalışır ama üretim "GEMINI_API_KEY tanımlı değil" 
 | İş kaydı | `lib/ai/jobs.ts` | Netlify Blobs (yayında) / süreç içi Map (yerelde) |
 | Çalıştırıcı | `lib/ai/run.ts` | Üret → denetle → gerekirse yükselt |
 | Kabul kapısı | `lib/ai/judge.ts` | Kareyi gösterilmeden önce puanlar |
+| Kalıcı depo | `lib/ai/storage.ts` | Supabase Storage + Postgres kaydı |
+| Görsel ucu | `app/api/kare/[id]` | Kareyi özel kovadan servis eder |
 | Uçlar | `app/api/compose`, `app/api/jobs/[id]` | İş başlatma ve durum yoklama |
 | Arka plan | `netlify/functions/compose-background.mts` | Yayında üretimi 15 dk sınırıyla çalıştırır |
 | Arayüz | `components/compose-studio.tsx` | Üç slot, parametreler, sonuç |
@@ -71,6 +73,33 @@ Yerelde `npm run dev` tek süreç olduğundan iş doğrudan çalıştırılır �
 Ortam ayrımı `NODE_ENV` ile yapılır. `process.env.NETLIFY` bayrağına **bakmayın**:
 Netlify'ın Next.js çalışma zamanında tanımlı değildir ve ona güvenmek hem üretimi
 yanlış dala düşürüyor hem de iki süreci ayrı iş deposuna yazdırıyordu.
+
+### Kalıcı depolama
+
+Üretilen kare Supabase'e yazılır: dosya **özel** bir Storage kovasına
+(`compositions`), kaydı `public.compositions` tablosuna. İş kaydında
+yalnızca yol tutulur.
+
+Görsel imzalı URL ile değil, uygulamanın kendi `/api/kare/:id` ucundan
+servis edilir. Sebep: bağlantının süresi dolmaz, yetki kontrolü tek yerde
+kalır (Faz 4'te oturum kontrolü tam olarak oraya girecek) ve yüz fotoğrafı
+içeren çıktılar hiçbir zaman herkese açık bir adreste durmaz.
+
+Kurulum:
+
+1. [supabase.com](https://supabase.com) üzerinde proje açın (bölge:
+   Frankfurt — Netlify fonksiyonlarıyla aynı kıta).
+2. SQL Editor'e `supabase/schema.sql` içeriğini yapıştırıp çalıştırın.
+3. Project Settings > API'den URL ve **secret** anahtarı alıp ortam
+   değişkenlerine yazın (bkz. `.env.example`). Aynı değerleri Netlify'da
+   Site configuration > Environment variables altına da girin.
+
+Değişkenler boşsa depolama sessizce devre dışı kalır ve üretim data URL
+döndürür — kurulum yarım kalsa bile site çalışır.
+
+**Ücretsiz katman sınırı:** 1 GB dosya alanı. Birincil model ortalama
+609 KB ürettiği için bu **~1.700 kare** demek. Küçük görsel üretimi ve
+saklama süresi kuralı bu yüzden sıradaki iş.
 
 ### Kabul kapısı ve kademeli yeniden deneme
 

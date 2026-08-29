@@ -208,7 +208,10 @@ export function ComposeStudio() {
     };
   }, [job?.id, job?.status]);
 
-  const result = job?.status === "completed" ? job.resultDataUrl : undefined;
+  // Kalıcı depo açıkken görsel kendi ucumuzdan gelir; kapalıyken iş
+  // kaydındaki data URL kullanılır.
+  const result =
+    job?.status === "completed" ? (job.resultUrl ?? job.resultDataUrl) : undefined;
 
   return (
     <div className="flex flex-1 flex-col bg-paper px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
@@ -343,7 +346,7 @@ export function ComposeStudio() {
               <div className="mt-5 flex items-center justify-between gap-4">
                 <a
                   href={result}
-                  download={`${slug(site.name)}-kompozisyon-${job?.id?.slice(0, 8)}.png`}
+                  download={`${slug(site.name)}-kompozisyon-${job?.id?.slice(0, 8)}.jpg`}
                   className="group inline-flex items-center gap-3 eyebrow u-line"
                 >
                   Görseli indir

@@ -1,6 +1,7 @@
 import { ComposeError, generateComposite, composeModel } from "./gemini";
 import { agirlikliPuan, judgeComposite, qualityGateEnabled } from "./judge";
 import { getJob, patchJob } from "./jobs";
+import { depoAcikMi, depola } from "./storage";
 import type { Attempt, ComposeRequest } from "./types";
 
 /* ------------------------------------------------------------------
@@ -102,11 +103,34 @@ export async function runJob(id: string): Promise<void> {
     return;
   }
 
+  // Kalıcı depo açıksa kareyi oraya yaz ve iş kaydında yalnızca yolu
+  // tut. Yükleme başarısız olursa data URL'e düşülür: kullanıcı görselini
+  // her hâlükârda alır, yalnızca kalıcı olmaz.
+  let imagePath: string | undefined;
+  if (depoAcikMi()) {
+    await patchJob(id, { step: "kaydediliyor" });
+    imagePath =
+      (await depola({
+        id,
+        model: kazanan.model,
+        ms: kazanan.ms,
+        attempt: adaylar.indexOf(kazanan) + 1,
+        attempts: denemeler,
+        accepted: kazanan.attempt.kabul,
+        score: kazanan.attempt.puan,
+        reason: kazanan.attempt.gerekce,
+        request,
+        mimeType: kazanan.mimeType,
+        data: kazanan.data,
+      })) ?? undefined;
+  }
+
   await patchJob(id, {
     status: "completed",
     completedAt: new Date().toISOString(),
     step: "bitti",
-    resultDataUrl: `data:${kazanan.mimeType};base64,${kazanan.data}`,
+    imagePath,
+    resultDataUrl: imagePath ? undefined : `data:${kazanan.mimeType};base64,${kazanan.data}`,
     meta: {
       model: kazanan.model,
       ms: kazanan.ms,
