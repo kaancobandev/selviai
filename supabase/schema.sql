@@ -80,6 +80,13 @@ on conflict (id) do update
 -- çalıştığı ve service_role bunları atladığı için Faz 3 bunlar olmadan da
 -- çalışır; bu satırlar Faz 4 içindir: kullanıcı kendi galerisini tarayıcıdan
 -- okuyabilsin. Hangi satırı göreceğini yukarıdaki RLS politikaları belirler.
+-- service_role RLS'i atlar ama tablo yetkilerini ATLAMAZ. Proje
+-- "Automatically expose new tables" kapali kuruldugunda bu yetki de
+-- otomatik verilmiyor ve sunucu "permission denied" aliyor.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.compositions to service_role;
+
+-- Faz 4: kullanici kendi galerisini tarayicidan okusun.
 grant usage on schema public to authenticated;
 grant select, delete on public.compositions to authenticated;
 
