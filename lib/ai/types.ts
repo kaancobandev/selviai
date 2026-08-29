@@ -121,7 +121,15 @@ export type JobMeta = {
  * Görsel, kalıcı depodaysa kendi ucumuzdan servis edilir: kova özeldir,
  * imzalı URL'in süresi dolmaz, yetki kontrolü tek yerde kalır.
  */
-export type JobView = Omit<Job, "request" | "imagePath"> & { resultUrl?: string };
+export type JobView = Omit<Job, "request" | "imagePath" | "meta"> & {
+  resultUrl?: string;
+  /**
+   * Arayüzün ihtiyaç duyduğu kadarı. `denemeler` KASTEN dışarıda:
+   * her deneme hakemin kişi ve kıyafet hakkındaki değerlendirmesini
+   * (`gerekce`) taşıyor ve bu uç yetkisiz. Tam kayıt sunucuda kalır.
+   */
+  meta?: Pick<JobMeta, "model" | "ms" | "kabul" | "deneme">;
+};
 
 export function toJobView(job: Job): JobView {
   return {
@@ -134,6 +142,11 @@ export function toJobView(job: Job): JobView {
     updatedAt: job.updatedAt,
     resultDataUrl: job.resultDataUrl,
     resultUrl: job.imagePath ? `/api/kare/${job.id}` : undefined,
-    meta: job.meta,
+    meta: job.meta && {
+      model: job.meta.model,
+      ms: job.meta.ms,
+      kabul: job.meta.kabul,
+      deneme: job.meta.deneme,
+    },
   };
 }

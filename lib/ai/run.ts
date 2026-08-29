@@ -52,7 +52,12 @@ export async function runJob(id: string): Promise<void> {
     return;
   }
   if (!job.request) {
-    await patchJob(id, { status: "failed", error: "İş kaydında girdi görselleri yok." });
+    await patchJob(id, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      step: "girdi-yok",
+      error: "İş kaydında girdi görselleri yok.",
+    });
     return;
   }
   if (job.status === "completed" || job.status === "processing") return;

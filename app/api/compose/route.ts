@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { putJob } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
 import { imzala, INVOKE_HEADER } from "@/lib/ai/invoke";
+import { girdiYollari } from "@/lib/ai/resolve";
+import { girdileriSil } from "@/lib/ai/storage";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
 import {
   ASPECTS,
@@ -73,6 +75,17 @@ export async function POST(request: Request) {
   } else {
     const triggered = await triggerBackground(job.id, request);
     if (!triggered) {
+      // İş hiç başlamayacak: yüklenen girdileri burada temizle, yoksa
+      // yüz fotoğrafları depoda öksüz kalır ve kotayı yer.
+      await girdileriSil(girdiYollari(composeRequest));
+      await putJob({
+        ...job,
+        status: "failed",
+        completedAt: new Date().toISOString(),
+        step: "baslatilamadi",
+        error: "Üretim işi başlatılamadı.",
+        request: undefined,
+      });
       return NextResponse.json(
         { error: "Üretim işi başlatılamadı. Birazdan tekrar deneyin." },
         { status: 502 },
