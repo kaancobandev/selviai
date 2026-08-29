@@ -70,7 +70,7 @@ create policy "kendi kaydını siler"
 -- Görseller uygulamanın kendi /api/kare/:id ucundan servis edilir,
 -- imzalı URL'e gerek yok ve yetki kontrolü tek yerde kalır.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('compositions', 'compositions', false, 10485760,
+values ('compositions', 'compositions', false, 2097152,
         array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do update
   set public = false,
@@ -106,7 +106,7 @@ grant select, delete on public.compositions to authenticated;
 -- fotoğrafları gereğinden uzun durmamalı ve üç girdi bir çıktıdan
 -- büyük olduğu için 1 GB'lık alanı üç kat hızlı tüketirlerdi.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('inputs', 'inputs', false, 10485760,
+values ('inputs', 'inputs', false, 2097152,
         array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do update
   set public = false,
