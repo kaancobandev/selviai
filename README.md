@@ -123,11 +123,25 @@ gösterilen sürüm küçültülüyor.
 
 ### İmzalı yükleme
 
-İstemci görselleri API gövdesinden geçirmez: `/api/yukleme` üç imzalı
+İstemci görselleri API gövdesinden geçirmez: `/api/yukleme` imzalı bir
 adres döndürür, tarayıcı baytları doğrudan `inputs` kovasına yükler ve
 `/api/compose` yalnızca yolları taşır. Gövde 231 KB'tan birkaç yüz bayta
-iner; ölçülen ~2,7 saniyelik yükleme gecikmesi üretim boru hattından çıkar
-ve 4 MB'lık gövde sınırı ortadan kalkar.
+iner ve 4 MB'lık gövde sınırı ortadan kalkar.
+
+**Yükleme, görsel seçilir seçilmez başlar** — üretim düğmesine basıldığında
+değil. Bu ayrım işin özü: üretim anında yapıldığında kazanç çıkmıyor, çünkü
+imzalı adres için gereken fazladan gidiş-dönüş küçülen gövdenin kazandırdığını
+geri alıyor. Canlıda ölçüldü:
+
+| | Gövdede base64 | Üretim anında imzalı | Seçimde imzalı |
+|---|---|---|---|
+| `/api/compose` | 2742 ms | 564 ms | 564 ms |
+| imzalı adres + yükleme | — | 2291 ms | (düğmeden önce biter) |
+| **kullanıcının beklediği** | **2742 ms** | **2855 ms** | **564 ms** |
+
+**İmza istekleri sıraya alınır.** Oturum çerezini ilk istek oluşturur;
+aynı anda giden istekler henüz çerezi göremediği için her biri ayrı oturum
+üretir ve `/api/compose` yolları haklı olarak reddeder.
 
 **Girdiler üretim bitince silinir.** Yüz fotoğrafları gereğinden uzun
 durmamalı; ayrıca üç girdi bir çıktıdan büyük olduğu için 1 GB'lık
@@ -139,6 +153,11 @@ Yoksa bir istemci başkasının girdisiyle üretim yaptırabilirdi.
 
 Depolama kapalıysa ya da yükleme tökezlerse istemci sessizce eski yola
 (gövdede base64) düşer — kullanıcı farkı görmez.
+
+**Bilinen boşluk:** kullanıcı görsel yükleyip üretim yapmadan çıkarsa
+dosyalar `inputs` kovasında kalır; temizlik yalnızca üretim bitince
+çalışıyor. 1 GB'lık ücretsiz alanda bu birikir. Çözüm bir süpürme işi:
+belirli bir yaştan eski girdileri silen zamanlanmış fonksiyon.
 
 ### Galeri
 

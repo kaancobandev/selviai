@@ -85,6 +85,8 @@ type Picked = {
   data: string;
   /** ham baytlar — imzalı yükleme bunu doğrudan depoya koyar */
   blob: Blob;
+  /** depoya yüklendiyse oradaki yol; yükleme sürerken ya da başarısızsa yok */
+  path?: string;
   name: string;
 };
 
@@ -126,6 +128,15 @@ export function ComposeStudio() {
       const previous = imagesRef.current[id];
       setImages((prev) => ({ ...prev, [id]: picked }));
       if (previous) URL.revokeObjectURL(previous.previewUrl);
+
+      // Yüklemeyi hemen başlat: kullanıcı parametreleri seçerken bitsin.
+      // Üretim düğmesine basıldığında beklenecek bir şey kalmaz.
+      void depoyaYukle(picked.blob, picked.mimeType).then((yol) => {
+        if (!yol) return;
+        setImages((prev) =>
+          prev[id] === picked ? { ...prev, [id]: { ...picked, path: yol } } : prev,
+        );
+      });
     } catch {
       setToast("Görsel okunamadı. Başka bir dosya deneyin.");
     }
@@ -149,21 +160,13 @@ export function ComposeStudio() {
     setElapsed(0);
 
     try {
-      const secilen = {
-        person: images.person!,
-        product: images.product!,
-        scene: images.scene!,
-      };
-      // Önce doğrudan depoya yüklemeyi dene; olmazsa baytlar gövdede gider.
-      const yuklenen = await depoyaYukle(secilen);
-
       const res = await fetch("/api/compose", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          person: yuklenen?.person ?? strip(secilen.person),
-          product: yuklenen?.product ?? strip(secilen.product),
-          scene: yuklenen?.scene ?? strip(secilen.scene),
+          person: kaynak(images.person!),
+          product: kaynak(images.product!),
+          scene: kaynak(images.scene!),
           crop,
           placement,
           lighting,
@@ -558,47 +561,63 @@ function strip(p: Picked) {
 }
 
 /**
- * Görselleri doğrudan depoya yükler ve istekte yalnızca yollarını
- * gönderir. Kazanç: 4 MB'lık gövde sınırı kalkar ve yükleme, üretim
- * boru hattının dışına çıkar.
+ * Tek bir görseli imzalı adresle doğrudan depoya yükler, yolunu döner.
  *
- * Depolama kapalıysa ya da yükleme tökezlerse null döner; çağıran
- * eski yola (gövdede base64) düşer. Kullanıcı farkı görmez.
+ * Görsel SEÇİLİR SEÇİLMEZ çağrılır, üretim anında değil. Üretim anında
+ * yapıldığında kazanç çıkmıyordu: imzalı adres için gereken fazladan
+ * gidiş-dönüş, küçülen gövdenin kazandırdığını geri alıyor (canlıda
+ * ölçüldü — tek POST 2742 ms, bölünmüş hâli 1311 + 980 + 564 ms).
+ * Öne alınca üretim düğmesine basıldığında yükleme çoktan bitmiş oluyor.
+ *
+ * Depolama kapalıysa ya da yükleme tökezlerse null döner; çağıran eski
+ * yola (gövdede base64) düşer. Kullanıcı farkı görmez.
  */
-async function depoyaYukle(
-  parcalar: Record<SlotId, Picked>,
-): Promise<Record<SlotId, { mimeType: string; path: string }> | null> {
-  try {
-    const sira: SlotId[] = ["person", "product", "scene"];
-    const res = await fetch("/api/yukleme", {
+/**
+ * İmzalı adres istekleri sıraya alınır. Oturum çerezini ilk istek
+ * oluşturur; aynı anda giden istekler henüz çerezi göremediği için
+ * HER BİRİ AYRI oturum üretir ve sonra /api/compose "bu yol senin
+ * oturumuna ait değil" diyerek haklı olarak reddeder. Sıraya almak
+ * ucuz: istek ~200 ms ve dosya yüklemeleri bundan bağımsız, paralel.
+ */
+let imzaSirasi: Promise<unknown> = Promise.resolve();
+
+function imzaIste(mimeType: string): Promise<Response> {
+  const sonraki = imzaSirasi.then(() =>
+    fetch("/api/yukleme", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mimeTypes: sira.map((k) => parcalar[k].mimeType) }),
-    });
+      body: JSON.stringify({ mimeTypes: [mimeType] }),
+    }),
+  );
+  imzaSirasi = sonraki.catch(() => {});
+  return sonraki;
+}
+
+async function depoyaYukle(blob: Blob, mimeType: string): Promise<string | null> {
+  try {
+    const res = await imzaIste(mimeType);
     if (!res.ok) return null;
     const veri = (await res.json()) as {
       destekleniyor?: boolean;
-      hedefler?: { slot: SlotId; yol: string; adres: string }[];
+      hedefler?: { yol: string; adres: string }[];
     };
-    if (!veri.destekleniyor || veri.hedefler?.length !== sira.length) return null;
+    const hedef = veri.destekleniyor ? veri.hedefler?.[0] : undefined;
+    if (!hedef) return null;
 
-    const sonuc = {} as Record<SlotId, { mimeType: string; path: string }>;
-    await Promise.all(
-      veri.hedefler.map(async (h) => {
-        const parca = parcalar[h.slot];
-        const yukleme = await fetch(h.adres, {
-          method: "PUT",
-          headers: { "content-type": parca.mimeType },
-          body: parca.blob,
-        });
-        if (!yukleme.ok) throw new Error("yükleme " + yukleme.status);
-        sonuc[h.slot] = { mimeType: parca.mimeType, path: h.yol };
-      }),
-    );
-    return sonuc;
+    const yukleme = await fetch(hedef.adres, {
+      method: "PUT",
+      headers: { "content-type": mimeType },
+      body: blob,
+    });
+    return yukleme.ok ? hedef.yol : null;
   } catch {
     return null;
   }
+}
+
+/** Görsel depodaysa yolunu, değilse baytlarını gönderir. */
+function kaynak(p: Picked) {
+  return p.path ? { mimeType: p.mimeType, path: p.path } : strip(p);
 }
 
 /** Görseli en fazla MAX_EDGE kenara küçültür ve JPEG base64 döndürür. */
