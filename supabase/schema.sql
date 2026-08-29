@@ -73,3 +73,15 @@ on conflict (id) do update
 -- Kovaya erişim yalnızca sunucudan (gizli anahtar) olduğu için
 -- storage.objects üzerinde politikaya gerek yok; RLS zaten açık ve
 -- anonim/oturumlu roller için hiçbir politika tanımlı değil.
+
+-- 4) Data API yetkileri ---------------------------------------------
+-- Proje "Automatically expose new tables" KAPALI kurulduğu için (Supabase'in
+-- kendi tavsiyesi) yetkiler elle veriliyor. Sunucu tarafı gizli anahtarla
+-- çalıştığı ve service_role bunları atladığı için Faz 3 bunlar olmadan da
+-- çalışır; bu satırlar Faz 4 içindir: kullanıcı kendi galerisini tarayıcıdan
+-- okuyabilsin. Hangi satırı göreceğini yukarıdaki RLS politikaları belirler.
+grant usage on schema public to authenticated;
+grant select, delete on public.compositions to authenticated;
+
+-- anon rolüne kasten hiçbir yetki verilmiyor: oturumsuz kimse
+-- kompozisyon kaydı okuyamaz.
