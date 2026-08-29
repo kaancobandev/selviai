@@ -1,6 +1,7 @@
 import type { Config } from "@netlify/functions";
 import { runJob } from "../../lib/ai/run";
 import { patchJob } from "../../lib/ai/jobs";
+import { imzaGecerli, INVOKE_HEADER } from "../../lib/ai/invoke";
 
 /* ------------------------------------------------------------------
    Arka plan fonksiyonu — 15 dakikaya kadar çalışır ve çağrıldığı anda
@@ -21,6 +22,14 @@ export default async function handler(request: Request) {
 
   if (!jobId) {
     console.error("compose-background: jobId gelmedi");
+    return;
+  }
+
+  // Bu uç herkese açık HTTPS üzerinden erişilebilir. İmzasız çağrı,
+  // kimliksiz bir kullanıcının bize para harcatması demek — sessizce
+  // dön, saldırgana bilgi verme.
+  if (!imzaGecerli(jobId, request.headers.get(INVOKE_HEADER))) {
+    console.error("compose-background: imza gecersiz, istek yok sayildi");
     return;
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { putJob } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
+import { imzala, INVOKE_HEADER } from "@/lib/ai/invoke";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
 import {
   ASPECTS,
@@ -91,9 +92,15 @@ async function triggerBackground(jobId: string, request: Request): Promise<boole
     process.env.NEXT_PUBLIC_SITE_URL ??
     new URL(request.url).origin;
   try {
+    // Arka plan fonksiyonu herkese açık bir adres; imzasız çağrıyı
+    // kabul etmiyor. Bkz. lib/ai/invoke.ts.
+    const imza = imzala(jobId);
     const res = await fetch(`${base}/.netlify/functions/compose-background`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(imza ? { [INVOKE_HEADER]: imza } : {}),
+      },
       body: JSON.stringify({ jobId }),
     });
     if (res.status !== 202 && !res.ok) {
