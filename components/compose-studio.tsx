@@ -212,6 +212,11 @@ export function ComposeStudio() {
   // kaydındaki data URL kullanılır.
   const result =
     job?.status === "completed" ? (job.resultUrl ?? job.resultDataUrl) : undefined;
+  // Data URL'ler iyileştirilemez. Gerçek bir adres varsa Next'in görsel
+  // iyileştiricisi devreye girer: 643 KB'lık kare yerine ~90 KB'lık bir
+  // sürüm gelir ve sonuç ekranı saniyeler önce açılır. İndirme bağlantısı
+  // tam boya gitmeye devam eder.
+  const iyilestirilebilir = Boolean(job?.resultUrl);
 
   return (
     <div className="flex flex-1 flex-col bg-paper px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
@@ -311,7 +316,8 @@ export function ComposeStudio() {
                   alt="Üretilen kompozisyon"
                   width={1024}
                   height={1280}
-                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 520px"
+                  unoptimized={!iyilestirilebilir}
                   className="h-full w-full object-cover"
                 />
               ) : running ? (

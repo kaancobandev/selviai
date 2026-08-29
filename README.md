@@ -98,8 +98,28 @@ Değişkenler boşsa depolama sessizce devre dışı kalır ve üretim data URL
 döndürür — kurulum yarım kalsa bile site çalışır.
 
 **Ücretsiz katman sınırı:** 1 GB dosya alanı. Birincil model ortalama
-609 KB ürettiği için bu **~1.700 kare** demek. Küçük görsel üretimi ve
-saklama süresi kuralı bu yüzden sıradaki iş.
+609 KB ürettiği için bu **~1.700 kare** demek. Saklama süresi kuralı
+sıradaki iş.
+
+#### Küçük görsel
+
+Ayrı bir küçük dosya üretilmiyor. `/api/kare/:id` tam boyu servis ediyor,
+küçültmeyi Next.js'in kendi görsel iyileştiricisi yapıyor — `<Image>`
+bileşeni `sizes` ile hangi genişliği isteyeceğine karar veriyor ve sonuç
+Netlify'da önbelleğe alınıyor. Yeni bağımlılık yok; `sharp`ı sunucusuz
+pakete sokmak gereksiz risk olurdu.
+
+Canlıda ölçülen (aynı kare):
+
+| Genişlik | Bayt | Süre |
+|---|---|---|
+| tam boy | 643 KB | 7,2 sn |
+| 828 | 90 KB | 1,3 sn |
+| 384 | 26 KB | 1,2 sn · önbellekten 0,56 sn |
+| 128 | 4,8 KB | — |
+
+İndirme bağlantısı tam boya gitmeye devam ediyor; yalnızca ekranda
+gösterilen sürüm küçültülüyor.
 
 ### Kabul kapısı ve kademeli yeniden deneme
 
