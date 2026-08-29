@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import type { Aspect, Crop, JobView, Lighting, Placement } from "@/lib/ai/types";
 import { cn } from "@/lib/utils";
@@ -232,6 +233,9 @@ export function ComposeStudio() {
           </p>
         </div>
         <div className="flex items-center gap-6">
+          <Link href="/hizmetler/kompozisyon/galeri" className="eyebrow text-ash u-line hover:text-ink">
+            Galeri
+          </Link>
           <span className="eyebrow tabular-nums text-ash">
             {[images.person, images.product, images.scene].filter(Boolean).length}/3 görsel
           </span>

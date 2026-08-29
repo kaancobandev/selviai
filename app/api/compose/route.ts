@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { putJob } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
+import { oturumAlVeyaOlustur } from "@/lib/ai/session";
 import {
   ASPECTS,
   CROPS,
@@ -38,10 +39,15 @@ export async function POST(request: Request) {
     return bad("Görseller çok büyük. Daha küçük dosyalarla deneyin.");
   }
 
+  // Anonim oturum: galeri bununla kapsamlanır, kimse başkasının
+  // ürettiği kareyi listeleyemez.
+  const sessionId = await oturumAlVeyaOlustur();
+
   const job: Job = {
     id: crypto.randomUUID(),
     status: "queued",
     createdAt: new Date().toISOString(),
+    sessionId,
     request: composeRequest,
   };
   await putJob(job);

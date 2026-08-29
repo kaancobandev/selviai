@@ -121,6 +121,25 @@ Canlıda ölçülen (aynı kare):
 İndirme bağlantısı tam boya gitmeye devam ediyor; yalnızca ekranda
 gösterilen sürüm küçültülüyor.
 
+### Galeri
+
+`/hizmetler/kompozisyon/galeri` — bu tarayıcıdan üretilen kareler.
+
+Kimlik doğrulama gelene kadar liste **anonim bir oturum çereziyle**
+kapsamlanır (`selvi_oturum`, httpOnly). Kimliksiz bir galeri, yüz
+fotoğrafı yükleyen kullanıcıların üretimlerini birbirine göstermek olurdu.
+Faz 4'te oturum açan kullanıcının kayıtları hesabına devredilecek.
+
+Silme gerçek silmedir: hem depodaki dosya hem tablo satırı gider, ve
+yalnızca kareyi üreten oturum silebilir — eşleşme veritabanında sorgulanır,
+istekteki hiçbir alana güvenilmez.
+
+**Bilinen taviz:** `/api/kare/:id` oturum kontrolü yapmaz; kimliği bilen
+görüntüleyebilir. Sebep teknik — Next'in görsel iyileştiricisi kaynağı
+sunucudan çeker ve kullanıcının çerezini taşımaz, ucu korursak küçük
+görsel çalışmaz. UUID'nin 122 bitlik entropisi tahmin edilemez bir anahtar
+sayılır ve listeleme ucu yoktur. Faz 4'te sıkılaştırılabilir.
+
 ### Kabul kapısı ve kademeli yeniden deneme
 
 Üretilen kare kullanıcıya gösterilmeden önce ucuz bir görsel modeline

@@ -120,6 +120,7 @@ export async function runJob(id: string): Promise<void> {
         score: kazanan.attempt.puan,
         reason: kazanan.attempt.gerekce,
         request,
+        sessionId: job.sessionId,
         mimeType: kazanan.mimeType,
         data: kazanan.data,
       })) ?? undefined;

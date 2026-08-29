@@ -1,5 +1,6 @@
 import { getJob } from "@/lib/ai/jobs";
-import { indir, kompozisyonYolu } from "@/lib/ai/storage";
+import { oturumOku } from "@/lib/ai/session";
+import { indir, kompozisyonYolu, sil } from "@/lib/ai/storage";
 
 /* ------------------------------------------------------------------
    Üretilen kareyi servis eder.
@@ -42,4 +43,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       "cache-control": "private, max-age=31536000, immutable",
     },
   });
+}
+
+/**
+ * Kareyi kalıcı olarak siler — dosya ve kayıt birlikte.
+ *
+ * Yalnızca kareyi üreten oturum silebilir; eşleşme depoda sorgulanır,
+ * istekteki hiçbir alana güvenilmez. Yüz fotoğrafı yükleyen bir üründe
+ * "tek tıkla silme" hukuki bir gereklilik, süs değil.
+ */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const oturum = await oturumOku();
+  if (!oturum) return new Response("Oturum yok", { status: 401 });
+
+  const oldu = await sil(id, oturum);
+  return oldu
+    ? new Response(null, { status: 204 })
+    : new Response("Silinemedi", { status: 404 });
 }

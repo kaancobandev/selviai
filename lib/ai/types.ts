@@ -54,6 +54,8 @@ export type Job = {
   resultDataUrl?: string;
   /** Kalıcı depodaki dosya yolu (Supabase Storage). */
   imagePath?: string;
+  /** Anonim tarayıcı oturumu; galeriyi kapsamlamak için taşınır. */
+  sessionId?: string;
   meta?: JobMeta;
 };
 

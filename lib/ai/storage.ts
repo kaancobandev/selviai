@@ -48,6 +48,8 @@ export type Kompozisyon = {
   mimeType: string;
   /** base64, veri öneki olmadan */
   data: string;
+  /** Anonim tarayıcı oturumu — galeri bununla kapsamlanır. */
+  sessionId?: string;
 };
 
 /**
@@ -97,6 +99,7 @@ export async function depola(k: Kompozisyon): Promise<string | null> {
         image_path: yol,
         image_bytes: bayt.length,
         mime_type: k.mimeType,
+        session_id: k.sessionId,
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -149,5 +152,84 @@ export async function kompozisyonYolu(id: string): Promise<{ yol: string; mime: 
     return s?.image_path ? { yol: s.image_path, mime: s.mime_type ?? "image/jpeg" } : null;
   } catch {
     return null;
+  }
+}
+
+export type GaleriKaydi = {
+  id: string;
+  olusturuldu: string;
+  model: string;
+  kabul: boolean | null;
+  puan: number | null;
+  gerekce: string | null;
+  kirpma: string | null;
+  yerlesim: string | null;
+  isik: string | null;
+  enBoy: string | null;
+  bayt: number | null;
+};
+
+/** Bir oturuma ait kompozisyonlar, yeniden eskiye. */
+export async function galeri(oturum: string, sinir = 60): Promise<GaleriKaydi[]> {
+  if (!depoAcikMi() || !oturum) return [];
+  try {
+    const alanlar = "id,created_at,model,accepted,score,reason,crop,placement,lighting,aspect,image_bytes";
+    const res = await fetch(
+      `${taban()}/rest/v1/compositions?session_id=eq.${encodeURIComponent(oturum)}` +
+        `&select=${alanlar}&order=created_at.desc&limit=${sinir}`,
+      { headers: basliklar(), signal: AbortSignal.timeout(TIMEOUT_MS) },
+    );
+    if (!res.ok) {
+      console.error("Galeri okunamadı:", res.status, (await res.text()).slice(0, 200));
+      return [];
+    }
+    const satirlar = (await res.json()) as Record<string, unknown>[];
+    return satirlar.map((s) => ({
+      id: String(s.id),
+      olusturuldu: String(s.created_at),
+      model: String(s.model ?? ""),
+      kabul: (s.accepted as boolean | null) ?? null,
+      puan: s.score == null ? null : Number(s.score),
+      gerekce: (s.reason as string | null) ?? null,
+      kirpma: (s.crop as string | null) ?? null,
+      yerlesim: (s.placement as string | null) ?? null,
+      isik: (s.lighting as string | null) ?? null,
+      enBoy: (s.aspect as string | null) ?? null,
+      bayt: s.image_bytes == null ? null : Number(s.image_bytes),
+    }));
+  } catch (error) {
+    console.error("Galeri hatası:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
+/**
+ * Kaydı ve dosyayı siler. Oturum eşleşmiyorsa hiçbir şey yapmaz —
+ * kimse başkasının karesini silemesin.
+ */
+export async function sil(id: string, oturum: string): Promise<boolean> {
+  if (!depoAcikMi() || !oturum) return false;
+  try {
+    const bul = await fetch(
+      `${taban()}/rest/v1/compositions?id=eq.${encodeURIComponent(id)}&session_id=eq.${encodeURIComponent(oturum)}&select=image_path&limit=1`,
+      { headers: basliklar(), signal: AbortSignal.timeout(TIMEOUT_MS) },
+    );
+    if (!bul.ok) return false;
+    const [satir] = (await bul.json()) as { image_path?: string }[];
+    if (!satir?.image_path) return false;
+
+    await fetch(`${taban()}/storage/v1/object/${BUCKET}/${satir.image_path}`, {
+      method: "DELETE",
+      headers: basliklar(),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    const satirSil = await fetch(
+      `${taban()}/rest/v1/compositions?id=eq.${encodeURIComponent(id)}&session_id=eq.${encodeURIComponent(oturum)}`,
+      { method: "DELETE", headers: basliklar(), signal: AbortSignal.timeout(TIMEOUT_MS) },
+    );
+    return satirSil.ok;
+  } catch (error) {
+    console.error("Silme hatası:", error instanceof Error ? error.message : error);
+    return false;
   }
 }

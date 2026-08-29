@@ -16,6 +16,7 @@ export function ServicesNav() {
   const pathname = usePathname();
   const isActive = (slug: string) =>
     pathname === `/hizmetler/${slug}` || (slug === "inspiration" && pathname === "/hizmetler");
+  const galeriAktif = pathname === "/hizmetler/kompozisyon/galeri";
 
   return (
     <>
@@ -42,6 +43,25 @@ export function ServicesNav() {
               )}
             />
             Kompozisyon
+          </Link>
+          <Link
+            href="/hizmetler/kompozisyon/galeri"
+            aria-current={galeriAktif ? "page" : undefined}
+            className={cn(
+              "relative flex items-center py-2.5 text-[13.5px] leading-5 transition-[color,padding-left] duration-500 ease-[var(--ease-out-expo)]",
+              galeriAktif
+                ? "pl-7 font-medium text-ink"
+                : "pl-0 text-smoke hover:pl-2 hover:text-ink",
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "absolute left-0 top-1/2 h-px -translate-y-1/2 bg-ink transition-[width,opacity] duration-500 ease-[var(--ease-out-expo)]",
+                galeriAktif ? "w-4 opacity-100" : "w-0 opacity-0",
+              )}
+            />
+            Galeri
           </Link>
         </nav>
         <div aria-hidden className="seam my-6 text-ink" />
@@ -102,6 +122,16 @@ export function ServicesNav() {
             )}
           >
             Kompozisyon
+          </Link>
+          <Link
+            href="/hizmetler/kompozisyon/galeri"
+            aria-current={galeriAktif ? "page" : undefined}
+            className={cn(
+              "whitespace-nowrap border-b py-4 text-[13px] transition-colors duration-500",
+              galeriAktif ? "border-ink font-medium text-ink" : "border-transparent text-smoke",
+            )}
+          >
+            Galeri
           </Link>
           <span aria-hidden className="my-4 w-px shrink-0 bg-mist" />
           {services.map((s) => {

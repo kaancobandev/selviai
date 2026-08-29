@@ -38,8 +38,15 @@ create table if not exists public.compositions (
   mime_type     text
 );
 
+-- Kimlik dogrulama gelene kadar kayitlar anonim bir tarayici oturumuna
+-- baglanir. Galeri bununla kapsamlanir: kimse baskasinin karesini
+-- listeleyemez. Faz 4'te oturum kayitlari user_id'ye devredilecek.
+alter table public.compositions add column if not exists session_id text;
+
 create index if not exists compositions_user_created_idx
   on public.compositions (user_id, created_at desc);
+create index if not exists compositions_session_created_idx
+  on public.compositions (session_id, created_at desc);
 
 -- 2) RLS — açık şemadaki her tablo için zorunlu ----------------------
 -- Sunucu gizli anahtarla yazıyor ve RLS'i atlıyor. Politikalar Faz 4
