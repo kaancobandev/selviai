@@ -15,22 +15,55 @@ export type Lighting = (typeof LIGHTINGS)[number];
 export type Aspect = (typeof ASPECTS)[number];
 
 /** Tek bir görsel girdisi — base64 gövde, MIME tipiyle birlikte. */
+/** Baytları elde olan görsel — model katmanı bunu ister. */
 export type ImageInput = {
   mimeType: string;
   /** base64, veri öneki olmadan */
   data: string;
 };
 
-export type ComposeRequest = {
-  person: ImageInput;
-  product: ImageInput;
-  scene: ImageInput;
+/**
+ * Depoya doğrudan yüklenmiş görsel. İstemci baytları API gövdesinden
+ * geçirmek yerine imzalı adrese yükler; istek yalnızca yolu taşır.
+ */
+export type ImageRef = {
+  mimeType: string;
+  /** `inputs` kovasındaki yol */
+  path: string;
+};
+
+export type ImageSource = ImageInput | ImageRef;
+
+export function isRef(k: ImageSource): k is ImageRef {
+  return typeof (k as ImageRef).path === "string";
+}
+
+/** Parametreler — iki istek biçiminde de ortak. */
+export type ComposeParams = {
   crop: Crop;
   placement: Placement;
   lighting: Lighting;
   aspect: Aspect;
   /** Kullanıcının serbest notu — isteğe bağlı, prompt'un sonuna eklenir */
   note?: string;
+};
+
+/** Model katmanına giden istek: baytlar hazır. */
+export type ComposeRequest = ComposeParams & {
+  person: ImageInput;
+  product: ImageInput;
+  scene: ImageInput;
+};
+
+/**
+ * API'ye gelen ve iş kaydında duran istek. Görseller ya doğrudan
+ * gövdede (eski yol) ya da depodaki yollarıyla (imzalı yükleme) gelir.
+ * İkincisinde iş kaydı yarım megabayt yerine birkaç yüz bayt tutar.
+ */
+export type ComposeInput = ComposeParams & {
+  person: ImageSource;
+  product: ImageSource;
+  scene: ImageSource;
 };
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
@@ -46,7 +79,7 @@ export type Job = {
   step?: string;
   /** Her yazmada tazelenir; bekçi bunun eskimesine bakar */
   updatedAt?: string;
-  request?: ComposeRequest;
+  request?: ComposeInput;
   /**
    * Sonuç: data URL. Yalnızca kalıcı depo kapalıyken doldurulur —
    * yarım megabaytlık veriyi iş kaydında taşımak pahalı ve geçici.

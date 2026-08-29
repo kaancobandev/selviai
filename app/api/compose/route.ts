@@ -7,8 +7,9 @@ import {
   CROPS,
   LIGHTINGS,
   PLACEMENTS,
-  type ComposeRequest,
-  type ImageInput,
+  isRef,
+  type ComposeInput,
+  type ImageSource,
   type Job,
 } from "@/lib/ai/types";
 
@@ -42,6 +43,14 @@ export async function POST(request: Request) {
   // Anonim oturum: galeri bununla kapsamlanır, kimse başkasının
   // ürettiği kareyi listeleyemez.
   const sessionId = await oturumAlVeyaOlustur();
+
+  // Depo yolları istemciden geliyor; kendi oturumunun dışını
+  // gösteremesinler — yoksa başkasının girdisiyle üretim yapılabilirdi.
+  for (const kaynak of [composeRequest.person, composeRequest.product, composeRequest.scene]) {
+    if (isRef(kaynak) && !kaynak.path.startsWith(sessionId + "/")) {
+      return bad("Görsel yolu bu oturuma ait değil.");
+    }
+  }
 
   const job: Job = {
     id: crypto.randomUUID(),
@@ -102,22 +111,22 @@ function bad(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
 }
 
-function approxBytes(image: ImageInput): number {
-  return Math.floor((image.data.length * 3) / 4);
+function approxBytes(image: ImageSource): number {
+  return isRef(image) ? 0 : Math.floor((image.data.length * 3) / 4);
 }
 
-type Parsed = { value: ComposeRequest } | { error: string };
+type Parsed = { value: ComposeInput } | { error: string };
 
 function parseRequest(body: unknown): Parsed {
   if (typeof body !== "object" || body === null) return { error: "Geçersiz istek." };
   const b = body as Record<string, unknown>;
 
-  const slots: [keyof ComposeRequest, string][] = [
+  const slots: [keyof ComposeInput, string][] = [
     ["person", "Kişi fotoğrafı"],
     ["product", "Ürün görseli"],
     ["scene", "Arka plan görseli"],
   ];
-  const images: Partial<Record<"person" | "product" | "scene", ImageInput>> = {};
+  const images: Partial<Record<"person" | "product" | "scene", ImageSource>> = {};
 
   for (const [key, label] of slots) {
     const image = parseImage(b[key as string]);
@@ -149,13 +158,23 @@ function parseRequest(body: unknown): Parsed {
   };
 }
 
-function parseImage(value: unknown): ImageInput | null {
+/** Görsel ya gövdede (base64) ya da depodaki yoluyla gelir. */
+function parseImage(value: unknown): ImageSource | null {
   if (typeof value !== "object" || value === null) return null;
   const v = value as Record<string, unknown>;
-  if (typeof v.mimeType !== "string" || typeof v.data !== "string") return null;
-  if (!ALLOWED_MIME.has(v.mimeType)) return null;
-  if (v.data.length < 100) return null;
-  return { mimeType: v.mimeType, data: v.data };
+  if (typeof v.mimeType !== "string" || !ALLOWED_MIME.has(v.mimeType)) return null;
+
+  if (typeof v.path === "string") {
+    // Beklenen biçim: <oturum>/<dosya>. Tek bölme, boş parça yok,
+    // dizin dışına çıkma yok.
+    const parca = v.path.split("/");
+    if (parca.length !== 2 || parca.some((x) => !x || x.includes(".."))) return null;
+    return { mimeType: v.mimeType, path: v.path };
+  }
+  if (typeof v.data === "string" && v.data.length >= 100) {
+    return { mimeType: v.mimeType, data: v.data };
+  }
+  return null;
 }
 
 function pick<T extends readonly string[]>(value: unknown, allowed: T): T[number] | null {

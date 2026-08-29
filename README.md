@@ -121,6 +121,25 @@ Canlıda ölçülen (aynı kare):
 İndirme bağlantısı tam boya gitmeye devam ediyor; yalnızca ekranda
 gösterilen sürüm küçültülüyor.
 
+### İmzalı yükleme
+
+İstemci görselleri API gövdesinden geçirmez: `/api/yukleme` üç imzalı
+adres döndürür, tarayıcı baytları doğrudan `inputs` kovasına yükler ve
+`/api/compose` yalnızca yolları taşır. Gövde 231 KB'tan birkaç yüz bayta
+iner; ölçülen ~2,7 saniyelik yükleme gecikmesi üretim boru hattından çıkar
+ve 4 MB'lık gövde sınırı ortadan kalkar.
+
+**Girdiler üretim bitince silinir.** Yüz fotoğrafları gereğinden uzun
+durmamalı; ayrıca üç girdi bir çıktıdan büyük olduğu için 1 GB'lık
+ücretsiz alanı üç kat hızlı tüketirlerdi.
+
+Yolu istemci gönderdiği için sunucu iki kez doğrular: biçim (`<oturum>/<dosya>`,
+tek bölme, dizin dışına çıkma yok) ve önekin isteği yapan oturuma ait olması.
+Yoksa bir istemci başkasının girdisiyle üretim yaptırabilirdi.
+
+Depolama kapalıysa ya da yükleme tökezlerse istemci sessizce eski yola
+(gövdede base64) düşer — kullanıcı farkı görmez.
+
 ### Galeri
 
 `/hizmetler/kompozisyon/galeri` — bu tarayıcıdan üretilen kareler.

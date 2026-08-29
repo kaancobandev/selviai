@@ -1,7 +1,8 @@
 import { ComposeError, generateComposite, composeModel } from "./gemini";
 import { agirlikliPuan, judgeComposite, qualityGateEnabled } from "./judge";
 import { getJob, patchJob } from "./jobs";
-import { depoAcikMi, depola } from "./storage";
+import { cozGirdiler, girdiYollari } from "./resolve";
+import { depoAcikMi, depola, girdileriSil } from "./storage";
 import type { Attempt, ComposeRequest } from "./types";
 
 /* ------------------------------------------------------------------
@@ -57,8 +58,25 @@ export async function runJob(id: string): Promise<void> {
   if (job.status === "completed" || job.status === "processing") return;
 
   // Girdiyi belleğe al, kayıttan çıkar: bundan sonraki yazmalar küçük.
-  const request = job.request;
+  const istek = job.request;
+  const temizlenecek = girdiYollari(istek);
   await patchJob(id, { status: "processing", step: "model-cagriliyor", request: undefined });
+
+  // Görseller depodaysa baytlarını indir; model katmanı hazır bayt ister.
+  let request;
+  try {
+    request = await cozGirdiler(istek);
+  } catch (error) {
+    console.error(`runJob: girdiler çözülemedi (${id}):`, error);
+    await girdileriSil(temizlenecek);
+    await patchJob(id, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      step: "girdi-okunamadi",
+      error: "Yüklenen görseller okunamadı. Görselleri tekrar yükleyip deneyin.",
+    });
+    return;
+  }
 
   const zincir = modelZinciri();
   const kapiAcik = qualityGateEnabled();
@@ -85,6 +103,9 @@ export async function runJob(id: string): Promise<void> {
       await patchJob(id, { step: `kabul-edilmedi · daha guclu modelle yeniden` });
     }
   }
+
+  // Girdiler işini bitirdi: yüz fotoğrafları gereğinden uzun durmasın.
+  await girdileriSil(temizlenecek);
 
   const kazanan = enIyisi(adaylar);
   if (!kazanan) {

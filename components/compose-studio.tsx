@@ -78,7 +78,15 @@ const ASPECT_OPTIONS: { value: Aspect; label: string }[] = [
   { value: "16:9", label: "16:9" },
 ];
 
-type Picked = { previewUrl: string; mimeType: string; data: string; name: string };
+type Picked = {
+  previewUrl: string;
+  mimeType: string;
+  /** base64 — yalnızca imzalı yükleme kapalıyken gövdede gönderilir */
+  data: string;
+  /** ham baytlar — imzalı yükleme bunu doğrudan depoya koyar */
+  blob: Blob;
+  name: string;
+};
 
 export function ComposeStudio() {
   const [images, setImages] = useState<Partial<Record<SlotId, Picked>>>({});
@@ -141,13 +149,21 @@ export function ComposeStudio() {
     setElapsed(0);
 
     try {
+      const secilen = {
+        person: images.person!,
+        product: images.product!,
+        scene: images.scene!,
+      };
+      // Önce doğrudan depoya yüklemeyi dene; olmazsa baytlar gövdede gider.
+      const yuklenen = await depoyaYukle(secilen);
+
       const res = await fetch("/api/compose", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          person: strip(images.person!),
-          product: strip(images.product!),
-          scene: strip(images.scene!),
+          person: yuklenen?.person ?? strip(secilen.person),
+          product: yuklenen?.product ?? strip(secilen.product),
+          scene: yuklenen?.scene ?? strip(secilen.scene),
           crop,
           placement,
           lighting,
@@ -541,6 +557,50 @@ function strip(p: Picked) {
   return { mimeType: p.mimeType, data: p.data };
 }
 
+/**
+ * Görselleri doğrudan depoya yükler ve istekte yalnızca yollarını
+ * gönderir. Kazanç: 4 MB'lık gövde sınırı kalkar ve yükleme, üretim
+ * boru hattının dışına çıkar.
+ *
+ * Depolama kapalıysa ya da yükleme tökezlerse null döner; çağıran
+ * eski yola (gövdede base64) düşer. Kullanıcı farkı görmez.
+ */
+async function depoyaYukle(
+  parcalar: Record<SlotId, Picked>,
+): Promise<Record<SlotId, { mimeType: string; path: string }> | null> {
+  try {
+    const sira: SlotId[] = ["person", "product", "scene"];
+    const res = await fetch("/api/yukleme", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mimeTypes: sira.map((k) => parcalar[k].mimeType) }),
+    });
+    if (!res.ok) return null;
+    const veri = (await res.json()) as {
+      destekleniyor?: boolean;
+      hedefler?: { slot: SlotId; yol: string; adres: string }[];
+    };
+    if (!veri.destekleniyor || veri.hedefler?.length !== sira.length) return null;
+
+    const sonuc = {} as Record<SlotId, { mimeType: string; path: string }>;
+    await Promise.all(
+      veri.hedefler.map(async (h) => {
+        const parca = parcalar[h.slot];
+        const yukleme = await fetch(h.adres, {
+          method: "PUT",
+          headers: { "content-type": parca.mimeType },
+          body: parca.blob,
+        });
+        if (!yukleme.ok) throw new Error("yükleme " + yukleme.status);
+        sonuc[h.slot] = { mimeType: parca.mimeType, path: h.yol };
+      }),
+    );
+    return sonuc;
+  } catch {
+    return null;
+  }
+}
+
 /** Görseli en fazla MAX_EDGE kenara küçültür ve JPEG base64 döndürür. */
 async function downscale(file: File): Promise<Picked> {
   const bitmap = await createImageBitmap(file);
@@ -563,10 +623,12 @@ async function downscale(file: File): Promise<Picked> {
     canvas.toBlob(resolve, "image/jpeg", 0.9),
   );
 
+  const cikti = blob ?? file;
   return {
-    previewUrl: URL.createObjectURL(blob ?? file),
+    previewUrl: URL.createObjectURL(cikti),
     mimeType: "image/jpeg",
     data,
+    blob: cikti,
     name: file.name,
   };
 }

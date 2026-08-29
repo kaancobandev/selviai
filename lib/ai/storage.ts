@@ -233,3 +233,81 @@ export async function sil(id: string, oturum: string): Promise<boolean> {
     return false;
   }
 }
+
+/* ------------------------------------------------------------------
+   Girdi görselleri — imzalı yükleme.
+
+   İstemci baytları API gövdesinden geçirmek yerine doğrudan depoya
+   yükler. Kazanç iki türlü: 4 MB'lık gövde sınırı kalkar ve ölçülen
+   ~2,7 saniyelik yükleme gecikmesi boru hattından çıkar.
+
+   Girdiler ÜRETİM BİTİNCE SİLİNİR. Yüz fotoğrafları gereğinden uzun
+   durmamalı; ayrıca üç girdi bir çıktıdan büyük, 1 GB'lık ücretsiz
+   alanı üç kat hızlı tüketirlerdi.
+   ------------------------------------------------------------------ */
+
+const GIRDI_KOVA = "inputs";
+
+export type YuklemeHedefi = { yol: string; adres: string; token: string };
+
+/** Tek bir dosya için imzalı yükleme adresi üretir. */
+export async function imzaliYukleme(yol: string): Promise<YuklemeHedefi | null> {
+  if (!depoAcikMi()) return null;
+  try {
+    const res = await fetch(`${taban()}/storage/v1/object/upload/sign/${GIRDI_KOVA}/${yol}`, {
+      method: "POST",
+      headers: basliklar({ "content-type": "application/json" }),
+      body: "{}",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      console.error("İmzalı adres alınamadı:", res.status, (await res.text()).slice(0, 200));
+      return null;
+    }
+    const { token } = (await res.json()) as { url?: string; token?: string };
+    if (!token) return null;
+    return {
+      yol,
+      adres: `${taban()}/storage/v1/object/upload/sign/${GIRDI_KOVA}/${yol}?token=${token}`,
+      token,
+    };
+  } catch (error) {
+    console.error("İmzalı adres hatası:", error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+/** Depodaki girdiyi base64 olarak okur. */
+export async function girdiOku(yol: string): Promise<string | null> {
+  if (!depoAcikMi()) return null;
+  try {
+    const res = await fetch(`${taban()}/storage/v1/object/${GIRDI_KOVA}/${yol}`, {
+      headers: basliklar(),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      console.error("Girdi okunamadı:", res.status, yol);
+      return null;
+    }
+    return Buffer.from(await res.arrayBuffer()).toString("base64");
+  } catch (error) {
+    console.error("Girdi okuma hatası:", error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+/** Üretim bittiğinde girdileri temizler. Hata yutulur: temizlik işi
+ *  kullanıcının sonucunu engellememeli. */
+export async function girdileriSil(yollar: string[]): Promise<void> {
+  if (!depoAcikMi() || !yollar.length) return;
+  try {
+    await fetch(`${taban()}/storage/v1/object/${GIRDI_KOVA}`, {
+      method: "DELETE",
+      headers: basliklar({ "content-type": "application/json" }),
+      body: JSON.stringify({ prefixes: yollar }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (error) {
+    console.error("Girdi temizliği başarısız:", error instanceof Error ? error.message : error);
+  }
+}
