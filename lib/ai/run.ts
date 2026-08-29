@@ -1,3 +1,4 @@
+import { VARSAYILAN_KATMAN, type Katman } from "./anahtar";
 import { ComposeError, generateComposite, composeModel } from "./gemini";
 import { agirlikliPuan, judgeComposite, qualityGateEnabled } from "./judge";
 import { getJob, patchJob } from "./jobs";
@@ -83,6 +84,7 @@ export async function runJob(id: string): Promise<void> {
     return;
   }
 
+  const katman: Katman = job.katman ?? VARSAYILAN_KATMAN;
   const zincir = modelZinciri();
   const kapiAcik = qualityGateEnabled();
   const adaylar: Aday[] = [];
@@ -93,7 +95,7 @@ export async function runJob(id: string): Promise<void> {
     const model = zincir[i];
     const sonDeneme = i === zincir.length - 1;
 
-    const aday = await birDeneme(id, request, model, i);
+    const aday = await birDeneme(id, request, model, i, katman);
     if ("hata" in aday) {
       denemeler.push(aday.hata);
       sonHata = aday.cause;
@@ -174,6 +176,7 @@ async function birDeneme(
   request: ComposeRequest,
   model: string,
   sira: number,
+  katman: Katman,
 ): Promise<{ aday: Aday } | { hata: Attempt; cause: unknown }> {
   const basladi = Date.now();
   const kalp = setInterval(() => {
@@ -182,7 +185,7 @@ async function birDeneme(
   }, HEARTBEAT_MS);
 
   try {
-    const sonuc = await generateComposite(request, model);
+    const sonuc = await generateComposite(request, model, katman);
     clearInterval(kalp);
 
     let kabul: boolean | null = null;
@@ -191,7 +194,7 @@ async function birDeneme(
 
     if (qualityGateEnabled()) {
       await patchJob(id, { step: "kare-denetleniyor" });
-      const karar = await judgeComposite(request, sonuc);
+      const karar = await judgeComposite(request, sonuc, katman);
       if (karar) {
         kabul = karar.kabul;
         puan = agirlikliPuan(karar);

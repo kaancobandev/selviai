@@ -1,3 +1,4 @@
+import { apiAnahtari, type Katman } from "./anahtar";
 import { buildPrompt } from "./prompt";
 import type { ComposeRequest } from "./types";
 
@@ -50,12 +51,16 @@ type ApiResponse = {
 /**
  * @param modelAdi Zincirdeki modeli çağıran taraf seçer (bkz. run.ts);
  *   verilmezse ortam değişkenindeki birincil model kullanılır.
+ * @param katman Hangi Google projesinin anahtarı kullanılacak. Ücretsiz
+ *   deneme ayrı projede çalışır; hız sınırı ve harcama tavanı proje
+ *   bazlı olduğu için bu ayrım ödeyen müşteriyi korur (bkz. anahtar.ts).
  */
 export async function generateComposite(
   req: ComposeRequest,
   modelAdi?: string,
+  katman?: Katman,
 ): Promise<ComposeResult> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = apiAnahtari(katman);
   if (!apiKey) {
     throw new ComposeError(
       "Sunucuda GEMINI_API_KEY tanımlı değil. Ortam değişkenini ekleyip sunucuyu yeniden başlatın.",

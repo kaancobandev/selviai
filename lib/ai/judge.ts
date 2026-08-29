@@ -1,3 +1,4 @@
+import { apiAnahtari, type Katman } from "./anahtar";
 import type { ComposeRequest } from "./types";
 
 /* ------------------------------------------------------------------
@@ -96,11 +97,16 @@ type Api = {
   error?: { message?: string };
 };
 
+/**
+ * @param katman Hakem de üretimle AYNI projede çalışmalı; yoksa ücretsiz
+ *   denemenin hakem çağrıları ödeyen projenin hız sınırını yer.
+ */
 export async function judgeComposite(
   req: ComposeRequest,
   sonuc: { mimeType: string; data: string },
+  katman?: Katman,
 ): Promise<Verdict | null> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = apiAnahtari(katman);
   if (!apiKey) return null;
 
   const model = judgeModel();

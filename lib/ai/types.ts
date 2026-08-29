@@ -89,6 +89,11 @@ export type Job = {
   imagePath?: string;
   /** Anonim tarayıcı oturumu; galeriyi kapsamlamak için taşınır. */
   sessionId?: string;
+  /**
+   * Hangi Google projesinde üretilecek. Bugün her üretim anonim ve
+   * ücretsiz; kredi geldiğinde ödeyen işler "odeyen" olarak işaretlenecek.
+   */
+  katman?: "ucretsiz" | "odeyen";
   meta?: JobMeta;
 };
 

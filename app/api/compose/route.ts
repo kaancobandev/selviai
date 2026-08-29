@@ -60,6 +60,10 @@ export async function POST(request: Request) {
     status: "queued",
     createdAt: new Date().toISOString(),
     sessionId,
+    // Kimlik doğrulama ve kredi gelene kadar her üretim ücretsiz
+    // katmanda, yani ayrı Google projesinde ve kendi harcama tavanı
+    // altında çalışır. Dilim 5'te ödeyen işler "odeyen" olacak.
+    katman: "ucretsiz",
     request: composeRequest,
   };
   await putJob(job);
