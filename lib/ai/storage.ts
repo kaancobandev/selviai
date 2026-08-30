@@ -248,13 +248,22 @@ export async function sil(id: string, oturum: string): Promise<boolean> {
 
 const GIRDI_KOVA = "inputs";
 
+/**
+ * Yol bölütlerini tek tek kaçırır. Bölme karakteri korunur ama bölütün
+ * içindeki hiçbir şey URL'i kaydıramaz — bu istekler service_role
+ * yetkisiyle gidiyor, yani hedefin kaymasının bedeli yüksek.
+ */
+function kacir(yol: string): string {
+  return yol.split("/").map(encodeURIComponent).join("/");
+}
+
 export type YuklemeHedefi = { yol: string; adres: string; token: string };
 
 /** Tek bir dosya için imzalı yükleme adresi üretir. */
 export async function imzaliYukleme(yol: string): Promise<YuklemeHedefi | null> {
   if (!depoAcikMi()) return null;
   try {
-    const res = await fetch(`${taban()}/storage/v1/object/upload/sign/${GIRDI_KOVA}/${yol}`, {
+    const res = await fetch(`${taban()}/storage/v1/object/upload/sign/${GIRDI_KOVA}/${kacir(yol)}`, {
       method: "POST",
       headers: basliklar({ "content-type": "application/json" }),
       body: "{}",
@@ -268,7 +277,7 @@ export async function imzaliYukleme(yol: string): Promise<YuklemeHedefi | null> 
     if (!token) return null;
     return {
       yol,
-      adres: `${taban()}/storage/v1/object/upload/sign/${GIRDI_KOVA}/${yol}?token=${token}`,
+      adres: `${taban()}/storage/v1/object/upload/sign/${GIRDI_KOVA}/${kacir(yol)}?token=${token}`,
       token,
     };
   } catch (error) {
@@ -281,7 +290,7 @@ export async function imzaliYukleme(yol: string): Promise<YuklemeHedefi | null> 
 export async function girdiOku(yol: string): Promise<string | null> {
   if (!depoAcikMi()) return null;
   try {
-    const res = await fetch(`${taban()}/storage/v1/object/${GIRDI_KOVA}/${yol}`, {
+    const res = await fetch(`${taban()}/storage/v1/object/${GIRDI_KOVA}/${kacir(yol)}`, {
       headers: basliklar(),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

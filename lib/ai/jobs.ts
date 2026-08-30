@@ -24,11 +24,17 @@ type Store = {
 
 declare global {
   var __composeJobs: Map<string, Job> | undefined;
+  var __composeSonIs: Map<string, string> | undefined;
 }
 
 function memory(): Map<string, Job> {
   globalThis.__composeJobs ??= new Map<string, Job>();
   return globalThis.__composeJobs;
+}
+
+function sonIsler(): Map<string, string> {
+  globalThis.__composeSonIs ??= new Map<string, string>();
+  return globalThis.__composeSonIs;
 }
 
 let storePromise: Promise<Store | null> | undefined;
@@ -86,6 +92,29 @@ export async function patchJob(id: string, patch: Partial<Job>): Promise<Job | n
   const next: Job = { ...base, ...patch, updatedAt: new Date().toISOString() };
   await putJob(next);
   return next;
+}
+
+/* Oturum başına son iş — eşzamanlılık kilidi bunu okuyor.
+   Ayrı anahtarda tutuluyor çünkü iş kayıtları kimlikle saklanıyor ve
+   Blobs'ta sorgu yok. Faz 4'te Postgres'e taşınınca kalkacak. */
+const SON_IS = (sessionId: string) => `oturum:${sessionId}`;
+
+export async function sonIsiYaz(sessionId: string, jobId: string): Promise<void> {
+  const store = await blobStore();
+  if (store) {
+    await store.setJSON(SON_IS(sessionId), { jobId });
+    return;
+  }
+  sonIsler().set(sessionId, jobId);
+}
+
+export async function sonIsiOku(sessionId: string): Promise<string | null> {
+  const store = await blobStore();
+  if (store) {
+    const v = (await store.get(SON_IS(sessionId), { type: "json" })) as { jobId?: string } | null;
+    return v?.jobId ?? null;
+  }
+  return sonIsler().get(sessionId) ?? null;
 }
 
 export async function dropJob(id: string): Promise<void> {

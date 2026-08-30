@@ -216,9 +216,19 @@ async function birDeneme(
 }
 
 /** Kapıdan geçen ilk kare, yoksa en yüksek puanlı kare. */
+/**
+ * Kapıdan geçen ilk kare, yoksa en yüksek puanlı kare.
+ *
+ * Puansız aday (hakem çökmüş) SONSUZ sayılır. Sebebi: zincir, kabul
+ * edilmemiş bir kareden sonra daha güçlü modele yükseliyor ve puansız
+ * denemede döngü zaten kırılıyor — yani puansız aday her zaman en son
+ * ve en pahalı üretilendir. `?? 0` deseydik, hakem Pro çağrısından
+ * sonra çökünce reddedilmiş ucuz kare kazanır, 0,142 $ çöpe giderdi.
+ */
 function enIyisi(adaylar: Aday[]): Aday | null {
   if (!adaylar.length) return null;
   const gecen = adaylar.find((a) => a.attempt.kabul === true);
   if (gecen) return gecen;
-  return adaylar.reduce((en, a) => ((a.attempt.puan ?? 0) > (en.attempt.puan ?? 0) ? a : en));
+  const puan = (a: Aday) => a.attempt.puan ?? Number.POSITIVE_INFINITY;
+  return adaylar.reduce((en, a) => (puan(a) > puan(en) ? a : en));
 }

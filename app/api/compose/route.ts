@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { putJob } from "@/lib/ai/jobs";
+import { getJob, putJob, sonIsiOku, sonIsiYaz } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
 import { imzala, INVOKE_HEADER } from "@/lib/ai/invoke";
 import { girdiYollari } from "@/lib/ai/resolve";
 import { girdileriSil } from "@/lib/ai/storage";
-import { oturumAlVeyaOlustur } from "@/lib/ai/session";
+import { depoOneki, oturumAlVeyaOlustur } from "@/lib/ai/session";
 import {
   ASPECTS,
   CROPS,
@@ -21,6 +21,8 @@ export const maxDuration = 60;
 
 /** Toplam gövde sınırı — istemci görselleri 1280 px'e küçültüp gönderir. */
 const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+/** Bu süreyi aşan "süren" iş takılmış sayılır ve yeni iş engellenmez. */
+const ACIK_IS_TAVANI_MS = 2 * 60 * 1000;
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export async function POST(request: Request) {
@@ -49,10 +51,22 @@ export async function POST(request: Request) {
 
   // Depo yolları istemciden geliyor; kendi oturumunun dışını
   // gösteremesinler — yoksa başkasının girdisiyle üretim yapılabilirdi.
+  const onek = depoOneki(sessionId) + "/";
   for (const kaynak of [composeRequest.person, composeRequest.product, composeRequest.scene]) {
-    if (isRef(kaynak) && !kaynak.path.startsWith(sessionId + "/")) {
+    if (isRef(kaynak) && !kaynak.path.startsWith(onek)) {
       return bad("Görsel yolu bu oturuma ait değil.");
     }
+  }
+
+  // Aynı oturumda hâlâ süren bir iş varken ikincisini başlatma.
+  // Tam kota altyapısı Faz 4'ün ilk dilimi; bu, döngüye giren bir
+  // istemcinin sınırsız üretim tetiklemesini bugün kesen en küçük adım.
+  const acikIs = await acikIsiBul(sessionId);
+  if (acikIs) {
+    return NextResponse.json(
+      { error: "Bir üretiminiz sürüyor. Bitmesini bekleyin.", jobId: acikIs },
+      { status: 429 },
+    );
   }
 
   const job: Job = {
@@ -67,6 +81,7 @@ export async function POST(request: Request) {
     request: composeRequest,
   };
   await putJob(job);
+  await sonIsiYaz(sessionId, job.id);
 
   // Sunucusuz ortamda yanıt döndükten sonra çalışan iş donduruluyor;
   // üretim mutlaka arka plan fonksiyonuna devredilmeli. Yalnızca yerel
@@ -129,6 +144,25 @@ async function triggerBackground(jobId: string, request: Request): Promise<boole
     console.error("triggerBackground başarısız:", base, error);
     return false;
   }
+}
+
+/**
+ * Oturumun süren işi var mı. İş kayıtları kimlikle saklandığı için
+ * oturum başına son iş ayrı bir anahtarda tutulur — Faz 4'te iş kaydı
+ * Postgres'e taşınınca bu tek sorguya dönüşecek.
+ */
+async function acikIsiBul(sessionId: string): Promise<string | null> {
+  const sonId = await sonIsiOku(sessionId);
+  if (!sonId) return null;
+  const is = await getJob(sonId);
+  if (!is) return null;
+  if (is.status !== "queued" && is.status !== "processing") return null;
+
+  // Bekçi eşiğini aşmış bir iş sürüyor sayılmaz; yoksa takılan tek bir
+  // iş kullanıcıyı süresiz kilitler.
+  const son = Date.parse(is.updatedAt ?? is.createdAt);
+  if (Number.isFinite(son) && Date.now() - son > ACIK_IS_TAVANI_MS) return null;
+  return sonId;
 }
 
 function bad(message: string) {

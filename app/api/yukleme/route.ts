@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { oturumAlVeyaOlustur } from "@/lib/ai/session";
+import { depoOneki, oturumAlVeyaOlustur } from "@/lib/ai/session";
 import { depoAcikMi, imzaliYukleme } from "@/lib/ai/storage";
 
 /* ------------------------------------------------------------------
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (!uzanti) {
       return NextResponse.json({ error: "Desteklenmeyen görsel biçimi." }, { status: 400 });
     }
-    const yol = `${oturum}/${crypto.randomUUID()}.${uzanti}`;
+    const yol = `${depoOneki(oturum)}/${crypto.randomUUID()}.${uzanti}`;
     const hedef = await imzaliYukleme(yol);
     if (!hedef) {
       return NextResponse.json({ error: "Yükleme adresi alınamadı." }, { status: 502 });
