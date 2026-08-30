@@ -160,13 +160,38 @@ export function ComposeStudio() {
     setElapsed(0);
 
     try {
+      // Yolu olmayan slotları şimdi yükle. İlk üretimde bu liste boştur
+      // (yükleme görsel seçilirken bitti); "Yeniden üret"te üçü de burada
+      // yüklenir, çünkü bir önceki üretim onları depodan sildirdi.
+      const secilen: Record<SlotId, Picked> = {
+        person: images.person!,
+        product: images.product!,
+        scene: images.scene!,
+      };
+      const eksikler = (Object.keys(secilen) as SlotId[]).filter((k) => !secilen[k].path);
+      if (eksikler.length) {
+        const yollar = await Promise.all(
+          eksikler.map((k) => depoyaYukle(secilen[k].blob, secilen[k].mimeType)),
+        );
+        eksikler.forEach((k, i) => {
+          const yol = yollar[i];
+          if (yol) secilen[k] = { ...secilen[k], path: yol };
+        });
+        // Durumu da tazele ki aynı yükleme iki kez yapılmasın.
+        setImages((prev) => {
+          const yeni = { ...prev };
+          for (const k of eksikler) if (prev[k] === images[k]) yeni[k] = secilen[k];
+          return yeni;
+        });
+      }
+
       const res = await fetch("/api/compose", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          person: kaynak(images.person!),
-          product: kaynak(images.product!),
-          scene: kaynak(images.scene!),
+          person: kaynak(secilen.person),
+          product: kaynak(secilen.product),
+          scene: kaynak(secilen.scene),
           crop,
           placement,
           lighting,
@@ -211,6 +236,17 @@ export function ComposeStudio() {
           if (stopped) return;
           setJob(next);
           if (next.status === "completed" || next.status === "failed") {
+            // Sunucu üretim biter bitmez girdileri depodan siliyor
+            // (lib/ai/run.ts, girdileriSil). Elimizdeki yollar artık
+            // ölü; düşür ki bir sonraki üretim baytları yeniden yüklesin.
+            setImages((prev) => {
+              const yeni = { ...prev };
+              for (const k of Object.keys(yeni) as SlotId[]) {
+                const parca = yeni[k];
+                if (parca?.path) yeni[k] = { ...parca, path: undefined };
+              }
+              return yeni;
+            });
             setBusy(false);
             return;
           }
