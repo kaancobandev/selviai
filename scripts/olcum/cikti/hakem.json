@@ -1,0 +1,724 @@
+{
+ "sonuclar": [
+  {
+   "vaka": "kolye-portre",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Kolye referansa en yakın; boncuk zincir tipi ve taş sırası doğru"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 3,
+    "kabul": true,
+    "gerekce": "Arka plan dokusu ve ışıklandırma, orijinal stüdyo çekimiyle tam olarak bütünleşememiş.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 13742
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kolye-portre",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 5,
+    "not": "Sadık ve doğal; kalp biraz küçük"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 14772
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kolye-portre",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 3,
+    "kimlik": 4,
+    "anatomi": 3,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Portre istendi ama figür küçük ve yüzü dönük; kolye okunmuyor"
+   },
+   "karar": {
+    "urun": 3,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 2,
+    "sahne": 2,
+    "kabul": false,
+    "gerekce": "Kolye zinciri boyun bölgesinde anatomik olarak hatalı bir şekilde havada asılı duruyor ve ışıklandırma uyumsuz.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 15020
+   },
+   "beklenen": false
+  },
+  {
+   "vaka": "kupe-profil",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Küpe kulağa doğru oturmuş, burulmuş altın halka korunmuş"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 10980
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kupe-profil",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 3,
+    "sahne": 4,
+    "not": "Yüzün üstünden geçen tuhaf gölge bandı"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 10303
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kupe-profil",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Küpe belirgin; ten biraz pürüzsüzleştirilmiş"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 9773
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kupe-profil",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Bu koşuda kıyafeti korudu"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Ürünün ışık yansıması ve gölge uyumu arka planla tam olarak örtüşmüyor.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 17196
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-el",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": null,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Gerçek makro; hem tektaş hem pavé alyans yerinde"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": null,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görselde yüz görünmediği için kimlik değerlendirmesi yapılamamıştır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 7827
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-el",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 5,
+    "kimlik": null,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Yeni kırpma yönergesiyle Pro seviyesine çıktı"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": null,
+    "anatomi": 4,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Yüzün görünürlüğü kriteri karşılanmamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 11713
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-el",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": null,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "İki yüzük de var, taşlar biraz yumuşak"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 7769
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-el",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 3,
+    "kimlik": null,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Düz alyans yok; iki yüzüğü tek parçaya indirdi"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": null,
+    "anatomi": 4,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Yüzün görünürlüğü istenen detay çerçevesi dışında kalmıştır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 18237
+   },
+   "beklenen": false
+  },
+  {
+   "vaka": "kolye-erkek",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Poz ve kimlik birebir"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 4,
+    "kabul": true,
+    "gerekce": "Arka plan ile özne arasındaki ışık ve derinlik uyumu biraz yapay kalmış.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 9105
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kolye-erkek",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Pro'dan ayırt edilemiyor"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Ürün üzerindeki ışık yansıması ve gölge uyumu referans görselle tam olarak örtüşmüyor.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 8203
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kolye-erkek",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": 3,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 3,
+    "not": "Gömleği çıkardı, pozu değiştirdi — kıyafet ürününde kabul edilemez"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 5384
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "kolye-erkek",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 5,
+    "kimlik": 4,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Kolye net; yüz hafif değişmiş"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 3,
+    "isik": 2,
+    "sahne": 2,
+    "kabul": false,
+    "gerekce": "Ürün ve kişi arka plana yapay bir şekilde yerleştirilmiş olup ışık uyumu tamamen kopuktur.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 16519
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-koyu",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": null,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Gece ışığı ve mağaza sahnesi tutarlı; halo net"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 2,
+    "isik": 4,
+    "sahne": 5,
+    "kabul": false,
+    "gerekce": "Eldeki parmak yapısı ve eklemlerin anatomik olarak bozuk olması görselin en zayıf noktasıdır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 7806
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-koyu",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 4,
+    "kimlik": null,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Yakın çekim doğru; halo biraz sadeleşmiş"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 2,
+    "isik": 4,
+    "sahne": 4,
+    "kabul": false,
+    "gerekce": "Eldeki parmak sayısı ve anatomik yapı ciddi şekilde hatalı.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 9311
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-koyu",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": null,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Yüzük okunuyor, sahne biraz jenerik"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 4,
+    "sahne": 4,
+    "kabul": false,
+    "gerekce": "Eldeki parmak yapısı anatomik olarak hatalı ve bozuk görünüyor.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 5898
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "yuzuk-koyu",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 3,
+    "kimlik": null,
+    "anatomi": 4,
+    "isik": 3,
+    "sahne": 3,
+    "not": "Kare fazla karanlık, halo kayboldu"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 4,
+    "sahne": 5,
+    "kabul": false,
+    "gerekce": "Elin anatomik yapısı ve parmakların birleşimi oldukça hatalı görünüyor.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 12291
+   },
+   "beklenen": false
+  },
+  {
+   "vaka": "panco-ic-mekan",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": 4,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Örgü dokusu ve saçak korunmuş, mekâna doğal oturmuş"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 15028
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "panco-ic-mekan",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Panço omuzdan kaymış; duruş biraz zorlama"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 4,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "El ve parmak yapisinda hafif bir anatomi bozuklugu bulunmaktadir.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 11339
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "panco-ic-mekan",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 5,
+    "kimlik": 4,
+    "anatomi": 5,
+    "isik": 4,
+    "sahne": 5,
+    "not": "Bu vakada Pro ile başa baş"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": true,
+    "gerekce": "Görsel tüm kriterleri başarıyla karşılamaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 5133
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "panco-ic-mekan",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Kollar pançonun içinde kalmış"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 2,
+    "anatomi": 3,
+    "isik": 4,
+    "sahne": 5,
+    "kabul": false,
+    "gerekce": "Modelin yüz hatları referans görseldeki kişiyle belirgin şekilde farklılık gösteriyor.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 11490
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "esofman-studyo",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Kişinin kendi tişörtünü korudu; pantolon rengi ve cepler birebir"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 3,
+    "isik": 2,
+    "sahne": 2,
+    "kabul": false,
+    "gerekce": "Ürünün vücutla birleştiği noktalarda ve ışık uyumunda ciddi yapaylıklar mevcut.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 7070
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "esofman-studyo",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 5,
+    "not": "Pantolon rengi kiremite kaymış, ayakkabılar silinmiş"
+   },
+   "karar": {
+    "urun": 2,
+    "kimlik": 5,
+    "anatomi": 1,
+    "isik": 3,
+    "sahne": 4,
+    "kabul": false,
+    "gerekce": "Ayak anatomisi tamamen bozuk ve ürünün vücuda yerleşimi gerçekçi değil.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 7338
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "esofman-studyo",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Üstü fonla aynı renk atlete çevirdi"
+   },
+   "karar": {
+    "urun": 2,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 2,
+    "sahne": 2,
+    "kabul": false,
+    "gerekce": "Ürün vücuda yapışık ve anatomik olarak hatalı bir şekilde yerleştirilmiş, ayrıca ışıklandırma ve arka plan uyumu tamamen başarısız.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 6652
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "esofman-studyo",
+   "model": "2.5 Flash",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 4,
+    "isik": 4,
+    "sahne": 5,
+    "not": "Renk ve tişört doğru; bacaklar hafif uzatılmış"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 3,
+    "isik": 3,
+    "sahne": 4,
+    "kabul": false,
+    "gerekce": "Ellerin pantolon ceplerine yerleşimi anatomik olarak hatalı ve yapay duruyor.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 10885
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "canta-dis-mekan",
+   "model": "3 Pro",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 5,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Gün batımı arkadan aydınlatması yüze doğru taşınmış"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": false,
+    "gerekce": "Elin çantayı tutuş şekli anatomik olarak hatalı ve gerçekçi değil.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 7088
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "canta-dis-mekan",
+   "model": "3.1 Flash",
+   "insan": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 4,
+    "isik": 5,
+    "sahne": 5,
+    "not": "Bu koşuda ışığı da tutturdu"
+   },
+   "karar": {
+    "urun": 5,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 3,
+    "sahne": 2,
+    "kabul": false,
+    "gerekce": "Ürünün bilek yerine havada tutulması ve arka plan ile ön plan arasındaki keskin birleşim hataları görsel bütünlüğü bozmaktadır.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 5011
+   },
+   "beklenen": true
+  },
+  {
+   "vaka": "canta-dis-mekan",
+   "model": "3.1 Flash Lite",
+   "insan": {
+    "urun": 4,
+    "kimlik": 4,
+    "anatomi": 3,
+    "isik": 4,
+    "sahne": 4,
+    "not": "Bilekte açıklanamayan bir kayış; el kavrayışı bozuk"
+   },
+   "karar": {
+    "urun": 4,
+    "kimlik": 5,
+    "anatomi": 2,
+    "isik": 5,
+    "sahne": 5,
+    "kabul": false,
+    "gerekce": "Elin anatomisi bozuk ve çanta bilek yerine ele yapışık şekilde konumlandırılmış.",
+    "model": "gemini-3.1-flash-lite",
+    "ms": 5811
+   },
+   "beklenen": false
+  }
+ ]
+}

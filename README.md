@@ -1,7 +1,11 @@
 # Selvi — Moda Geliştirme Stüdyosu
 
-Minimalist, editoryal bir moda geliştirme platformunun statik/interaktif arayüzü.
-Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · TypeScript. Backend yok.
+Minimalist, editoryal bir moda geliştirme platformu.
+Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · TypeScript.
+
+Sunucu çalışma zamanı açık: kompozisyon motoru (Gemini), kalıcı depolama
+(Supabase), üretimi yürüten Netlify arka plan fonksiyonu ve anonim oturum
+çerezi. Diğer dokuz hizmet ekranı arayüz prototipidir.
 
 ## Çalıştırma
 
@@ -29,7 +33,18 @@ Tarayıcıda `http://localhost:3000`.
 | `/market/yukle` | Sürükle-bırak yükleme formu + canlı önizleme |
 | `/akademi` | Dersler, öne çıkan video, fiyatlandırma |
 | `/akademi/odeme?plan=tek\|tam\|mentor` | Ödeme formu + sipariş özeti (prototip) |
-| `/giris` | Giriş ekranı (prototip) |
+| `/hizmetler/kompozisyon/galeri` | Bu tarayıcıdan üretilen kareler — indir, sil |
+| `/giris` | Giriş ekranı (prototip — kimlik doğrulama Faz 4) |
+
+### API uçları
+
+| Uç | İş |
+|----|----|
+| `POST /api/yukleme` | Girdi görselleri için imzalı yükleme adresi |
+| `POST /api/compose` | Üretimi kuyruğa alır, `jobId` döner |
+| `GET /api/jobs/:id` | İş durumu (istemci bunu yoklar) |
+| `GET /api/kare/:id` | Üretilen kareyi servis eder |
+| `DELETE /api/kare/:id` | Kareyi kalıcı siler (yalnız üreten oturum) |
 
 ## Yapay zekâ kurulumu
 
@@ -192,7 +207,7 @@ Eşikler 30 etiketli kare üzerinde seçildi (`node scripts/olcum/hakem.mjs`).
 Hakem ürün sadakatinde iyi ayarlı, anatomide insandan 0,80 puan daha sert —
 eşik bunu telafi ediyor.
 
-Maliyet etkisi: istek başına ~0,068 $ yerine **~0,13 $**, kötü durumda
+Maliyet etkisi: kare başına ~0,059 $ yerine **~0,13 $**, kötü durumda
 gecikme ~40 sn. `COMPOSE_QUALITY_GATE=0` ile kapatılabilir.
 
 ### Model seçimi
@@ -240,10 +255,13 @@ Next.js algılanır; `netlify.toml` build komutunu ve fonksiyon dizinini tanıml
 
 | Anahtar | Değer |
 |---------|-------|
-| `GEMINI_API_KEY` | Google AI Studio anahtarı |
+| `GEMINI_API_KEY` | Google AI Studio anahtarı (ödeyen üretim projesi) |
+| `GEMINI_API_KEY_UCRETSIZ` | **Ayrı** Google projesinin anahtarı. Bugün üretimin tamamı bunu kullanıyor; tanımsızsa `GEMINI_API_KEY`'e düşülür ve hız sınırı yalıtımı **sessizce kaybolur** |
+| `COMPOSE_INVOKE_SECRET` | Arka plan fonksiyonu imzası ve depo yolu öneki. Tanımsızsa türetilir, ama üretimde açıkça verin |
 | `COMPOSE_MODEL` | `gemini-3.1-flash-image` |
 | `COMPOSE_IMAGE_SIZE` | `1K` |
 | `NEXT_PUBLIC_SITE_URL` | `https://selviai.com` |
+| `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SECRET_KEY` | Kalıcı depolama — bkz. "Kalıcı depolama" |
 
 Değişkenleri ekledikten sonra **Deploys → Trigger deploy → Clear cache and deploy site**.
 

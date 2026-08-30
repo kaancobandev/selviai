@@ -56,8 +56,8 @@ export type Kompozisyon = {
  * Kareyi kovaya yükler ve kaydı tabloya yazar.
  * @returns depodaki yol, ya da depolama kapalı/başarısızsa null.
  *
- * Sıra önemli: önce dosya, sonra satır. Satır yazılamazsa dosya
- * öksüz kalır (temizlenebilir); tersi olsaydı kayıt olmayan bir
+ * Sıra önemli: önce dosya, sonra satır. Satır yazılamazsa yüklenen
+ * dosya hemen geri alınır; tersi olsaydı kayıt, var olmayan bir
  * görseli işaret ederdi.
  */
 export async function depola(k: Kompozisyon): Promise<string | null> {
@@ -105,6 +105,14 @@ export async function depola(k: Kompozisyon): Promise<string | null> {
     });
     if (!satir.ok) {
       console.error("Kayıt yazılamadı:", satir.status, (await satir.text()).slice(0, 200));
+      // Dosya yüklendi ama kaydı yazılamadı: onu işaret eden hiçbir satır
+      // yok, yani galeride görünmez ve silinemez — sessizce kotayı yer.
+      // Geri al.
+      await fetch(`${taban()}/storage/v1/object/${BUCKET}/${yol}`, {
+        method: "DELETE",
+        headers: basliklar(),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      }).catch(() => {});
       return null;
     }
 

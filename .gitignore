@@ -49,3 +49,7 @@ next-env.d.ts
 /scripts/olcum/cikti/*
 !/scripts/olcum/cikti/sonuclar.jsonl
 !/scripts/olcum/cikti/rapor.json
+# Kabul kapısının eşiği (ürün>=4, anatomi>=3) bu dosyadaki 30 etiketli
+# kareye dayanıyor. İzlenmezse eşik kararının tek kanıtı ve tek gerileme
+# testinin girdisi bu makineyle birlikte kaybolur.
+!/scripts/olcum/cikti/hakem.json

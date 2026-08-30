@@ -133,10 +133,13 @@ export async function generateComposite(
       yoklama: reach,
       message: cause instanceof Error ? cause.message : String(cause),
     });
+    // Yoklama sonucu YALNIZCA günlüğe (yukarıda). Kullanıcıya iç ağ
+    // teşhisi göstermenin ona faydası yok; kök neden bulunduğunda
+    // ekrandan kaldırmayı unutmuşuz.
     throw new ComposeError(
-      (aborted
-        ? `Model ${Math.round(timeoutMs / 1000)} saniye içinde yanıt vermedi.`
-        : "Sağlayıcıya ulaşılamadı.") + ` [yoklama: ${reach}]`,
+      aborted
+        ? `Model ${Math.round(timeoutMs / 1000)} saniye içinde yanıt vermedi. Tekrar deneyin.`
+        : "Sağlayıcıya ulaşılamadı. Birazdan tekrar deneyin.",
       cause,
     );
   } finally {
