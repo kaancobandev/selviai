@@ -29,15 +29,18 @@ export default function HomePage() {
       {/* Stüdyo — tek cümlelik manifesto ve üç kapı */}
       <section id="studyo" className="scroll-mt-20 px-5 py-28 md:px-10 md:py-40">
         <Reveal className="mx-auto max-w-4xl text-center">
-          <p className="eyebrow text-lila">Platform</p>
+          <p className="eyebrow text-lila">Yapay zekânın rolü</p>
           <p className="mt-8 font-display text-3xl leading-[1.2] md:text-5xl md:leading-[1.15]">
-            Yapay zekâ fikri tasarıma çeviriyor. Biz o tasarımı{" "}
-            <em>öğrenilebilir, üretilebilir ve satılabilir</em> hale getiriyoruz.
+            AI daha hızlı üretebilir. Ancak yaratıcılık hiçbir zaman{" "}
+            <em>yalnızca hızla</em> ilgili değildir.
           </p>
-          <p className="mx-auto mt-8 max-w-[54ch] text-[15px] leading-7 text-smoke">
-            Bugün moda ile başlıyoruz; çünkü ilk kullanıcı problemi oradan çıktı. Ama
-            çözdüğümüz asıl sorun tasarımın kendisi — aksesuardan ürüne, iç mekândan
-            mimariye kadar aynı motor çalışıyor.
+          <p className="mx-auto mt-8 max-w-[56ch] text-[15px] leading-7 text-smoke">
+            Selvi AI, yapay zekâyı yaratıcı düşüncenin yerine koymaz. Öğrenmeyi
+            kişiselleştirir, fikir geliştirmeyi hızlandırır, alternatifler üretir ve
+            profesyonel görselleştirmeye erişimi demokratikleştirir.
+          </p>
+          <p className="mt-7 font-display text-xl leading-snug text-lila md:text-2xl">
+            AI bir üretim aracı değil, yaratıcı bir yardımcıdır.
           </p>
         </Reveal>
 
@@ -105,13 +108,14 @@ export default function HomePage() {
       <section className="bg-ink px-5 py-24 text-bone md:px-10 md:py-36">
         <div className="grid gap-14 lg:grid-cols-12 lg:items-center">
           <Reveal className="lg:col-span-5">
-            <p className="eyebrow text-bone/60">Akademi</p>
+            <p className="eyebrow text-lila-soft">Akademi</p>
             <h2 className="mt-5 font-display text-4xl leading-[1.05] md:text-5xl">
-              Uygulamayı <em>ustaca</em> kullanın.
+              Moda ile başlıyoruz. <em>Tasarım dünyasına</em> genişliyoruz.
             </h2>
-            <p className="mt-6 max-w-[38ch] text-[15px] leading-7 text-bone/70">
-              İlk koleksiyonunuzu kurmaktan lookbook dizgisine; her adımı anlatan kısa, net
-              dersler.
+            <p className="mt-6 max-w-[42ch] text-[15px] leading-7 text-bone/70">
+              Araştırmadan moodboard&apos;a, kumaş ve siluetten teknik çizime ve koleksiyon
+              geliştirmeye — tasarım sürecinin her adımı. İlk dikeyimiz moda; ürün, iç mimari,
+              mimari ve otomotiv tasarımı sırada.
             </p>
             <div className="mt-10 flex items-center gap-8">
               <Button href="/akademi" variant="light">

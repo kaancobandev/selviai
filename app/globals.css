@@ -72,6 +72,32 @@ body {
   font-weight: 500;
 }
 
+/* ------------------------------------------------------------------
+   Hero aurora — üç kütle, farklı fazlarda yavaş sürükleniyor.
+   Sadece transform ve opacity oynatılıyor: ikisi de derleyici (compositor)
+   üzerinde çalışır, her karede yeniden yerleşim (layout) tetiklemez.
+   ------------------------------------------------------------------ */
+@keyframes aurora-sol {
+  0%   { transform: translate3d(0, 8%, 0) scale(0.92); opacity: 0.55; }
+  100% { transform: translate3d(6%, -6%, 0) scale(1.12); opacity: 0.9; }
+}
+@keyframes aurora-sag {
+  0%   { transform: translate3d(0, 10%, 0) scale(1.05); opacity: 0.85; }
+  100% { transform: translate3d(-7%, -4%, 0) scale(0.9); opacity: 0.5; }
+}
+@keyframes aurora-orta {
+  0%   { transform: translate3d(-50%, 6%, 0) scale(0.95); opacity: 0.35; }
+  100% { transform: translate3d(-50%, -8%, 0) scale(1.15); opacity: 0.7; }
+}
+
+.aurora-sol  { animation: aurora-sol  19s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
+.aurora-sag  { animation: aurora-sag  23s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
+.aurora-orta { animation: aurora-orta 27s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-sol, .aurora-sag, .aurora-orta { animation: none; }
+}
+
 /* The seam — a stitched hairline. Horizontal. */
 @utility seam {
   height: 1px;
