@@ -4,12 +4,18 @@
    Design tokens — monochrome atelier palette, two typefaces
    ------------------------------------------------------------------ */
 @theme {
+  /* Siyah — beyaz — lila. Nötrler lilaya doğru hafif menekşe yanlı;
+     böylece gri "seçilmiş" duruyor, kremden gelen sarı yan kalktı. */
   --color-ink: #0b0b0b;      /* primary text, solid surfaces      */
   --color-paper: #ffffff;    /* white surfaces                     */
-  --color-bone: #f4f2ed;     /* page ground (cream)                */
-  --color-mist: #e4e1da;     /* hairlines, dividers                */
-  --color-ash: #8b8883;      /* muted labels                       */
-  --color-smoke: #56534e;    /* secondary body text                */
+  --color-bone: #ffffff;     /* page ground (white)                */
+  --color-mist: #e6e4ea;     /* hairlines, dividers                */
+  --color-ash: #8a8792;      /* muted labels                       */
+  --color-smoke: #55525c;    /* secondary body text                */
+
+  /* Tek vurgu rengi. `lila` açık zeminde, `lila-soft` koyu zeminde okunur. */
+  --color-lila: #6e51a0;
+  --color-lila-soft: #bfa6ee;
 
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-bodoni), "Bodoni MT", "Didot", Georgia, serif;

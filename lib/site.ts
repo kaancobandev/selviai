@@ -9,21 +9,12 @@ export const site = {
   /** İletişim adresleri — alan adıyla birlikte değişir */
   email: "studio@selviai.com",
   pressEmail: "press@selviai.com",
-  tagline: "Moda Geliştirme Stüdyosu",
+  tagline: "Yapay Zekâ Destekli Yaratıcı Tasarım Platformu",
   description:
-    "İlhamdan vitrine — moodboard'dan lookbook'a, bir koleksiyonun bütün yolculuğu tek çatı altında.",
+    "Fikirden gerçek ürüne — tasarım öğrenme, üretme ve satma süreçlerini tek platformda birleştiren yapay zekâ altyapısı.",
   nav: [
     { href: "/hizmetler", label: "Hizmetler" },
     { href: "/market", label: "Market" },
     { href: "/akademi", label: "Akademi" },
   ],
-  /**
-   * Hero arka planı. `video` doldurulursa görsel yerine sessiz döngü video oynar.
-   * Örn: video: "/hero.mp4"
-   */
-  hero: {
-    image:
-      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2400&q=80",
-    video: "" as string,
-  },
 } as const;

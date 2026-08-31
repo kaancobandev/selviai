@@ -9,10 +9,14 @@ import { Arrow, Button } from "@/components/ui/button";
 import { collections, featuredLesson } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
+/**
+ * Üç kapı, platformun modelini doğrudan söylüyor: öğren → üret → sat.
+ * Sıra bilinçli; ziyaretçi soldan sağa okuduğunda döngüyü görüyor.
+ */
 const pillars = [
-  { label: "Stüdyo", title: "Hizmetler", cta: "On disiplin", href: "/hizmetler" },
-  { label: "Market", title: "Koleksiyonlar", cta: "Yükle, sergile, sat", href: "/market" },
-  { label: "Akademi", title: "Eğitim", cta: "Dersler ve program", href: "/akademi" },
+  { adim: "Öğren", label: "Akademi", title: "Tasarımı öğren", cta: "Dersler ve program", href: "/akademi" },
+  { adim: "Üret", label: "Stüdyo", title: "Yapay zekâyla üret", cta: "On disiplin", href: "/hizmetler" },
+  { adim: "Sat", label: "Market", title: "Koleksiyonu sat", cta: "Yükle, sergile, sat", href: "/market" },
 ];
 
 export default function HomePage() {
@@ -25,10 +29,15 @@ export default function HomePage() {
       {/* Stüdyo — tek cümlelik manifesto ve üç kapı */}
       <section id="studyo" className="scroll-mt-20 px-5 py-28 md:px-10 md:py-40">
         <Reveal className="mx-auto max-w-4xl text-center">
-          <p className="eyebrow text-ash">Stüdyo</p>
+          <p className="eyebrow text-lila">Platform</p>
           <p className="mt-8 font-display text-3xl leading-[1.2] md:text-5xl md:leading-[1.15]">
-            Her koleksiyon bir fikirle başlar. Biz o fikri kumaşa, çizime ve markaya
-            dönüştürürüz.
+            Yapay zekâ fikri tasarıma çeviriyor. Biz o tasarımı{" "}
+            <em>öğrenilebilir, üretilebilir ve satılabilir</em> hale getiriyoruz.
+          </p>
+          <p className="mx-auto mt-8 max-w-[54ch] text-[15px] leading-7 text-smoke">
+            Bugün moda ile başlıyoruz; çünkü ilk kullanıcı problemi oradan çıktı. Ama
+            çözdüğümüz asıl sorun tasarımın kendisi — aksesuardan ürüne, iç mekândan
+            mimariye kadar aynı motor çalışıyor.
           </p>
         </Reveal>
 
@@ -41,7 +50,10 @@ export default function HomePage() {
                 href={p.href}
                 className="group flex flex-col gap-4 border-b border-mist py-8 last:border-b-0 sm:border-b-0 sm:border-r sm:px-8 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0"
               >
-                <span className="eyebrow text-ash">{p.label}</span>
+                <span className="flex items-baseline gap-3">
+                  <span className="eyebrow text-lila">{p.adim}</span>
+                  <span className="eyebrow text-ash">{p.label}</span>
+                </span>
                 <span className="font-display text-2xl md:text-3xl">{p.title}</span>
                 <span className="mt-2 flex items-center gap-3 eyebrow">
                   {p.cta}
