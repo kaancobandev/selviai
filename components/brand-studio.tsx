@@ -101,15 +101,15 @@ export function BrandStudio() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-paper px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-14" style={brandVars}>
+    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-14" style={brandVars}>
       {/* Başlık + temel girdiler */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="eyebrow text-ash">Branding · Marka kimliği stüdyosu</p>
+          <p className="eyebrow text-fog">Branding · Marka kimliği stüdyosu</p>
           <h1 className="mt-3 font-display text-2xl leading-none md:text-3xl">Marka sistemi</h1>
         </div>
         <div className="flex items-center gap-6">
-          <span className="hidden eyebrow text-ash sm:inline">Taslak · Otomatik kaydedildi</span>
+          <span className="hidden eyebrow text-fog sm:inline">Taslak · Otomatik kaydedildi</span>
           <Button variant="ghost" onClick={() => setToast("Kimlik kılavuzu PDF olarak hazırlanıyor (prototip).")}>
             Kılavuzu dışa aktar
           </Button>
@@ -146,20 +146,20 @@ export function BrandStudio() {
         aside={
           <div className="space-y-7">
             <div>
-              <p className="eyebrow text-ash">Ana logo</p>
+              <p className="eyebrow text-fog">Ana logo</p>
               <div className="mt-3 flex items-center gap-5">
                 <Button variant="ghost" onClick={() => fileRef.current?.click()}>
                   {logo ? "Değiştir" : "Logo yükle"}
                 </Button>
                 {logo ? (
-                  <span className="flex items-center gap-4 text-[11px] text-smoke">
+                  <span className="flex items-center gap-4 text-[11px] text-fog">
                     <span className="max-w-[14ch] truncate">{logo.file}</span>
-                    <button type="button" onClick={removeLogo} className="eyebrow text-ash u-line hover:text-ink">
+                    <button type="button" onClick={removeLogo} className="eyebrow text-fog u-line hover:text-kalem">
                       Kaldır
                     </button>
                   </span>
                 ) : (
-                  <span className="text-[11px] leading-4 text-ash">SVG ya da PNG. Yoksa logotype kullanılır.</span>
+                  <span className="text-[11px] leading-4 text-fog">SVG ya da PNG. Yoksa logotype kullanılır.</span>
                 )}
                 <input
                   ref={fileRef}
@@ -196,7 +196,7 @@ export function BrandStudio() {
               />
             </Field>
             <div>
-              <p className="eyebrow text-ash">Monogram biçimi</p>
+              <p className="eyebrow text-fog">Monogram biçimi</p>
               <Segmented
                 value={monoShape}
                 onChange={setMonoShape}
@@ -242,7 +242,7 @@ export function BrandStudio() {
           <p className="mt-6 font-[family-name:var(--b-display)] text-2xl leading-snug md:text-3xl">
             Aa Bb Cc Dd Ee Ff Gg Hh Iİ Jj Kk Ll Mm Nn Oo Öö Pp Rr Ss Şş Tt Uu Üü Vv Yy Zz
           </p>
-          <p className="mt-2 font-[family-name:var(--b-display)] text-2xl tabular-nums text-smoke md:text-3xl">0123456789</p>
+          <p className="mt-2 font-[family-name:var(--b-display)] text-2xl tabular-nums text-fog md:text-3xl">0123456789</p>
           <p className="mt-8 max-w-[28ch] font-[family-name:var(--b-display)] text-3xl italic leading-[1.15] md:text-4xl">
             {manifesto || "Manifesto cümlesi."}
           </p>
@@ -250,15 +250,15 @@ export function BrandStudio() {
             {display.name} · {display.weights} — {display.note}
           </TechLabel>
 
-          <div className="my-12 h-px bg-mist" />
+          <div className="my-12 h-px bg-hair" />
 
           <div className="grid gap-10 md:grid-cols-12">
             <p className="font-[family-name:var(--b-body)] text-7xl leading-none md:col-span-3 md:text-8xl">Aa</p>
             <div className="md:col-span-9">
-              <p className="font-[family-name:var(--b-body)] text-lg leading-relaxed text-ink">
+              <p className="font-[family-name:var(--b-body)] text-lg leading-relaxed text-kalem">
                 Aa Bb Cc Dd Ee Ff Gg Hh Iİ Jj Kk Ll Mm Nn Oo Öö Pp Rr Ss Şş Tt Uu Üü Vv Yy Zz · 0123456789
               </p>
-              <p className="mt-5 max-w-[58ch] font-[family-name:var(--b-body)] text-[15px] leading-7 text-smoke">
+              <p className="mt-5 max-w-[58ch] font-[family-name:var(--b-body)] text-[15px] leading-7 text-fog">
                 {wordmark}, koleksiyonlarını az sayıda parça ve uzun ömürlü kumaşlarla kurar. Her ürün, etiketinden
                 kutusuna aynı dille konuşur: düşük ses, yüksek kalite, hiçbir fazlalık yok.
               </p>
@@ -268,9 +268,9 @@ export function BrandStudio() {
             </div>
           </div>
 
-          <div className="mt-14 border-t border-mist">
-            <p className="pt-6 eyebrow text-ash">Ölçek</p>
-            <ul className="mt-2 divide-y divide-mist">
+          <div className="mt-14 border-t border-hair">
+            <p className="pt-6 eyebrow text-fog">Ölçek</p>
+            <ul className="mt-2 divide-y divide-hair">
               <ScaleRow label="Display" spec="96 / 0.95" family="display" style={{ fontSize: "clamp(2.75rem, 6vw, 5rem)", lineHeight: 0.95 }}>
                 {wordmark}
               </ScaleRow>
@@ -298,8 +298,8 @@ export function BrandStudio() {
         lede="Üç renk, sabit oran: %60 ana, %30 ikincil, %10 vurgu. Renge tıklayarak değiştirin; HEX alanı elle düzenlenebilir."
         aside={
           <div>
-            <p className="eyebrow text-ash">Hazır paletler</p>
-            <ul className="mt-4 divide-y divide-mist border-y border-mist">
+            <p className="eyebrow text-fog">Hazır paletler</p>
+            <ul className="mt-4 divide-y divide-hair border-y border-hair">
               {palettePresets.map((p) => {
                 const active = presetId === p.id;
                 return (
@@ -310,12 +310,12 @@ export function BrandStudio() {
                       aria-pressed={active}
                       className="group flex w-full items-center justify-between gap-4 py-3 text-left"
                     >
-                      <span className={cn("text-[13.5px] transition-colors", active ? "font-medium text-ink" : "text-smoke group-hover:text-ink")}>
+                      <span className={cn("text-[13.5px] transition-colors", active ? "font-medium text-kalem" : "text-fog group-hover:text-kalem")}>
                         {p.name}
                       </span>
                       <span className="flex gap-1.5">
                         {ROLES.map((r) => (
-                          <span key={r} className="h-3.5 w-3.5 border border-ink/10" style={{ background: p.palette[r].hex }} />
+                          <span key={r} className="h-3.5 w-3.5 border border-kalem/10" style={{ background: p.palette[r].hex }} />
                         ))}
                       </span>
                     </button>
@@ -323,7 +323,7 @@ export function BrandStudio() {
                 );
               })}
             </ul>
-            {presetId === null && <p className="mt-3 text-[11px] leading-4 text-ash">Özel palet — presetlerden ayrıldınız.</p>}
+            {presetId === null && <p className="mt-3 text-[11px] leading-4 text-fog">Özel palet — presetlerden ayrıldınız.</p>}
           </div>
         }
       >
@@ -348,7 +348,7 @@ export function BrandStudio() {
               <span
                 key={r}
                 style={{ width: `${swatchMeta[r].share}%` }}
-                className={cn("whitespace-nowrap eyebrow tabular-nums text-ash", r === "accent" && "text-right")}
+                className={cn("whitespace-nowrap eyebrow tabular-nums text-fog", r === "accent" && "text-right")}
               >
                 %{swatchMeta[r].share} {swatchMeta[r].label}
               </span>
@@ -363,21 +363,21 @@ export function BrandStudio() {
         title="Canlı uygulama"
         lede="Kimliğin üç temas noktasında anlık önizlemesi. Yukarıdaki her karar buraya yansır."
         aside={
-          <dl className="space-y-3 text-[11px] leading-4 text-smoke">
-            <div className="flex justify-between border-b border-mist pb-2">
-              <dt className="eyebrow text-ash">Logotype</dt>
+          <dl className="space-y-3 text-[11px] leading-4 text-fog">
+            <div className="flex justify-between border-b border-hair pb-2">
+              <dt className="eyebrow text-fog">Logotype</dt>
               <dd>{display.name}</dd>
             </div>
-            <div className="flex justify-between border-b border-mist pb-2">
-              <dt className="eyebrow text-ash">Ana</dt>
+            <div className="flex justify-between border-b border-hair pb-2">
+              <dt className="eyebrow text-fog">Ana</dt>
               <dd className="tabular-nums">{palette.primary.hex}</dd>
             </div>
-            <div className="flex justify-between border-b border-mist pb-2">
-              <dt className="eyebrow text-ash">İkincil</dt>
+            <div className="flex justify-between border-b border-hair pb-2">
+              <dt className="eyebrow text-fog">İkincil</dt>
               <dd className="tabular-nums">{palette.secondary.hex}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="eyebrow text-ash">Vurgu</dt>
+              <dt className="eyebrow text-fog">Vurgu</dt>
               <dd className="tabular-nums">{palette.accent.hex}</dd>
             </div>
           </dl>
@@ -392,7 +392,7 @@ export function BrandStudio() {
             ] as const
           ).map(({ key, Comp, label, note }) => (
             <figure key={key}>
-              <div className="aspect-[5/6] border border-mist bg-paper p-4">
+              <div className="ada-acik aspect-[5/6] border border-hair bg-paper p-4">
                 <Comp
                   wordmark={wordmark}
                   monogram={monogram}
@@ -406,15 +406,15 @@ export function BrandStudio() {
               </div>
               <figcaption className="mt-3 flex flex-col gap-1">
                 <span className="text-[13px]">{label}</span>
-                <span className="eyebrow text-ash">{note}</span>
+                <span className="eyebrow text-fog">{note}</span>
               </figcaption>
             </figure>
           ))}
         </div>
       </Module>
 
-      <div className="flex flex-col gap-5 border-t border-mist pt-10 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-[44ch] text-[15px] leading-7 text-smoke">
+      <div className="flex flex-col gap-5 border-t border-hair pt-10 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-[44ch] text-[15px] leading-7 text-fog">
           Kılavuz; logo dosyaları, yazı tipi lisansları, renk değerleri ve uygulama örnekleriyle tek bir PDF olarak
           paylaşılır.
         </p>
@@ -453,13 +453,13 @@ function Module({
   children: ReactNode;
 }) {
   return (
-    <section className="mt-16 border-t border-mist pt-14 md:mt-24 md:pt-20">
+    <section className="mt-16 border-t border-hair pt-14 md:mt-24 md:pt-20">
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-28">
-            <p className="eyebrow tabular-nums text-ash">{index}</p>
+            <p className="eyebrow tabular-nums text-fog">{index}</p>
             <h2 className="mt-4 font-display text-3xl leading-none md:text-4xl">{title}</h2>
-            <p className="mt-5 max-w-[36ch] text-[15px] leading-7 text-smoke">{lede}</p>
+            <p className="mt-5 max-w-[36ch] text-[15px] leading-7 text-fog">{lede}</p>
             {aside && <div className="mt-9">{aside}</div>}
           </div>
         </div>
@@ -470,7 +470,7 @@ function Module({
 }
 
 function TechLabel({ children }: { children: ReactNode }) {
-  return <p className="mt-5 eyebrow text-ash">{children}</p>;
+  return <p className="mt-5 eyebrow text-fog">{children}</p>;
 }
 
 function ScaleRow({
@@ -488,14 +488,14 @@ function ScaleRow({
 }) {
   return (
     <li className="grid grid-cols-[5.5rem_1fr] items-baseline gap-6 py-5 md:grid-cols-[6.5rem_1fr_8rem]">
-      <span className="eyebrow text-ash">{label}</span>
+      <span className="eyebrow text-fog">{label}</span>
       <span
         className="min-w-0 truncate"
         style={{ fontFamily: family === "display" ? "var(--b-display)" : "var(--b-body)", ...style }}
       >
         {children}
       </span>
-      <span className="hidden text-right eyebrow tabular-nums text-ash md:block">{spec}</span>
+      <span className="hidden text-right eyebrow tabular-nums text-fog md:block">{spec}</span>
     </li>
   );
 }
@@ -521,7 +521,7 @@ function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(o.value)}
             data-active={active}
-            className={cn("eyebrow u-line transition-colors duration-300", active ? "text-ink" : "text-ash hover:text-ink")}
+            className={cn("eyebrow u-line transition-colors duration-300", active ? "text-kalem" : "text-fog hover:text-kalem")}
           >
             {o.label}
           </button>
@@ -544,8 +544,8 @@ function FontPicker({
 }) {
   return (
     <div>
-      <p className="eyebrow text-ash">{label}</p>
-      <ul className="mt-4 divide-y divide-mist border-y border-mist">
+      <p className="eyebrow text-fog">{label}</p>
+      <ul className="mt-4 divide-y divide-hair border-y border-hair">
         {options.map((f) => {
           const active = f.id === value;
           return (
@@ -559,17 +559,17 @@ function FontPicker({
                 <span className="flex items-baseline gap-3">
                   <span
                     style={{ fontFamily: `var(${f.cssVar})` }}
-                    className={cn("text-xl leading-none transition-colors", active ? "text-ink" : "text-smoke group-hover:text-ink")}
+                    className={cn("text-xl leading-none transition-colors", active ? "text-kalem" : "text-fog group-hover:text-kalem")}
                   >
                     {f.name}
                   </span>
-                  <span className="hidden eyebrow text-ash xl:inline">{f.weights}</span>
+                  <span className="hidden eyebrow text-fog xl:inline">{f.weights}</span>
                 </span>
                 <span
                   aria-hidden
                   className={cn(
-                    "h-2 w-2 shrink-0 rounded-full border border-ink transition-colors duration-300",
-                    active ? "bg-ink" : "bg-transparent",
+                    "h-2 w-2 shrink-0 rounded-full border border-kalem transition-colors duration-300",
+                    active ? "bg-kalem" : "bg-transparent",
                   )}
                 />
               </button>
@@ -609,7 +609,7 @@ function GuideTile({ label, note, dark, children }: { label: string; note: strin
       </div>
       <figcaption className="mt-3 flex flex-col gap-1.5">
         <span className="text-[13px]">{label}</span>
-        <span className="eyebrow text-ash">{note}</span>
+        <span className="eyebrow text-fog">{note}</span>
       </figcaption>
     </figure>
   );
@@ -674,7 +674,7 @@ function SwatchCard({ role, swatch, onChange }: { role: SwatchRole; swatch: Swat
   return (
     <div>
       <label
-        className="relative block aspect-[4/3] cursor-pointer border border-ink/10 transition-transform duration-500 ease-[var(--ease-out-expo)] hover:scale-[1.01]"
+        className="relative block aspect-[4/3] cursor-pointer border border-kalem/10 transition-transform duration-500 ease-[var(--ease-out-expo)] hover:scale-[1.01]"
         style={{ background: swatch.hex }}
         title="Rengi değiştir"
       >
@@ -689,12 +689,12 @@ function SwatchCard({ role, swatch, onChange }: { role: SwatchRole; swatch: Swat
           %{meta.share}
         </span>
       </label>
-      <p className="mt-4 eyebrow text-ash">{meta.label}</p>
+      <p className="mt-4 eyebrow text-fog">{meta.label}</p>
       <p className="mt-2 font-display text-xl leading-tight">{swatch.name}</p>
-      <p className="mt-1.5 text-[11px] leading-4 text-ash">{meta.usage}</p>
-      <dl className="mt-4 space-y-2 text-[11px] leading-4 tabular-nums text-smoke">
-        <div className="flex items-baseline justify-between border-b border-mist pb-2">
-          <dt className="eyebrow text-ash">HEX</dt>
+      <p className="mt-1.5 text-[11px] leading-4 text-fog">{meta.usage}</p>
+      <dl className="mt-4 space-y-2 text-[11px] leading-4 tabular-nums text-fog">
+        <div className="flex items-baseline justify-between border-b border-hair pb-2">
+          <dt className="eyebrow text-fog">HEX</dt>
           <dd>
             <input
               value={draft}
@@ -706,14 +706,14 @@ function SwatchCard({ role, swatch, onChange }: { role: SwatchRole; swatch: Swat
             />
           </dd>
         </div>
-        <div className="flex items-baseline justify-between border-b border-mist pb-2">
-          <dt className="eyebrow text-ash">RGB</dt>
+        <div className="flex items-baseline justify-between border-b border-hair pb-2">
+          <dt className="eyebrow text-fog">RGB</dt>
           <dd>
             {r} · {g} · {b}
           </dd>
         </div>
         <div className="flex items-baseline justify-between">
-          <dt className="eyebrow text-ash">Pantone</dt>
+          <dt className="eyebrow text-fog">Pantone</dt>
           <dd>{swatch.pantone ?? "Özel · eşleşme yok"}</dd>
         </div>
       </dl>

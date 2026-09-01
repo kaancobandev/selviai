@@ -275,23 +275,23 @@ export function ComposeStudio() {
   const iyilestirilebilir = Boolean(job?.resultUrl);
 
   return (
-    <div className="flex flex-1 flex-col bg-paper px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
+    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
       {/* Başlık */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="eyebrow text-ash">Stüdyo · Kompozisyon</p>
+          <p className="eyebrow text-fog">Stüdyo · Kompozisyon</p>
           <h1 className="mt-3 font-display text-2xl leading-none md:text-3xl">
             Üç görsel, tek kare
           </h1>
-          <p className="mt-3 eyebrow text-ash">
+          <p className="mt-3 eyebrow text-fog">
             Kişi · Ürün · Sahne — yapay zekâ ile tek editoryal fotoğraf
           </p>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="/hizmetler/kompozisyon/galeri" className="eyebrow text-ash u-line hover:text-ink">
+          <Link href="/hizmetler/kompozisyon/galeri" className="eyebrow text-fog u-line hover:text-kalem">
             Galeri
           </Link>
-          <span className="eyebrow tabular-nums text-ash">
+          <span className="eyebrow tabular-nums text-fog">
             {[images.person, images.product, images.scene].filter(Boolean).length}/3 görsel
           </span>
           <Button onClick={generate} disabled={!ready || running}>
@@ -316,7 +316,7 @@ export function ComposeStudio() {
             ))}
           </div>
 
-          <section className="mt-12 border-t border-mist pt-8">
+          <section className="mt-12 border-t border-hair pt-8">
             <h2 className="eyebrow">Üretim parametreleri</h2>
             <div className="mt-7 space-y-7">
               <Choices label="Kadraj" options={CROP_OPTIONS} value={crop} onChange={setCrop} />
@@ -354,9 +354,9 @@ export function ComposeStudio() {
         <div className="min-w-0 lg:col-span-5">
           <div className="lg:sticky lg:top-28">
             <div className="flex items-baseline justify-between">
-              <p className="eyebrow text-ash">Sonuç</p>
+              <p className="eyebrow text-fog">Sonuç</p>
               {job?.meta && (
-                <span className="eyebrow tabular-nums text-ash">
+                <span className="eyebrow tabular-nums text-fog">
                   {job.meta.model.replace("gemini-", "")} · {(job.meta.ms / 1000).toFixed(1)} sn
                   {job.meta.deneme && job.meta.deneme > 1 ? ` · ${job.meta.deneme}. deneme` : ""}
                 </span>
@@ -365,7 +365,7 @@ export function ComposeStudio() {
 
             <div
               className={cn(
-                "mt-4 flex items-center justify-center overflow-hidden border border-mist bg-bone",
+                "mt-4 flex items-center justify-center overflow-hidden border border-hair bg-kalem/[0.04]",
                 aspect === "16:9" ? "aspect-video" : aspect === "1:1" ? "aspect-square" : "aspect-[4/5]",
               )}
             >
@@ -381,19 +381,19 @@ export function ComposeStudio() {
                 />
               ) : running ? (
                 <div className="flex flex-col items-center gap-3 px-6 text-center">
-                  <span aria-hidden className="seam w-24 text-ink" />
+                  <span aria-hidden className="seam w-24 text-kalem" />
                   <p className="font-display text-xl">Kompozisyon kuruluyor</p>
-                  <p className="eyebrow tabular-nums text-ash">{elapsed} sn · genelde 10–40 sn</p>
+                  <p className="eyebrow tabular-nums text-fog">{elapsed} sn · genelde 10–40 sn</p>
                 </div>
               ) : job?.status === "failed" ? (
                 <div className="flex flex-col items-center gap-3 px-8 text-center">
                   <p className="font-display text-xl">Üretim başarısız</p>
-                  <p className="max-w-[34ch] text-[12px] leading-5 text-smoke">{job.error}</p>
+                  <p className="max-w-[34ch] text-[12px] leading-5 text-fog">{job.error}</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3 px-8 text-center">
                   <p className="font-display text-xl">Üç görsel yükleyin</p>
-                  <p className="max-w-[30ch] eyebrow leading-4 text-ash">
+                  <p className="max-w-[30ch] eyebrow leading-4 text-fog">
                     Kişi, ürün ve sahne hazır olduğunda Oluştur etkinleşir
                   </p>
                 </div>
@@ -401,7 +401,7 @@ export function ComposeStudio() {
             </div>
 
             {result && job?.meta?.kabul === false && (
-              <p className="mt-4 border-l-2 border-mist pl-3 text-[11px] leading-4 text-smoke">
+              <p className="mt-4 border-l-2 border-hair pl-3 text-[11px] leading-4 text-fog">
                 Bu kare iç kalite eşiğimizi geçemedi — genelde el, parmak ya da ürün detayında
                 bir kusur vardır. Yeniden üretmek çoğu zaman düzeltir.
               </p>
@@ -417,13 +417,13 @@ export function ComposeStudio() {
                   Görseli indir
                   <Arrow className="transition-transform duration-500 group-hover:translate-x-1" />
                 </a>
-                <button type="button" onClick={generate} className="eyebrow text-ash u-line hover:text-ink">
+                <button type="button" onClick={generate} className="eyebrow text-fog u-line hover:text-kalem">
                   Yeniden üret
                 </button>
               </div>
             )}
 
-            <p className="mt-6 text-[11px] leading-4 text-ash">
+            <p className="mt-6 text-[11px] leading-4 text-fog">
               Görseller yapay zekâ ile üretilir ve künyelerinde bu bilgi taşınır. Yüklediğiniz kişi
               fotoğrafı için izniniz olmalıdır.
             </p>
@@ -464,7 +464,7 @@ function UploadSlot({
 
   return (
     <figure className="flex flex-col">
-      <p className="eyebrow text-ash">{slot.label}</p>
+      <p className="eyebrow text-fog">{slot.label}</p>
       <div
         role="button"
         tabIndex={0}
@@ -487,8 +487,8 @@ function UploadSlot({
         onDrop={onDrop}
         className={cn(
           "group relative mt-3 flex aspect-[4/5] cursor-pointer items-center justify-center overflow-hidden border text-center transition-colors duration-300",
-          picked ? "border-mist bg-mist" : "border-dashed",
-          over ? "border-ink bg-bone" : picked ? "" : "border-ink/30 hover:border-ink/60 hover:bg-bone/60",
+          picked ? "border-hair bg-hair" : "border-dashed",
+          over ? "border-kalem bg-kalem/[0.08]" : picked ? "" : "border-kalem/30 hover:border-kalem/60 hover:bg-kalem/[0.05]",
           disabled && "pointer-events-none opacity-60",
         )}
       >
@@ -509,7 +509,7 @@ function UploadSlot({
                 e.stopPropagation();
                 onClear();
               }}
-              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center bg-ink/80 text-bone opacity-0 transition-opacity duration-300 focus-visible:opacity-100 group-hover:opacity-100"
+              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center bg-ink/80 text-paper opacity-0 transition-opacity duration-300 focus-visible:opacity-100 group-hover:opacity-100"
             >
               <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1">
                 <path d="M2 2l8 8M10 2l-8 8" />
@@ -519,7 +519,7 @@ function UploadSlot({
         ) : (
           <span className="flex flex-col items-center gap-2 px-4">
             <span className="font-display text-lg leading-tight">{slot.title}</span>
-            <span className="eyebrow text-ash">Sürükle ya da seç</span>
+            <span className="eyebrow text-fog">Sürükle ya da seç</span>
           </span>
         )}
         <input
@@ -534,7 +534,7 @@ function UploadSlot({
           }}
         />
       </div>
-      <figcaption className="mt-2.5 text-[11px] leading-4 text-ash">{slot.hint}</figcaption>
+      <figcaption className="mt-2.5 text-[11px] leading-4 text-fog">{slot.hint}</figcaption>
     </figure>
   );
 }
@@ -552,7 +552,7 @@ function Choices<T extends string>({
 }) {
   return (
     <div>
-      <p className="eyebrow text-ash">{label}</p>
+      <p className="eyebrow text-fog">{label}</p>
       <div role="radiogroup" aria-label={label} className="mt-3 flex flex-wrap gap-x-6 gap-y-2.5">
         {options.map((o) => {
           const active = o.value === value;
@@ -566,7 +566,7 @@ function Choices<T extends string>({
               data-active={active}
               className={cn(
                 "eyebrow u-line transition-colors duration-300",
-                active ? "text-ink" : "text-ash hover:text-ink",
+                active ? "text-kalem" : "text-fog hover:text-kalem",
               )}
             >
               {o.label}

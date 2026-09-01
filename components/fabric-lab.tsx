@@ -76,11 +76,11 @@ export function FabricLab() {
       {/* Başlık */}
       <header className="flex flex-col gap-5 px-6 pt-8 md:flex-row md:items-end md:justify-between md:px-10 md:pt-10">
         <div>
-          <p className="eyebrow text-ash">Kumaş · Dijital kartela</p>
+          <p className="eyebrow text-fog">Kumaş · Dijital kartela</p>
           <h1 className="mt-3 font-display text-2xl leading-none md:text-3xl">Kumaş kütüphanesi</h1>
         </div>
         <div className="flex items-center gap-6">
-          <span className="eyebrow tabular-nums text-ash">
+          <span className="eyebrow tabular-nums text-fog">
             {fabrics.length} kumaş · Kartela ({kartela.length})
           </span>
           <div className="hidden items-center gap-1.5 md:flex">
@@ -107,7 +107,7 @@ export function FabricLab() {
               className="group w-[148px] shrink-0 snap-start text-left md:w-[168px]"
             >
               <span className="relative block">
-                <span className="relative block aspect-square overflow-hidden bg-mist">
+                <span className="relative block aspect-square overflow-hidden bg-hair">
                   <Image
                     src={f.image}
                     alt=""
@@ -115,12 +115,12 @@ export function FabricLab() {
                     sizes="168px"
                     className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.05]"
                   />
-                  {marked && <span aria-hidden className="absolute left-2 top-2 h-1.5 w-1.5 bg-ink" />}
+                  {marked && <span aria-hidden className="absolute left-2 top-2 h-1.5 w-1.5 bg-kalem" />}
                 </span>
                 <span
                   aria-hidden
                   className={cn(
-                    "pointer-events-none absolute -inset-[3px] border border-ink transition-opacity duration-300",
+                    "pointer-events-none absolute -inset-[3px] border border-kalem transition-opacity duration-300",
                     isActive ? "opacity-100" : "opacity-0",
                   )}
                 />
@@ -128,26 +128,26 @@ export function FabricLab() {
               <span
                 className={cn(
                   "mt-3.5 block text-[13px] leading-4 transition-colors duration-300",
-                  isActive ? "font-medium text-ink" : "text-smoke group-hover:text-ink",
+                  isActive ? "font-medium text-kalem" : "text-fog group-hover:text-kalem",
                 )}
               >
                 {f.name}
               </span>
-              <span className="mt-1.5 block eyebrow text-ash">{f.composition}</span>
+              <span className="mt-1.5 block eyebrow text-fog">{f.composition}</span>
             </button>
           );
         })}
         <span aria-hidden className="w-1 shrink-0" />
       </div>
 
-      <div aria-hidden className="mx-6 h-px bg-mist md:mx-10" />
+      <div aria-hidden className="mx-6 h-px bg-hair md:mx-10" />
 
       {/* Laboratuvar */}
       <div className="grid flex-1 lg:grid-cols-12">
         {/* Makro doku + cetvel */}
         <section
           aria-label="Makro doku"
-          className="px-6 py-8 md:px-10 md:py-10 lg:col-span-7 lg:border-r lg:border-mist"
+          className="px-6 py-8 md:px-10 md:py-10 lg:col-span-7 lg:border-r lg:border-hair"
         >
           <div className="grid grid-cols-[20px_1fr] grid-rows-[20px_auto] gap-1.5">
             <span aria-hidden />
@@ -167,7 +167,7 @@ export function FabricLab() {
                 }
               }}
               className={cn(
-                "relative aspect-[4/3] overflow-hidden bg-mist outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-ink",
+                "relative aspect-[4/3] overflow-hidden bg-hair outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-kalem",
                 zoom ? "cursor-zoom-out" : "cursor-zoom-in",
               )}
             >
@@ -200,33 +200,33 @@ export function FabricLab() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pl-[26px] eyebrow text-ash">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pl-[26px] eyebrow text-fog">
             <span>
               Makro doku · {active.weave} · {active.color}
             </span>
             <span>Desen tekrarı · {active.repeat ? `${active.repeat} cm` : "Yok"}</span>
           </div>
-          <p className="mt-2 pl-[26px] text-[11px] leading-4 text-ash">
+          <p className="mt-2 pl-[26px] text-[11px] leading-4 text-fog">
             {zoom ? "İmleci gezdirerek dokuyu inceleyin; kapatmak için tıklayın." : "Yakınlaştırmak için dokuya tıklayın."}
           </p>
         </section>
 
         {/* Ölçüm paneli */}
         <aside aria-label="Ölçüm laboratuvarı" className="px-6 py-8 md:px-10 md:py-10 lg:col-span-5">
-          <p className="eyebrow text-ash">Ölçüm laboratuvarı</p>
+          <p className="eyebrow text-fog">Ölçüm laboratuvarı</p>
           <h2 className="mt-3 font-display text-3xl leading-none md:text-4xl">{active.name}</h2>
-          <p className="mt-3 eyebrow text-ash">
+          <p className="mt-3 eyebrow text-fog">
             {active.composition} · {active.color}
           </p>
 
-          <section className="mt-10 border-t border-mist pt-8">
+          <section className="mt-10 border-t border-hair pt-8">
             <div className="flex items-baseline justify-between">
               <h3 className="eyebrow">Metraj</h3>
-              <span className="eyebrow tabular-nums text-ash">{formatTRY(active.price)} / m</span>
+              <span className="eyebrow tabular-nums text-fog">{formatTRY(active.price)} / m</span>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-8">
               <Field label="En" htmlFor="fabric-width" trailing="cm">
-                <p id="fabric-width" className="border-b border-mist py-3 text-[15px] leading-6 tabular-nums">
+                <p id="fabric-width" className="border-b border-hair py-3 text-[15px] leading-6 tabular-nums">
                   {active.width}
                 </p>
               </Field>
@@ -250,14 +250,14 @@ export function FabricLab() {
             </dl>
           </section>
 
-          <section className="mt-10 border-t border-mist pt-8">
+          <section className="mt-10 border-t border-hair pt-8">
             <div className="flex items-baseline justify-between">
               <h3 className="eyebrow">Fiziksel özellikler</h3>
               {specChanged && (
                 <button
                   type="button"
                   onClick={() => setSpec(specOf(active))}
-                  className="fade eyebrow text-ash u-line hover:text-ink"
+                  className="fade eyebrow text-fog u-line hover:text-kalem"
                 >
                   Kumaşın değerlerine dön
                 </button>
@@ -298,7 +298,7 @@ export function FabricLab() {
             </div>
           </section>
 
-          <div className="mt-10 flex flex-col gap-5 border-t border-mist pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-10 flex flex-col gap-5 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
             <Button variant={inKartela ? "ghost" : "solid"} onClick={toggleKartela}>
               {inKartela ? "Karteladan çıkar" : "Kartelaya ekle"}
             </Button>
@@ -325,7 +325,7 @@ export function FabricLab() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="eyebrow text-ash">{label}</dt>
+      <dt className="eyebrow text-fog">{label}</dt>
       <dd className="mt-2 font-display text-xl tabular-nums md:text-2xl">{value}</dd>
     </div>
   );
@@ -356,7 +356,7 @@ function Slider({
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <label htmlFor={id} className="eyebrow text-ash">
+        <label htmlFor={id} className="eyebrow text-fog">
           {label}
         </label>
         <span className="text-sm tabular-nums">{format(value)}</span>
@@ -373,7 +373,7 @@ function Slider({
         className="slider mt-3"
         style={{ "--p": `${pct}%` } as CSSProperties}
       />
-      <div className="mt-1 flex justify-between text-[9px] uppercase tracking-[0.14em] text-ash/80">
+      <div className="mt-1 flex justify-between text-[9px] uppercase tracking-[0.14em] text-fog/80">
         <span>{hints[0]}</span>
         <span>{hints[1]}</span>
       </div>
@@ -387,7 +387,7 @@ function ScrollButton({ label, onClick, back }: { label: string; onClick: () => 
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-9 w-9 items-center justify-center border border-ink/10 text-ink/60 transition-colors duration-300 hover:border-ink/40 hover:text-ink"
+      className="flex h-9 w-9 items-center justify-center border border-kalem/10 text-kalem/60 transition-colors duration-300 hover:border-kalem/40 hover:text-kalem"
     >
       <Arrow className={cn(back && "rotate-180")} />
     </button>

@@ -122,18 +122,18 @@ export function ShootDesk() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-paper px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
+    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
       {/* Başlık */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="eyebrow text-ash">Shooting · Prodüksiyon masası</p>
+          <p className="eyebrow text-fog">Shooting · Prodüksiyon masası</p>
           <h1 className="mt-3 font-display text-2xl leading-none md:text-3xl">{shootMeta.title} — çekim günü</h1>
-          <p className="mt-3 eyebrow text-ash">
+          <p className="mt-3 eyebrow text-fog">
             {shootMeta.date}, {shootMeta.weekday} · Call {shootMeta.call} · {shootMeta.location} · {shootMeta.weather}
           </p>
         </div>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-8">
-          <span className="eyebrow tabular-nums text-ash">
+          <span className="eyebrow tabular-nums text-fog">
             Ekip {confirmed}/{roles.length} onaylı · {assignedCount}/{looks.length} look atandı · {openTasks} açık iş
           </span>
           <Button variant="ghost" onClick={() => setToast(`Call sheet ${roles.length} kişiye gönderildi (prototip).`)}>
@@ -166,7 +166,7 @@ export function ShootDesk() {
                     aria-checked={active}
                     data-active={active}
                     onClick={() => setMood(m.id)}
-                    className={cn("eyebrow u-line transition-colors duration-300", active ? "text-ink" : "text-ash hover:text-ink")}
+                    className={cn("eyebrow u-line transition-colors duration-300", active ? "text-kalem" : "text-fog hover:text-kalem")}
                   >
                     {m.label}
                   </button>
@@ -179,19 +179,19 @@ export function ShootDesk() {
 
             <div className="mt-10">
               <div className="flex items-baseline justify-between">
-                <p className="eyebrow text-ash">Tearsheet · referanslar</p>
-                <span className="eyebrow tabular-nums text-ash">{tears.length} görsel</span>
+                <p className="eyebrow text-fog">Tearsheet · referanslar</p>
+                <span className="eyebrow tabular-nums text-fog">{tears.length} görsel</span>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {tears.map((t) => (
                   <figure key={t.id} className="group">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-mist">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-hair">
                       <Image src={t.image} alt={t.caption} fill unoptimized={t.local} sizes="200px" className="photo-reveal object-cover" />
                       <button
                         type="button"
                         aria-label={`${t.caption} referansını kaldır`}
                         onClick={() => removeTear(t.id)}
-                        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center bg-ink/80 text-bone opacity-0 transition-opacity duration-300 focus-visible:opacity-100 group-hover:opacity-100"
+                        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center bg-ink/80 text-paper opacity-0 transition-opacity duration-300 focus-visible:opacity-100 group-hover:opacity-100"
                       >
                         <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1">
                           <path d="M2 2l8 8M10 2l-8 8" />
@@ -199,18 +199,18 @@ export function ShootDesk() {
                       </button>
                     </div>
                     <figcaption className="mt-2.5 flex flex-col gap-1">
-                      <span className="truncate text-[11px] leading-4 text-smoke">{t.caption}</span>
-                      <span className="eyebrow text-ash">{t.tag}</span>
+                      <span className="truncate text-[11px] leading-4 text-fog">{t.caption}</span>
+                      <span className="eyebrow text-fog">{t.tag}</span>
                     </figcaption>
                   </figure>
                 ))}
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="flex aspect-[4/5] flex-col items-center justify-center gap-3 border border-dashed border-ink/30 text-center transition-colors duration-300 hover:border-ink hover:bg-bone/60"
+                  className="flex aspect-[4/5] flex-col items-center justify-center gap-3 border border-dashed border-kalem/30 text-center transition-colors duration-300 hover:border-kalem hover:bg-kalem/[0.05]"
                 >
                   <span className="font-display text-2xl leading-none">+</span>
-                  <span className="eyebrow text-ash">Referans ekle</span>
+                  <span className="eyebrow text-fog">Referans ekle</span>
                   <input
                     ref={fileRef}
                     type="file"
@@ -230,8 +230,8 @@ export function ShootDesk() {
 
           {/* C — Stilist çalışma alanı */}
           <Section title="Stilist çalışma alanı" meta={`${assignedCount}/${looks.length} look atandı · ${openTasks} açık iş`}>
-            <p className="eyebrow text-ash">Look — model eşleştirme</p>
-            <p className="mt-2 text-[11px] leading-4 text-ash">Look&apos;ları sütunlar arasında sürükleyin; sıra, çekim sırasıdır.</p>
+            <p className="eyebrow text-fog">Look — model eşleştirme</p>
+            <p className="mt-2 text-[11px] leading-4 text-fog">Look&apos;ları sütunlar arasında sürükleyin; sıra, çekim sırasıdır.</p>
             <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
               {COLS.map((col) => {
                 const key = colKey(col);
@@ -253,12 +253,12 @@ export function ShootDesk() {
                     onDrop={(e) => onDrop(e, col)}
                     className={cn(
                       "min-h-[200px] border p-3 transition-colors duration-300",
-                      over === key ? "border-ink bg-bone/70" : "border-mist",
+                      over === key ? "border-kalem bg-kalem/[0.08]" : "border-hair",
                     )}
                   >
                     <div className="px-1">
                       <p className="truncate text-[13px] font-medium">{title}</p>
-                      <p className="mt-1 truncate eyebrow tabular-nums text-ash">{sub}</p>
+                      <p className="mt-1 truncate eyebrow tabular-nums text-fog">{sub}</p>
                     </div>
                     <ul className="mt-3 space-y-2">
                       {items.map((l) => (
@@ -271,16 +271,16 @@ export function ShootDesk() {
                             setOver(null);
                           }}
                           className={cn(
-                            "group flex cursor-grab items-center gap-3 border border-mist bg-paper p-2 transition-opacity active:cursor-grabbing",
+                            "group flex cursor-grab items-center gap-3 border border-hair bg-kalem/[0.04] p-2 transition-opacity active:cursor-grabbing",
                             dragId === l.id && "opacity-40",
                           )}
                         >
-                          <span className="relative h-10 w-8 shrink-0 overflow-hidden bg-mist">
+                          <span className="relative h-10 w-8 shrink-0 overflow-hidden bg-hair">
                             <Image src={l.image} alt="" fill sizes="40px" className="photo object-cover" />
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[13px] leading-4">Look {l.no}</span>
-                            <span className="mt-1 block eyebrow leading-4 text-ash">
+                            <span className="mt-1 block eyebrow leading-4 text-fog">
                               {l.name} · {l.pieces} parça
                             </span>
                           </span>
@@ -288,14 +288,14 @@ export function ShootDesk() {
                             type="button"
                             aria-label={`Look ${l.no} — sonraki sütuna taşı`}
                             onClick={() => cycle(l.id)}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center text-ash opacity-0 transition-opacity hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center text-fog opacity-0 transition-opacity hover:text-kalem focus-visible:opacity-100 group-hover:opacity-100"
                           >
                             <Arrow />
                           </button>
                         </li>
                       ))}
                       {items.length === 0 && (
-                        <li className="px-1 py-8 text-center text-[11px] leading-4 text-ash">Look&apos;u buraya sürükleyin</li>
+                        <li className="px-1 py-8 text-center text-[11px] leading-4 text-fog">Look&apos;u buraya sürükleyin</li>
                       )}
                     </ul>
                   </div>
@@ -305,12 +305,12 @@ export function ShootDesk() {
 
             <div className="mt-12">
               <div className="flex items-baseline justify-between">
-                <p className="eyebrow text-ash">Aksesuar ve prop listesi</p>
-                <span className="eyebrow tabular-nums text-ash">
+                <p className="eyebrow text-fog">Aksesuar ve prop listesi</p>
+                <span className="eyebrow tabular-nums text-fog">
                   {propList.filter((p) => p.done).length}/{propList.length} hazır
                 </span>
               </div>
-              <ul className="mt-4 divide-y divide-mist border-y border-mist">
+              <ul className="mt-4 divide-y divide-hair border-y border-hair">
                 {propList.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
                     <Checkbox
@@ -318,7 +318,7 @@ export function ShootDesk() {
                       checked={p.done}
                       onChange={() => toggleProp(p.id)}
                       label={
-                        <span className={cn("text-[13.5px] transition-colors", p.done ? "text-ash line-through decoration-ink/40" : "text-ink")}>
+                        <span className={cn("text-[13.5px] transition-colors", p.done ? "text-fog line-through decoration-kalem/40" : "text-kalem")}>
                           {p.name}
                         </span>
                       }
@@ -329,7 +329,7 @@ export function ShootDesk() {
                           Ödünç · {p.borrowed.from} · İade {p.borrowed.returnBy}
                         </Pill>
                       )}
-                      <span className="hidden eyebrow text-ash sm:inline">{p.owner}</span>
+                      <span className="hidden eyebrow text-fog sm:inline">{p.owner}</span>
                     </span>
                   </li>
                 ))}
@@ -346,7 +346,7 @@ export function ShootDesk() {
                   onChange={(e) => setNewProp(e.target.value)}
                   placeholder="Yeni parça ya da prop…"
                   aria-label="Yeni parça"
-                  className="w-full max-w-sm border-b border-mist bg-transparent py-2.5 text-[13.5px] outline-none transition-colors focus:border-ink"
+                  className="w-full max-w-sm border-b border-hair bg-transparent py-2.5 text-[13.5px] outline-none transition-colors focus:border-kalem"
                 />
                 <button type="submit" className="eyebrow u-line pb-3">
                   Ekle
@@ -359,7 +359,7 @@ export function ShootDesk() {
         {/* D — Call sheet */}
         <div className="min-w-0 lg:col-span-5">
           <Section title="Call sheet" meta={`${slots.filter((s) => s.done).length}/${slots.length} tamamlandı`}>
-            <div className="border border-mist p-6">
+            <div className="border border-hair p-6">
               <p className="font-display text-2xl leading-none">
                 {shootMeta.date}, {shootMeta.weekday}
               </p>
@@ -378,7 +378,7 @@ export function ShootDesk() {
                   <span className="flex items-center gap-2">
                     <span className="flex -space-x-1.5">
                       {roles.map((r) => (
-                        <span key={r.id} className={cn("relative block h-5 w-5 overflow-hidden border border-paper bg-mist", r.shape === "round" && "rounded-full")}>
+                        <span key={r.id} className={cn("relative block h-5 w-5 overflow-hidden border border-paper bg-hair", r.shape === "round" && "rounded-full")}>
                           <Image src={person(r.id).image} alt="" fill sizes="20px" className="photo object-cover" />
                         </span>
                       ))}
@@ -387,8 +387,8 @@ export function ShootDesk() {
                   </span>
                 </Row>
               </dl>
-              <div className="mt-6 flex items-center justify-between border-t border-mist pt-5">
-                <span className="eyebrow text-ash">Son güncelleme · bugün 06:10</span>
+              <div className="mt-6 flex items-center justify-between border-t border-hair pt-5">
+                <span className="eyebrow text-fog">Son güncelleme · bugün 06:10</span>
                 <button type="button" onClick={() => setToast("Call sheet PDF olarak hazırlanıyor (prototip).")} className="eyebrow u-line">
                   PDF
                 </button>
@@ -411,10 +411,10 @@ export function ShootDesk() {
 
 function Section({ title, meta, className, children }: { title: string; meta?: string; className?: string; children: ReactNode }) {
   return (
-    <section className={cn("border-t border-mist pt-8", className)}>
+    <section className={cn("border-t border-hair pt-8", className)}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <h2 className="font-display text-2xl leading-none">{title}</h2>
-        {meta && <span className="eyebrow tabular-nums text-ash">{meta}</span>}
+        {meta && <span className="eyebrow tabular-nums text-fog">{meta}</span>}
       </div>
       <div className="mt-7">{children}</div>
     </section>
@@ -423,9 +423,9 @@ function Section({ title, meta, className, children }: { title: string; meta?: s
 
 function Row({ k, children }: { k: string; children: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-mist pb-2.5 last:border-b-0">
-      <dt className="shrink-0 eyebrow text-ash">{k}</dt>
-      <dd className="text-right text-smoke">{children}</dd>
+    <div className="flex items-start justify-between gap-6 border-b border-hair pb-2.5 last:border-b-0">
+      <dt className="shrink-0 eyebrow text-fog">{k}</dt>
+      <dd className="text-right text-fog">{children}</dd>
     </div>
   );
 }
@@ -443,23 +443,23 @@ function CrewCard({ role, selectedId, onSelect }: { role: Role; selectedId: stri
   const p = role.candidates.find((c) => c.id === selectedId) ?? role.candidates[0];
   const round = role.shape === "round";
   return (
-    <article className="border border-mist p-5">
+    <article className="border border-hair p-5">
       <div className="flex items-start gap-4">
-        <span className={cn("relative block h-14 w-14 shrink-0 overflow-hidden bg-mist", round && "rounded-full")}>
+        <span className={cn("relative block h-14 w-14 shrink-0 overflow-hidden bg-hair", round && "rounded-full")}>
           <Image src={p.image} alt="" fill sizes="56px" className="photo object-cover" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="eyebrow text-ash">{role.label}</p>
+          <p className="eyebrow text-fog">{role.label}</p>
           <p className="mt-1.5 truncate font-display text-xl leading-tight">{p.name}</p>
-          <p className="mt-1 truncate text-[11px] leading-4 text-ash">{p.meta}</p>
+          <p className="mt-1 truncate text-[11px] leading-4 text-fog">{p.meta}</p>
         </div>
       </div>
       <div className="mt-5 flex items-center justify-between gap-3">
         <Pill tone={p.status}>{statusMeta[p.status].label}</Pill>
-        <span className="eyebrow tabular-nums text-ash">Call {p.call}</span>
+        <span className="eyebrow tabular-nums text-fog">Call {p.call}</span>
       </div>
-      <div className="mt-4 flex items-center gap-2.5 border-t border-mist pt-4">
-        <span className="mr-1 eyebrow text-ash">Seçenek</span>
+      <div className="mt-4 flex items-center gap-2.5 border-t border-hair pt-4">
+        <span className="mr-1 eyebrow text-fog">Seçenek</span>
         {role.candidates.map((c) => {
           const active = c.id === selectedId;
           return (
@@ -471,9 +471,9 @@ function CrewCard({ role, selectedId, onSelect }: { role: Role; selectedId: stri
               title={c.name}
               onClick={() => onSelect(c.id)}
               className={cn(
-                "relative h-6 w-6 overflow-hidden bg-mist transition-[opacity,outline-color] duration-300 outline outline-1 outline-offset-2",
+                "relative h-6 w-6 overflow-hidden bg-hair transition-[opacity,outline-color] duration-300 outline outline-1 outline-offset-2",
                 round && "rounded-full",
-                active ? "outline-ink" : "opacity-55 outline-transparent hover:opacity-100",
+                active ? "outline-kalem" : "opacity-55 outline-transparent hover:opacity-100",
               )}
             >
               <Image src={c.image} alt="" fill sizes="24px" className="photo object-cover" />
@@ -494,12 +494,12 @@ function DaylightStrip({ slots, className }: { slots: Slot[]; className?: string
   return (
     <div className={className}>
       <div className="flex items-baseline justify-between">
-        <p className="eyebrow text-ash">Gün ışığı · {shootMeta.date}</p>
-        <span className="eyebrow tabular-nums text-ash">Şimdi {fmtTime(shootMeta.now)}</span>
+        <p className="eyebrow text-fog">Gün ışığı · {shootMeta.date}</p>
+        <span className="eyebrow tabular-nums text-fog">Şimdi {fmtTime(shootMeta.now)}</span>
       </div>
       <div className="relative mt-4 h-7">
-        <div aria-hidden className="absolute inset-x-0 top-1/2 h-px bg-mist" />
-        <div aria-hidden className="absolute top-1/2 h-px bg-ink/60" style={{ left: pct(sunrise), width: `calc(${pct(sunset)} - ${pct(sunrise)})` }} />
+        <div aria-hidden className="absolute inset-x-0 top-1/2 h-px bg-hair" />
+        <div aria-hidden className="absolute top-1/2 h-px bg-kalem/60" style={{ left: pct(sunrise), width: `calc(${pct(sunset)} - ${pct(sunrise)})` }} />
         {shootMeta.golden.map((g) => (
           <div
             key={g.start}
@@ -511,11 +511,11 @@ function DaylightStrip({ slots, className }: { slots: Slot[]; className?: string
         {slots
           .filter((s) => s.kind === "look")
           .map((s) => (
-            <span key={s.id} aria-hidden className="absolute top-[calc(50%-5px)] h-[10px] w-px bg-ink" style={{ left: pct(s.start) }} title={s.title} />
+            <span key={s.id} aria-hidden className="absolute top-[calc(50%-5px)] h-[10px] w-px bg-kalem" style={{ left: pct(s.start) }} title={s.title} />
           ))}
-        <span aria-hidden className="absolute top-0 h-7 w-px bg-ink" style={{ left: pct(shootMeta.now) }} />
+        <span aria-hidden className="absolute top-0 h-7 w-px bg-kalem" style={{ left: pct(shootMeta.now) }} />
       </div>
-      <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 eyebrow tabular-nums text-ash">
+      <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 eyebrow tabular-nums text-fog">
         <span>06:00</span>
         <span>Doğuş {shootMeta.sunrise}</span>
         <span>Altın saat {fmtTime(shootMeta.golden[1].start)}–{fmtTime(shootMeta.golden[1].end)}</span>
@@ -540,7 +540,7 @@ function Timeline({
   const isGolden = (s: Slot) => s.kind === "look" && shootMeta.golden.some((g) => s.start < g.end && s.end > g.start);
   const nowIndex = slots.findIndex((s) => s.start > shootMeta.now);
   return (
-    <ol className="relative mt-8 border-l border-mist">
+    <ol className="relative mt-8 border-l border-hair">
       {slots.map((s, i) => {
         const look = s.lookId ? looks.find((l) => l.id === s.lookId) : undefined;
         const col = s.lookId ? (assign[s.lookId] ?? null) : null;
@@ -549,8 +549,8 @@ function Timeline({
           <li key={s.id} className="relative">
             {showNow && (
               <div aria-hidden className="relative my-1 ml-6 flex items-center gap-3">
-                <span className="absolute -left-[27px] h-1.5 w-1.5 rounded-full bg-ink" />
-                <span className="h-px flex-1 bg-ink" />
+                <span className="absolute -left-[27px] h-1.5 w-1.5 rounded-full bg-kalem" />
+                <span className="h-px flex-1 bg-kalem" />
                 <span className="eyebrow tabular-nums">Şimdi {fmtTime(shootMeta.now)}</span>
               </div>
             )}
@@ -563,13 +563,13 @@ function Timeline({
               <span
                 aria-hidden
                 className={cn(
-                  "absolute -left-[3.5px] mt-[7px] h-1.5 w-1.5 rounded-full border border-ink transition-colors",
-                  s.done ? "bg-ink" : "bg-paper group-hover:bg-ink/30",
+                  "absolute -left-[3.5px] mt-[7px] h-1.5 w-1.5 rounded-full border border-kalem transition-colors",
+                  s.done ? "bg-kalem" : "bg-kalem/25 group-hover:bg-kalem/50",
                 )}
               />
-              <span className="w-11 shrink-0 pt-0.5 eyebrow tabular-nums text-ash">{fmtTime(s.start)}</span>
+              <span className="w-11 shrink-0 pt-0.5 eyebrow tabular-nums text-fog">{fmtTime(s.start)}</span>
               <span className="min-w-0 flex-1">
-                <span className={cn("block text-[13.5px] leading-5 transition-colors", s.done ? "text-ash line-through decoration-ink/40" : "text-ink")}>
+                <span className={cn("block text-[13.5px] leading-5 transition-colors", s.done ? "text-fog line-through decoration-kalem/40" : "text-kalem")}>
                   {s.title}
                   {look && (
                     <>
@@ -578,7 +578,7 @@ function Timeline({
                     </>
                   )}
                 </span>
-                <span className="mt-1 block eyebrow text-ash">
+                <span className="mt-1 block eyebrow text-fog">
                   {[look ? (col ? modelName(col) : null) : s.detail, `${s.end - s.start} dk`, s.outdoor ? "Dış mekân" : null]
                     .filter(Boolean)
                     .join(" · ")}

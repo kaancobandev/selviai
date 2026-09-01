@@ -271,7 +271,7 @@ export function InspirationBoard() {
         setFileOver(false);
       }}
       onDrop={onDrop}
-      className="dot-grid relative flex-1 select-none overflow-hidden outline-none [--s:0.64] sm:[--s:0.8] lg:[--s:1] [--oy:88px] sm:[--oy:56px] lg:[--oy:0px] [--xs:0.8] sm:[--xs:0.9] lg:[--xs:1] min-h-[calc(100svh-4rem-3.25rem)] lg:min-h-[calc(100svh-5rem)]"
+      className="ada-acik dot-grid relative flex-1 select-none overflow-hidden outline-none [--s:0.64] sm:[--s:0.8] lg:[--s:1] [--oy:88px] sm:[--oy:56px] lg:[--oy:0px] [--xs:0.8] sm:[--xs:0.9] lg:[--xs:1] min-h-[calc(100svh-4rem-3.25rem)] lg:min-h-[calc(100svh-5rem)]"
     >
       {/* Üst sol: pano kimliği */}
       <div className="pointer-events-none absolute left-6 top-6 z-[70] md:left-10 md:top-8">

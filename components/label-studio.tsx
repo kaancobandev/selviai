@@ -108,11 +108,11 @@ export function LabelStudio() {
       {/* Başlık */}
       <header className="flex flex-col gap-5 px-6 pt-8 md:flex-row md:items-end md:justify-between md:px-10 md:pt-10">
         <div>
-          <p className="eyebrow text-ash">Etiket · Etiket stüdyosu</p>
+          <p className="eyebrow text-fog">Etiket · Etiket stüdyosu</p>
           <h1 className="mt-3 font-display text-2xl leading-none md:text-3xl">Etiket seti</h1>
         </div>
         <div className="flex items-center gap-6">
-          <span className="eyebrow tabular-nums text-ash">
+          <span className="eyebrow tabular-nums text-fog">
             3 etiket · Şartnamede {addedCount}
           </span>
           <a href="#sartname" className="hidden eyebrow u-line sm:inline-flex items-center gap-3">
@@ -123,7 +123,7 @@ export function LabelStudio() {
       </header>
 
       {/* Tür sekmeleri */}
-      <div role="tablist" aria-label="Etiket türleri" className="mt-8 grid grid-cols-3 border-b border-mist px-6 md:px-10">
+      <div role="tablist" aria-label="Etiket türleri" className="mt-8 grid grid-cols-3 border-b border-hair px-6 md:px-10">
         {labelTypes.map((t) => {
           const active = t.id === type;
           return (
@@ -134,11 +134,11 @@ export function LabelStudio() {
               onClick={() => setType(t.id)}
               className={cn(
                 "-mb-px flex flex-col items-start gap-1.5 border-b py-4 pr-4 text-left transition-colors duration-300",
-                active ? "border-ink text-ink" : "border-transparent text-smoke hover:text-ink",
+                active ? "border-kalem text-kalem" : "border-transparent text-fog hover:text-kalem",
               )}
             >
               <span className={cn("text-[13.5px] leading-5", active && "font-medium")}>{t.name}</span>
-              <span className="hidden eyebrow text-ash sm:block">{t.sub}</span>
+              <span className="hidden eyebrow text-fog sm:block">{t.sub}</span>
             </button>
           );
         })}
@@ -147,39 +147,39 @@ export function LabelStudio() {
       {/* Tezgâh */}
       <div className="grid flex-1 lg:grid-cols-12">
         {/* Sahne */}
-        <section aria-label="Önizleme sahnesi" className="px-6 py-8 md:px-10 md:py-10 lg:col-span-7 lg:border-r lg:border-mist">
+        <section aria-label="Önizleme sahnesi" className="px-6 py-8 md:px-10 md:py-10 lg:col-span-7 lg:border-r lg:border-hair">
           <div className="[--mm:2.2px] sm:[--mm:3.4px] lg:[--mm:4px]">
             <div className="grid grid-cols-[20px_auto] grid-rows-[20px_auto] gap-1.5">
               <span aria-hidden />
               <Ruler orientation="h" cm={STAGE_W_CM} className="h-5" />
               <Ruler orientation="v" cm={STAGE_H_CM[type]} className="h-full w-5" />
               <div
-                className="relative border border-mist bg-paper"
+                className="ada-acik relative border border-mist bg-paper"
                 style={{ width: mm(STAGE_W_CM * 10), height: mm(STAGE_H_CM[type] * 10) }}
               >
                 <div className="absolute left-0 top-0">{preview(type)}</div>
                 <span className="absolute bottom-3 left-3 bg-bone/90 px-2.5 py-2 eyebrow text-ink">
                   1:1 · <span className="normal-case">{sizeOf[type].w} × {sizeOf[type].h} mm</span>
                 </span>
-                <span className="absolute bottom-3 right-3 eyebrow text-ash">{stageNote[type]}</span>
+                <span className="absolute bottom-3 right-3 eyebrow text-fog">{stageNote[type]}</span>
               </div>
             </div>
           </div>
-          <p className="mt-5 pl-[26px] text-[11px] leading-4 text-ash">
+          <p className="mt-5 pl-[26px] text-[11px] leading-4 text-fog">
             Sahne gerçek ölçekte; kesikli çizgiler dikiş payı ve katlama hattıdır. Metinler sağdaki içerik alanlarından gelir.
           </p>
         </section>
 
         {/* Şartname paneli */}
         <aside aria-label="Şartname" className="px-6 py-8 md:px-10 md:py-10 lg:col-span-5">
-          <p className="eyebrow text-ash">Şartname</p>
+          <p className="eyebrow text-fog">Şartname</p>
           <h2 className="mt-3 font-display text-3xl leading-none md:text-4xl">{typeMeta.name}</h2>
-          <p className="mt-3 eyebrow text-ash">
+          <p className="mt-3 eyebrow text-fog">
             <span className="normal-case">{sizeOf[type].w} × {sizeOf[type].h} mm</span> · {stageNote[type]}
           </p>
 
           {/* İçerik */}
-          <section className="mt-10 border-t border-mist pt-8">
+          <section className="mt-10 border-t border-hair pt-8">
             <h3 className="eyebrow">İçerik</h3>
             <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-7">
               <Field label="Marka" htmlFor="lbl-brand">
@@ -204,7 +204,7 @@ export function LabelStudio() {
           </section>
 
           {/* Yapı — türe özel */}
-          <section className="mt-10 border-t border-mist pt-8">
+          <section className="mt-10 border-t border-hair pt-8">
             <h3 className="eyebrow">Yapı</h3>
             <div className="mt-6 space-y-7">
               {type === "woven" && (
@@ -243,7 +243,7 @@ export function LabelStudio() {
                     onChange={(v) => setCare((c) => ({ ...c, wash: Number(v) as 30 | 40 }))}
                   />
                   <div>
-                    <p className="eyebrow text-ash">Semboller</p>
+                    <p className="eyebrow text-fog">Semboller</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {(Object.keys(careSymbolLabels) as CareSymbol[]).map((s) => (
                         <Checkbox
@@ -271,10 +271,10 @@ export function LabelStudio() {
           </section>
 
           {/* Adet ve tahmin */}
-          <section className="mt-10 border-t border-mist pt-8">
+          <section className="mt-10 border-t border-hair pt-8">
             <div className="flex items-baseline justify-between">
               <h3 className="eyebrow">Adet</h3>
-              <span className="eyebrow text-ash">1.000+ %15 · 2.500+ %28 indirim</span>
+              <span className="eyebrow text-fog">1.000+ %15 · 2.500+ %28 indirim</span>
             </div>
             <div className="mt-6 grid grid-cols-3 gap-6">
               <Field label="Adet" htmlFor={`qty-${type}`} trailing="min. 100">
@@ -294,7 +294,7 @@ export function LabelStudio() {
             </div>
           </section>
 
-          <div className="mt-10 flex flex-col gap-5 border-t border-mist pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-10 flex flex-col gap-5 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
             <Button variant={added[type] ? "ghost" : "solid"} onClick={() => toggleAdded(type)}>
               {added[type] ? "Şartnameden çıkar" : "Şartnameye ekle"}
             </Button>
@@ -310,15 +310,15 @@ export function LabelStudio() {
       </div>
 
       {/* Set ve şartname */}
-      <section id="sartname" className="scroll-mt-24 border-t border-mist px-6 py-12 md:px-10 md:py-16">
+      <section id="sartname" className="scroll-mt-24 border-t border-hair px-6 py-12 md:px-10 md:py-16">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="eyebrow text-ash">Şartname</p>
+            <p className="eyebrow text-fog">Şartname</p>
             <h2 className="mt-3 font-display text-2xl leading-none md:text-3xl">Etiket seti</h2>
           </div>
           <div className="flex items-center gap-8">
             <div className="text-right">
-              <p className="eyebrow text-ash">Şartname toplamı</p>
+              <p className="eyebrow text-fog">Şartname toplamı</p>
               <p className="mt-1.5 font-display text-2xl tabular-nums">{formatTRY(setTotal)}</p>
             </div>
             <Button variant="ghost" disabled={addedCount === 0} onClick={() => setToast("Üretim şartnamesi PDF olarak hazırlanıyor (prototip).")}>
@@ -327,36 +327,36 @@ export function LabelStudio() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-px border border-mist bg-mist md:grid-cols-3">
+        <div className="mt-10 grid gap-px border border-hair bg-hair md:grid-cols-3">
           {labelTypes.map((t) => {
             const isActive = t.id === type;
             const spec = specLines(t.id, { woven, hang, care });
             return (
-              <div key={t.id} className="flex flex-col bg-bone p-6 md:p-8">
+              <div key={t.id} className="flex flex-col bg-kalem/[0.04] p-6 md:p-8">
                 <div className="flex items-baseline justify-between">
                   <p className="text-[13.5px] font-medium">{t.name}</p>
-                  <span className={cn("eyebrow", added[t.id] ? "text-ink" : "text-ash")}>{added[t.id] ? "Eklendi" : "Eklenmedi"}</span>
+                  <span className={cn("eyebrow", added[t.id] ? "text-kalem" : "text-fog")}>{added[t.id] ? "Eklendi" : "Eklenmedi"}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setType(t.id)}
                   aria-label={`${t.name} düzenle`}
                   className={cn(
-                    "mt-5 flex h-[190px] items-center justify-center overflow-hidden border bg-paper p-4 transition-colors duration-300 [--mm:1.6px]",
-                    isActive ? "border-ink" : "border-mist hover:border-ink/40",
+                    "ada-acik mt-5 flex h-[190px] items-center justify-center overflow-hidden border bg-paper p-4 transition-colors duration-300 [--mm:1.6px]",
+                    isActive ? "border-kalem" : "border-hair hover:border-kalem/40",
                   )}
                 >
                   {preview(t.id)}
                 </button>
-                <dl className="mt-5 space-y-2 text-[11px] leading-4 text-smoke">
+                <dl className="mt-5 space-y-2 text-[11px] leading-4 text-fog">
                   {spec.map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-4 border-b border-mist pb-2 last:border-b-0">
-                      <dt className="eyebrow text-ash">{k}</dt>
+                    <div key={k} className="flex justify-between gap-4 border-b border-hair pb-2 last:border-b-0">
+                      <dt className="eyebrow text-fog">{k}</dt>
                       <dd className="text-right">{v}</dd>
                     </div>
                   ))}
                   <div className="flex justify-between gap-4 pt-1">
-                    <dt className="eyebrow text-ash">Adet · birim</dt>
+                    <dt className="eyebrow text-fog">Adet · birim</dt>
                     <dd className="tabular-nums">
                       {q(t.id).toLocaleString("tr-TR")} · {unitFmt.format(unit(t.id))}
                     </dd>
@@ -430,8 +430,8 @@ function Choices<T extends string>({
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <p className="eyebrow text-ash">{label}</p>
-        {hint && <span className="eyebrow text-ash">{hint}</span>}
+        <p className="eyebrow text-fog">{label}</p>
+        {hint && <span className="eyebrow text-fog">{hint}</span>}
       </div>
       <div role="radiogroup" aria-label={label} className="mt-3 flex flex-wrap gap-x-6 gap-y-2.5">
         {options.map((o) => {
@@ -444,14 +444,14 @@ function Choices<T extends string>({
               aria-checked={active}
               onClick={() => onChange(o.value)}
               data-active={active}
-              className={cn("eyebrow u-line transition-colors duration-300", active ? "text-ink" : "text-ash hover:text-ink")}
+              className={cn("eyebrow u-line transition-colors duration-300", active ? "text-kalem" : "text-fog hover:text-kalem")}
             >
               {o.label}
             </button>
           );
         })}
       </div>
-      {note && <p className="mt-2.5 text-[11px] leading-4 text-ash">{note}</p>}
+      {note && <p className="mt-2.5 text-[11px] leading-4 text-fog">{note}</p>}
     </div>
   );
 }
@@ -461,8 +461,8 @@ function InkChoices({ label, value, onChange }: { label: string; value: string; 
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <p className="eyebrow text-ash">{label}</p>
-        <span className="text-[11px] text-ash">{current.name}</span>
+        <p className="eyebrow text-fog">{label}</p>
+        <span className="text-[11px] text-fog">{current.name}</span>
       </div>
       <div role="radiogroup" aria-label={label} className="mt-3 flex gap-3.5">
         {inks.map((i) => {
@@ -477,8 +477,8 @@ function InkChoices({ label, value, onChange }: { label: string; value: string; 
               title={i.name}
               onClick={() => onChange(i.id)}
               className={cn(
-                "h-4 w-4 border border-ink/15 transition-[outline-color] duration-300 outline outline-1 outline-offset-[3px]",
-                active ? "outline-ink" : "outline-transparent hover:outline-ink/40",
+                "h-4 w-4 border border-kalem/15 transition-[outline-color] duration-300 outline outline-1 outline-offset-[3px]",
+                active ? "outline-kalem" : "outline-transparent hover:outline-kalem/40",
               )}
               style={{ background: i.hex }}
             />
@@ -492,7 +492,7 @@ function InkChoices({ label, value, onChange }: { label: string; value: string; 
 function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <p className="eyebrow text-ash">{label}</p>
+      <p className="eyebrow text-fog">{label}</p>
       <p className="mt-3 font-display text-xl tabular-nums leading-none md:text-2xl">{value}</p>
     </div>
   );
