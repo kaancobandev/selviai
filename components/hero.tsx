@@ -25,7 +25,7 @@ import { Arrow } from "@/components/ui/button";
 
 const ipuclari = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"];
 
-const BASLIK = "Öğrenme Tasarım Görselleştirme ve Satış Tek Platformda";
+const BASLIK = "Learn Create Sell";
 
 export function Hero() {
   const router = useRouter();
@@ -64,7 +64,7 @@ export function Hero() {
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
-        <h1 className="rise rise-2 mt-7 max-w-[20ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[10.5vw] leading-[1.02] tracking-[-0.035em] sm:text-[7.5vw] md:text-[4.4rem] lg:text-[5rem]">
+        <h1 className="rise rise-2 mt-7 max-w-[14ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[15vw] leading-[1.02] tracking-[-0.035em] sm:text-[11vw] md:text-[6.5rem] lg:text-[7.6rem]">
           {/* FlipText her harfi ayrı span'e koyuyor; ekran okuyucu bunu harf
               harf okuyabilir. Düz metni ayrıca veriyoruz, animasyonlu düğümü
               erişilebilirlik ağacından çıkarıyoruz. */}
@@ -119,13 +119,10 @@ export function Hero() {
       {/* ── Alt şerit ─────────────────────────────────────────────── */}
       <div className="rise rise-3 px-5 pb-9 md:px-10 md:pb-11 [@media(max-height:820px)]:pb-5">
         <div className="flex flex-col gap-6 border-t border-paper/12 pt-6 sm:flex-row sm:items-start sm:justify-between [@media(max-height:820px)]:gap-4 [@media(max-height:820px)]:pt-4">
-          <dl className="flex flex-wrap gap-x-12 gap-y-4">
-            <div>
-              <dt className="text-[15px] font-semibold leading-tight">Learn → Create → Sell</dt>
-              <dd className="mt-1.5 eyebrow text-paper/45">Tek platform</dd>
-            </div>
-          </dl>
-          <p className="max-w-[36ch] text-[15px] leading-7 text-paper/65 sm:text-right">
+          {/* Sol taraftaki "Learn → Create → Sell" kaldırıldı: başlık artık
+              aynı sözü söylüyordu. Tek kalan metni sağda tutmak için ml-auto,
+              yoksa justify-between onu sola çekiyor. */}
+          <p className="max-w-[36ch] text-[15px] leading-7 text-paper/65 sm:ml-auto sm:text-right">
             Fashion is where we start. <span className="text-paper">Design is where we go.</span>
           </p>
         </div>
