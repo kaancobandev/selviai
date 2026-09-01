@@ -74,11 +74,7 @@ export function FlipText({
         const chars = word.split("");
 
         return (
-          <span
-            key={wordIndex}
-            className="word inline-block whitespace-nowrap"
-            style={{ transformStyle: "preserve-3d" }}
-          >
+          <span key={wordIndex} className="word inline-block whitespace-nowrap">
             {chars.map((char, charIndex) => {
               const currentGlobalIndex = getCharIndex(wordIndex, charIndex);
 
@@ -94,7 +90,7 @@ export function FlipText({
               return (
                 <span
                   key={charIndex}
-                  className="flip-char inline-block relative"
+                  className="flip-char"
                   data-char={char}
                   style={
                     {
@@ -107,7 +103,6 @@ export function FlipText({
                       // hassasiyeti fazlasıyla yeterli.
                       "--flip-delay": `${calculatedDelay.toFixed(3)}s`,
                       "--flip-iteration": loop ? "infinite" : "1",
-                      transformStyle: "preserve-3d",
                     } as React.CSSProperties
                   }
                 >
