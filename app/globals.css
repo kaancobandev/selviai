@@ -634,64 +634,101 @@ input[type="number"] {
 }
 
 /* ------------------------------------------------------------------
-   Flip Text — harf harf çevrilerek giren başlık.
+   Flip Text — harf harf çevrilen, sürekli dönen başlık.
 
    Kaynak fikir: Vengeance UI (components/ui/flip-text.tsx).
-   Uygulaması bilerek yeniden yazıldı; kaynağın kurulumu metni kalıcı olarak
-   bozuyordu. İki sorun vardı, ikisi de ölçülerek bulundu:
+   Görünüm kaynaktakiyle aynı: her harf bir split-flap panosu gibi devriliyor,
+   ön yüz kenara dönerken alt yüz düze geliyor. Kurulum ise yeniden yazıldı.
 
-   1) TABAN ÇİZGİSİ. Kaynak harfi kendi kutusunda ortalıyor
-      (`top:50%; align-items:center`) ve `.flip-char`a `height:1.2em` verip
-      satır yüksekliğini eziyor. Normal dizgide harfler ortak bir taban
-      çizgisine oturur; ortalayınca her harf kutusunun merkezine göre
-      yerleşiyor ve yazı düz metinle örtüşmüyor.
+   NEDEN YENİDEN YAZILDI. Kaynak KABI döndürüyor (`.flip-char` rotateX(90deg)
+   ile duruyor) ve görünen yüzü ters çevirerek düzeltiyor. Net dönüş sıfır ama
+   yazı kalıcı olarak iki 3B matrisin bileşkesinden geçiyor; tarayıcı böyle bir
+   metni GPU dokusu olarak rasterleştirip yeniden örnekliyor. Harf ipuçları ve
+   alt piksel netliği kayboluyor — gözle "harfler eğik, büyük harfler
+   orantısız, bazı yerde kalın bazı yerde ince" olarak okunuyor. Ölçüldü:
+   dinlenme hâlinde computed transform matrix3d(...) idi.
 
-   2) DİNLENME HÂLİNDE 3B KATMAN. Asıl sorun buydu. Kaynakta harf, animasyon
-      bittikten sonra `rotateX(90deg)` + `preserve-3d` içinde KALIYOR ve
-      görünen yüz bir sözde eleman oluyor. Tarayıcı 3B dönüştürülmüş metni
-      GPU dokusu olarak rasterleştirip yeniden örnekliyor: harf ipuçları ve
-      alt piksel netliği kayboluyor. Sonuç, gözle "harfler hafif eğik, büyük
-      harfler orantısız, bazı yerde kalın bazı yerde ince" olarak okunuyor.
-      Ölçüldü: dinlenme hâlinde computed transform `matrix3d(...)` idi.
+   BU KURULUM. Kap hiç dönmüyor; yalnızca iki yüz dönüyor. Çevirme bittiğinde
+   duran yüzün dönüşümü rotateX(0deg), yani birim — doku 1:1 çiziliyor ve
+   yazı net kalıyor. Kaptaki `perspective` çocuklara uygulanıyor, kabın
+   kendisini dönüştürmüyor.
 
-   Bu sürümde dinlenme hâli TAMAMEN dönüşümsüz. Sözde eleman yok, harfin
-   kendi metni görünüyor; animasyon bittiğinde eleman kendi taban durumuna
-   dönüyor (fill-mode `backwards`, `forwards` DEĞİL). Yani çevirme bitince
-   başlık, sıradan bir <h1> metninden hiçbir farkı olmayan biçimde çiziliyor.
-
-   Perspektif keyframe'in içinde: dönüşüm bittiğinde geriye hiçbir 3B bağlam
-   kalmasın diye elemanın kendi `perspective` özelliği kullanılmıyor.
+   Süre bölümü kaynaktaki gibi: çevirme ilk %25'te bitiyor, kalan %75 duruyor.
+   Yani harf zamanın dörtte üçünde net ve hareketsiz.
    ------------------------------------------------------------------ */
 .flip-text-wrapper {
-  /* Bileşen `leading-none` veriyor; başlığın kendi satır yüksekliği farklı
-     olduğu için satır kutusu daralıyor ve efektli metin düz metinden
-     ayrışıyordu. Miras aldırıyoruz. */
+  /* Bileşen `leading-none` veriyor; başlığın satır yüksekliği farklı olduğu
+     için satır kutusu daralıyor ve efektli metin düz metinden ayrışıyordu. */
   line-height: inherit;
 }
 
 .flip-char {
   display: inline-block;
-  /* Taban durumda dönüşüm YOK. Animasyon `backwards` ile yalnızca başlangıç
-     karesini geciktirme boyunca uyguluyor; bitince eleman buraya dönüyor. */
-  animation: flip-char-turn var(--flip-duration, 2.2s) var(--flip-delay, 0s)
-    var(--flip-iteration, 1) cubic-bezier(0.2, 0.75, 0.2, 1) backwards;
+  position: relative;
+  /* Çocuklara uygulanır — kabın kendisi dönüşmez, dolayısıyla harf 3B
+     katmana hapsolmaz. */
+  perspective: 320px;
+  color: inherit;
+  /* Kendi metni ölçüyü ve taban çizgisini veriyor; görünen iş sözde
+     elemanlarda. */
+  -webkit-text-fill-color: transparent;
 }
 
-@keyframes flip-char-turn {
-  from {
-    transform: perspective(320px) rotateX(-90deg);
-    opacity: 0;
+.flip-char::before,
+.flip-char::after {
+  content: attr(data-char);
+  position: absolute;
+  inset: 0;
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+  backface-visibility: hidden;
+}
+
+/* Ön yüz: düzden kenara devrilir, sonra kenarda kalır (görünmez). */
+.flip-char::after {
+  animation: flip-char-front var(--flip-duration, 2.2s) var(--flip-delay, 0s)
+    var(--flip-iteration, infinite) ease both;
+}
+
+/* Alt yüz: kenardan düze gelir ve orada durur. DURAN yüz bu; dönüşümü birim
+   olduğu için yazı net. */
+.flip-char::before {
+  animation: flip-char-back var(--flip-duration, 2.2s) var(--flip-delay, 0s)
+    var(--flip-iteration, infinite) ease both;
+}
+
+@keyframes flip-char-front {
+  0% {
+    transform: rotateX(0deg);
   }
-  to {
-    transform: perspective(320px) rotateX(0deg);
-    opacity: 1;
+  25%,
+  100% {
+    transform: rotateX(90deg);
   }
 }
 
-/* Harfin kendi metni görünür olduğu için animasyonu tamamen kapatmak güvenli:
-   yazı olduğu gibi, dönüşümsüz ve net kalıyor. */
+@keyframes flip-char-back {
+  0% {
+    transform: rotateX(-90deg);
+  }
+  25%,
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+/* Harfin kendi metni saydam olduğu için animasyonu tamamen kapatmak yazıyı
+   görünmez bırakırdı. Onun yerine duran yüzü açık, ön yüzü kapalı
+   sabitliyoruz: metin okunur, hareket yok. */
 @media (prefers-reduced-motion: reduce) {
-  .flip-char {
+  .flip-char::before,
+  .flip-char::after {
     animation: none;
+  }
+  .flip-char::before {
+    transform: rotateX(0deg);
+  }
+  .flip-char::after {
+    transform: rotateX(90deg);
   }
 }
