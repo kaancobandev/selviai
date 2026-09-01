@@ -9,34 +9,49 @@ import { useEffect, useRef } from "react";
  * her karede 2.900 stil hesabı demek; canvas'ta tek bir çizim döngüsü oluyor.
  *
  * Etkileşim: imlecin çevresindeki noktalar büyüyüp parlıyor. İmleç konumu
- * doğrudan değil, yumuşatılarak (lerp) takip ediliyor — fare sıçradığında
- * ışık da sıçramasın diye.
+ * doğrudan değil, yumuşatılarak takip ediliyor — fare sıçradığında ışık da
+ * sıçramasın diye.
  *
- * Açılış: noktalar hemen görünmüyor; `girisSuresi` boyunca soluklaşarak
- * geliyor. Referans aldığımız Stitch hero'sunda da nokta katmanı aurora'dan
- * yaklaşık iki saniye sonra beliriyordu.
+ * Açılış: noktalar hemen görünmüyor; metin (.rise-*) yerine oturmaya
+ * başladıktan sonra biniyorlar.
  */
 
-const ARALIK = 22;          // noktalar arası mesafe (px)
-const TABAN_YARICAP = 1.0;  // dinlenme hâlindeki nokta yarıçapı
-const TEPE_YARICAP = 2.6;   // imlecin tam altındaki yarıçap
+const ARALIK = 22; // noktalar arası mesafe (px)
+const TABAN_YARICAP = 1.0; // dinlenme hâlindeki nokta yarıçapı
+const TEPE_YARICAP = 2.6; // imlecin tam altındaki yarıçap
 const TABAN_ALFA = 0.22;
 const TEPE_ALFA = 1.0;
-const ETKI = 420;           // imlecin etki yarıçapı (px)
-const GIRIS_SURESI = 1400;  // noktaların belirme süresi (ms)
-const GECIKME = 700;        // aurora yerleşsin diye beklenen süre (ms)
+const ETKI = 420; // imlecin etki yarıçapı (px)
+const GIRIS_SURESI = 1400; // noktaların belirme süresi (ms)
+const GECIKME = 700; // metin girişine binmesin diye beklenen süre (ms)
 
 /* Ortam dalgası — imleç hiç kıpırdamasa bile ızgarada sürekli bir hareket
    olsun diye. Izgara boyunca süzülen tek bir sinüs; noktaların parlaklığını
    ±%55 oynatıyor.
 
-   Hız seçimi ölçülerek yapıldı: 7 sn periyot, saniyede ~%43 parlaklık
-   değişimi, 120 px/sn süzülme. Daha yavaşı (15 sn) bakan gözün hareket
-   olarak seçemediği, daha hızlısı huzursuz duran bir aralığa düşüyordu. */
+   Hız ölçülerek seçildi: 7 sn periyot, saniyede ~%43 parlaklık değişimi.
+   Daha yavaşı (15 sn) bakan gözün hareket olarak seçemediği, daha hızlısı
+   huzursuz duran bir aralığa düşüyordu. */
 const DALGA_HIZ = 0.0009;
 const DALGA_OLCEK_X = 0.0075;
 const DALGA_OLCEK_Y = 0.011;
 const DALGA_DERINLIK = 0.55;
+
+/* İmleç takibi zaman tabanlı. Önceki sürüm kare başına sabit bir katsayı
+   (0.12) uyguluyordu; bu, takip hızını doğrudan ekranın tazeleme hızına
+   bağlıyordu — 60 Hz'de 391 ms olan oturma süresi 144 Hz'de 163 ms'ye
+   düşüyor, 30 fps'e düşen bir makinede 781 ms'ye çıkıyordu. */
+const TAKIP_TAU = 130; // zaman sabiti (ms)
+
+/* Nokta rengi, imlece yakınlığa (t) göre beyazdan lilaya kayıyor. Renk
+   dizgisini her nokta için yeniden kurmak kare başına ~2.400 dizgi ayırmak
+   demekti; bunun yerine 33 kademelik sabit tablo. */
+const RENK_KADEME = 32;
+const RENKLER = Array.from({ length: RENK_KADEME + 1 }, (_, i) => {
+  const k = 1 - i / RENK_KADEME;
+  return `rgb(${Math.round(214 + 41 * k)}, ${Math.round(196 + 59 * k)}, 255)`;
+});
+const TABAN_RENK = "rgb(226, 224, 235)";
 
 export function DotField({ className = "" }: { className?: string }) {
   const tuvalRef = useRef<HTMLCanvasElement>(null);
@@ -47,13 +62,16 @@ export function DotField({ className = "" }: { className?: string }) {
     const ctx = tuval.getContext("2d");
     if (!ctx) return;
 
-    const azHareket = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sorgu = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let azHareket = sorgu.matches;
 
     let gen = 0;
     let yuk = 0;
     let opr = Math.min(window.devicePixelRatio || 1, 2);
     let cerceve = 0;
-    let baslangic = 0;
+    let oncekiZaman = 0;
+    let goruntude = true;
+    let sonKareDurgun = false;
 
     // Hedef ve yumuşatılmış imleç konumu. -1 = imleç alanda değil.
     let hedefX = -1;
@@ -69,20 +87,20 @@ export function DotField({ className = "" }: { className?: string }) {
       tuval!.width = Math.round(gen * opr);
       tuval!.height = Math.round(yuk * opr);
       ctx!.setTransform(opr, 0, 0, opr, 0, 0);
+      sonKareDurgun = false; // yeniden boyutlandıktan sonra mutlaka çiz
     }
 
     function ciz(zaman: number) {
-      if (!baslangic) baslangic = zaman;
-      const gecen = zaman - baslangic;
+      cerceve = requestAnimationFrame(ciz);
 
-      // Açılış: gecikmeden sonra 0 → 1
-      const giris = azHareket
-        ? 1
-        : Math.max(0, Math.min(1, (gecen - GECIKME) / GIRIS_SURESI));
-      // Yumuşak giriş eğrisi
-      const g = giris * giris * (3 - 2 * giris);
+      // rAF damgası performance.now() ile aynı tabanda, CSS animasyonları da
+      // sayfa yüklenmesinden sayıyor. Bu yüzden ilk kareyi sıfır kabul
+      // etmiyoruz: aksi hâlde noktaların girişi hydration gecikmesi kadar
+      // geriye kayıp metin animasyonundan kopuyordu.
+      const dt = oncekiZaman ? Math.min(zaman - oncekiZaman, 100) : 16.7;
+      oncekiZaman = zaman;
 
-      // İmleci yumuşatarak takip et
+      // İmleci zaman tabanlı yumuşatmayla takip et
       if (hedefX < 0) {
         x = -1;
         y = -1;
@@ -90,9 +108,22 @@ export function DotField({ className = "" }: { className?: string }) {
         x = hedefX;
         y = hedefY;
       } else {
-        x += (hedefX - x) * 0.12;
-        y += (hedefY - y) * 0.12;
+        const k = 1 - Math.exp(-dt / TAKIP_TAU);
+        x += (hedefX - x) * k;
+        y += (hedefY - y) * k;
       }
+
+      // Hareket azaltılmışsa ve imleç yoksa görüntü kareden kareye birebir
+      // aynı. Bir kez çizdikten sonra tekrar çizmenin anlamı yok.
+      const durgun = azHareket && x < 0;
+      if (durgun && sonKareDurgun) return;
+      sonKareDurgun = durgun;
+
+      // Açılış: gecikmeden sonra 0 → 1
+      const giris = azHareket
+        ? 1
+        : Math.max(0, Math.min(1, (zaman - GECIKME) / GIRIS_SURESI));
+      const g = giris * giris * (3 - 2 * giris); // yumuşak giriş eğrisi
 
       ctx!.clearRect(0, 0, gen, yuk);
 
@@ -102,74 +133,112 @@ export function DotField({ className = "" }: { className?: string }) {
       const kaydirX = (gen - sutun * ARALIK) / 2 + ARALIK / 2;
       const kaydirY = (yuk - satir * ARALIK) / 2 + ARALIK / 2;
 
+      const dalgaFaz = zaman * DALGA_HIZ;
+      const etkiKare = ETKI * ETKI;
+
       for (let i = 0; i <= sutun; i++) {
+        const nx = kaydirX + i * ARALIK;
+        const dx = nx - x;
+        const dxKare = dx * dx;
+
         for (let j = 0; j <= satir; j++) {
-          const nx = kaydirX + i * ARALIK;
           const ny = kaydirY + j * ARALIK;
 
           let t = 0;
           if (x >= 0) {
-            const dx = nx - x;
             const dy = ny - y;
-            const uzaklik = Math.sqrt(dx * dx + dy * dy);
-            if (uzaklik < ETKI) {
-              const k = 1 - uzaklik / ETKI;
+            const uzaklikKare = dxKare + dy * dy;
+            if (uzaklikKare < etkiKare) {
+              const k = 1 - Math.sqrt(uzaklikKare) / ETKI;
               t = k * k; // merkeze doğru hızlanan artış
             }
           }
 
-          // Sürekli ortam dalgası: 0 → 1 arası, ızgara boyunca ilerliyor
           const dalga = azHareket
             ? 1
             : 1 +
               DALGA_DERINLIK *
-                Math.sin(nx * DALGA_OLCEK_X + ny * DALGA_OLCEK_Y + zaman * DALGA_HIZ);
+                Math.sin(nx * DALGA_OLCEK_X + ny * DALGA_OLCEK_Y + dalgaFaz);
 
           const yaricap = (TABAN_YARICAP * dalga + (TEPE_YARICAP - TABAN_YARICAP) * t) * g;
           const alfa = (TABAN_ALFA * dalga + (TEPE_ALFA - TABAN_ALFA) * t) * g;
           if (yaricap <= 0.05 || alfa <= 0.004) continue;
 
-          // İmlece yaklaştıkça beyazdan lilaya kayan bir ton
-          ctx!.fillStyle =
-            t > 0.02
-              ? `rgba(${Math.round(214 + 41 * (1 - t))}, ${Math.round(196 + 59 * (1 - t))}, 255, ${alfa})`
-              : `rgba(226, 224, 235, ${alfa})`;
-
+          ctx!.fillStyle = t > 0.02 ? RENKLER[(t * RENK_KADEME) | 0] : TABAN_RENK;
+          ctx!.globalAlpha = alfa < 1 ? alfa : 1;
           ctx!.beginPath();
           ctx!.arc(nx, ny, yaricap, 0, Math.PI * 2);
           ctx!.fill();
         }
       }
 
-      // Döngü her hâlükârda sürüyor: hareket azaltılmış olsa bile imleç
-      // etkileşiminin çalışması için yeniden çizim gerekiyor. (Önceki sürüm
-      // burada duruyordu ve etkileşimi de öldürüyordu.)
+      ctx!.globalAlpha = 1;
+    }
+
+    function basla() {
+      if (cerceve) return;
+      oncekiZaman = 0;
+      sonKareDurgun = false;
       cerceve = requestAnimationFrame(ciz);
+    }
+    function dur() {
+      if (!cerceve) return;
+      cancelAnimationFrame(cerceve);
+      cerceve = 0;
     }
 
     function fareHareket(e: PointerEvent) {
       const r = tuval!.getBoundingClientRect();
       hedefX = e.clientX - r.left;
       hedefY = e.clientY - r.top;
+      sonKareDurgun = false;
     }
     function fareCik() {
       hedefX = -1;
       hedefY = -1;
+      sonKareDurgun = false;
+    }
+    function hareketDegisti(e: MediaQueryListEvent) {
+      azHareket = e.matches;
+      sonKareDurgun = false;
+    }
+    function sekmeDegisti() {
+      if (document.hidden) dur();
+      else if (goruntude) basla();
     }
 
     olcule();
-    cerceve = requestAnimationFrame(ciz);
+    basla();
 
     const boyutIzleyici = new ResizeObserver(olcule);
     boyutIzleyici.observe(tuval);
+
+    // Hero ekrandan çıkınca çizmeyi bırak. Sayfa uzun ve hero yalnızca ilk
+    // ekranı kaplıyor; kaydırmanın geri kalanında görünmeyen bir tuvale kare
+    // başına ~2.400 daire çizmenin anlamı yok.
+    const gorunumIzleyici = new IntersectionObserver(
+      ([kayit]) => {
+        goruntude = kayit.isIntersecting;
+        if (goruntude) basla();
+        else dur();
+      },
+      { rootMargin: "120px" },
+    );
+    gorunumIzleyici.observe(tuval);
+
     window.addEventListener("pointermove", fareHareket, { passive: true });
     window.addEventListener("pointerleave", fareCik, { passive: true });
+    document.addEventListener("visibilitychange", sekmeDegisti);
+    sorgu.addEventListener("change", hareketDegisti);
 
     return () => {
-      cancelAnimationFrame(cerceve);
+      dur();
       boyutIzleyici.disconnect();
+      gorunumIzleyici.disconnect();
       window.removeEventListener("pointermove", fareHareket);
       window.removeEventListener("pointerleave", fareCik);
+      document.removeEventListener("visibilitychange", sekmeDegisti);
+      sorgu.removeEventListener("change", hareketDegisti);
     };
   }, []);
 

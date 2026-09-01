@@ -122,7 +122,7 @@ export function SiteHeader() {
               href={item.href}
               onClick={() => setOpen(false)}
               className={cn(
-                "border-b border-mist py-5 font-display text-4xl leading-none transition-[opacity,transform] duration-700 ease-[var(--ease-out-quart)]",
+                "border-b border-mist py-5 font-display text-4xl leading-none transition-[opacity,translate] duration-700 ease-[var(--ease-out-quart)]",
                 open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
               )}
               style={{ transitionDelay: open ? `${120 + i * 70}ms` : "0ms" }}

@@ -700,7 +700,7 @@ export function FlatSketch() {
                   >
                     <span
                       className={cn(
-                        "block h-9 w-9 rounded-full border border-ink/10 bg-cover bg-center transition-[outline-color,transform] duration-300 outline outline-1 outline-offset-2",
+                        "block h-9 w-9 rounded-full border border-ink/10 bg-cover bg-center transition-[outline-color,scale] duration-300 outline outline-1 outline-offset-2",
                         active ? "outline-[#6B7C93]" : "outline-transparent group-hover:scale-105",
                       )}
                       style={{ backgroundImage: `url(${f.image})` }}
