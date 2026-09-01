@@ -61,14 +61,9 @@ export function Hero() {
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
-        <h1 className="rise rise-2 mt-7 max-w-[16ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[13vw] leading-[0.98] tracking-[-0.035em] sm:text-[9.5vw] md:text-[6rem] lg:text-[6.8rem]">
-          Yapay zekâ hızında tasarla
+        <h1 className="rise rise-2 mt-7 max-w-[20ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[10.5vw] leading-[1.02] tracking-[-0.035em] sm:text-[7.5vw] md:text-[4.4rem] lg:text-[5rem]">
+          Öğrenme Tasarım Görselleştirme ve Satış Tek Platformda
         </h1>
-
-        <p className="rise rise-3 mt-7 max-w-[52ch] [@media(max-height:820px)]:mt-4 text-[15px] leading-7 text-paper/70 md:text-base">
-          Öğrenme, tasarım, görselleştirme ve satış tek platformda.
-          <span className="text-paper"> Learn → Create → Sell.</span>
-        </p>
 
         {/* Prompt kutusu — gerçek bir giriş kapısı, sahte demo değil */}
         <form
