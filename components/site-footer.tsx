@@ -1,62 +1,63 @@
 import Link from "next/link";
 import { site } from "@/lib/site";
-import { NewsletterForm } from "@/components/newsletter-form";
 
-const columns = [
+/**
+ * Altbilgi — koyu, sade, yalnızca gerçek bağlantılar.
+ *
+ * Kaldırılanlar ve sebepleri:
+ *   · Bülten formu — hiçbir yere gönderim yapmıyordu.
+ *   · "Takip" sütunu — çıplak instagram.com / pinterest.com / linkedin.com;
+ *     gerçek hesap yok.
+ *   · /#hizmetler ve /#studyo çıpaları — karşılıkları ana sayfadan kalktı,
+ *     bırakılsa sessizce kırık bağlantı olurlardı.
+ *   · Gizlilik / Şartlar — ikisi de `/#`'e gidiyordu. Gerçek metin yazılana
+ *     kadar ölü bağlantı göstermemek daha dürüst.
+ */
+
+const sutunlar = [
   {
-    title: "Keşfet",
-    links: [
-      { label: "Hizmetler", href: "/#hizmetler" },
-      { label: "Koleksiyon Marketi", href: "/market" },
-      { label: "Akademi", href: "/akademi" },
-      { label: "Koleksiyon yükle", href: "/market/yukle" },
+    baslik: "Ürün",
+    baglantilar: [
+      { etiket: "Ne yapıyor", href: "/#urun" },
+      { etiket: "Kalite kapısı", href: "/#kalite-kapisi" },
+      { etiket: "Dikeyler", href: "/#dikeyler" },
+      { etiket: "Fiyatlandırma", href: "/#fiyatlandirma" },
     ],
   },
   {
-    title: "Stüdyo",
-    links: [
-      { label: "Hakkında", href: "/#studyo" },
-      { label: "İletişim", href: `mailto:${site.email}` },
-      { label: "Basın", href: `mailto:${site.pressEmail}` },
+    baslik: "Stüdyo",
+    baglantilar: [
+      { etiket: "Kompozisyon", href: "/hizmetler/kompozisyon" },
+      { etiket: "Galeri", href: "/hizmetler/kompozisyon/galeri" },
     ],
   },
   {
-    title: "Takip",
-    links: [
-      { label: "Instagram", href: "https://instagram.com" },
-      { label: "Pinterest", href: "https://pinterest.com" },
-      { label: "LinkedIn", href: "https://linkedin.com" },
-    ],
+    baslik: "İletişim",
+    baglantilar: [{ etiket: site.email, href: `mailto:${site.email}` }],
   },
 ];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-mist bg-bone">
+    <footer className="border-t border-hair">
       <div className="px-5 pb-10 pt-20 md:px-10 md:pt-28">
         <div className="grid gap-14 md:grid-cols-12">
           <div className="md:col-span-5">
             <p className="font-display text-[17vw] leading-[0.85] tracking-[-0.02em] md:text-[7rem] lg:text-[8.5rem]">
               {site.name}
             </p>
-            <p className="mt-6 eyebrow text-ash">{site.tagline}</p>
+            <p className="eyebrow mt-6 text-ash">{site.tagline}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:col-span-7 md:pt-3">
-            {columns.map((col) => (
-              <div key={col.title}>
-                <p className="eyebrow text-ash">{col.title}</p>
+            {sutunlar.map((sutun) => (
+              <div key={sutun.baslik}>
+                <p className="eyebrow text-ash">{sutun.baslik}</p>
                 <ul className="mt-5 space-y-3">
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      <Link
-                        href={l.href}
-                        className="u-line text-sm"
-                        {...(l.href.startsWith("http")
-                          ? { target: "_blank", rel: "noreferrer" }
-                          : {})}
-                      >
-                        {l.label}
+                  {sutun.baglantilar.map((b) => (
+                    <li key={b.etiket}>
+                      <Link href={b.href} className="u-line text-sm text-paper/85">
+                        {b.etiket}
                       </Link>
                     </li>
                   ))}
@@ -66,21 +67,9 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-20 grid items-end gap-10 md:grid-cols-12">
-          <div className="md:col-span-5">
-            <NewsletterForm />
-          </div>
-          <div className="flex flex-col gap-3 eyebrow text-ash sm:flex-row sm:items-center sm:justify-between md:col-span-7">
-            <span>© 2026 {site.name}. Tüm hakları saklıdır.</span>
-            <span className="flex gap-6">
-              <Link href="/#" className="u-line">
-                Gizlilik
-              </Link>
-              <Link href="/#" className="u-line">
-                Şartlar
-              </Link>
-            </span>
-          </div>
+        <div className="mt-20 flex flex-col gap-3 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <span className="eyebrow text-ash">© 2026 {site.name}. Tüm hakları saklıdır.</span>
+          <span className="eyebrow text-ash">İstanbul</span>
         </div>
       </div>
     </footer>

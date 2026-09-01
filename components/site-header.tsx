@@ -34,9 +34,13 @@ export function SiteHeader() {
   }, [open]);
 
   // Çalışma alanı rotalarında header her zaman zeminli ve çizgili
-  const workspace = pathname.startsWith("/hizmetler");
-  const light = overHero && !scrolled && !open;
-  const solid = (scrolled || workspace) && !open;
+  /* Site kroması artık HER ZAMAN koyu; açık/koyu ternary'si kalktı. Hero'nun
+     üstündeyken zemin şeffaf kalıyor — bar hero'nun tepesine oturmasın diye.
+     Eski koşul (scrolled || workspace) yüzünden /giris, /market, /akademi ve
+     404'ün tepesinde header hem şeffaf hem beyaz yazılıydı; !overHero bunu da
+     kapatıyor. */
+  const overHeroSayfasi = overHero && !scrolled && !open;
+  const solid = !overHeroSayfasi;
 
   const isActive = (href: string) =>
     !href.includes("#") && (pathname === href || pathname.startsWith(href + "/"));
@@ -46,9 +50,9 @@ export function SiteHeader() {
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,color,border-color] duration-700 ease-[var(--ease-out-quart)]",
-          light ? "text-bone" : "text-ink",
+          "text-paper",
           solid
-            ? "border-mist bg-bone/85 backdrop-blur-md"
+            ? "border-hair bg-ink/85 backdrop-blur-md"
             : "border-transparent bg-transparent",
         )}
       >
@@ -75,11 +79,14 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-7">
-            <Link href="/giris" className="eyebrow u-line hidden sm:inline-block">
-              Giriş
-            </Link>
-            <Link href="/market" className="eyebrow u-line">
-              Sepet <span className="tabular-nums">(0)</span>
+            {/* Sepet silindi: state'i, context'i, localStorage anahtarı yoktu;
+                "(0)" JSX'e gömülü sabit metindi. Ürün abonelik satıyor.
+                Giriş de silindi: form yalnız "prototip" toast'ı gösteriyor. */}
+            <Link
+              href="/hizmetler/kompozisyon"
+              className="eyebrow hidden h-10 items-center rounded-full bg-paper px-5 text-ink transition-colors duration-300 hover:bg-lila-soft sm:inline-flex"
+            >
+              Stüdyoyu aç
             </Link>
             <button
               type="button"
@@ -110,7 +117,7 @@ export function SiteHeader() {
       <div
         id="mobile-menu"
         className={cn(
-          "fixed inset-0 z-40 flex flex-col bg-bone px-5 pt-28 pb-10 text-ink transition-opacity duration-500 md:hidden",
+          "fixed inset-0 z-40 flex flex-col bg-ink px-5 pt-28 pb-10 text-paper transition-opacity duration-500 md:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         aria-hidden={!open}
@@ -122,7 +129,7 @@ export function SiteHeader() {
               href={item.href}
               onClick={() => setOpen(false)}
               className={cn(
-                "border-b border-mist py-5 font-display text-4xl leading-none transition-[opacity,translate] duration-700 ease-[var(--ease-out-quart)]",
+                "border-b border-hair py-5 font-display text-4xl leading-none transition-[opacity,translate] duration-700 ease-[var(--ease-out-quart)]",
                 open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
               )}
               style={{ transitionDelay: open ? `${120 + i * 70}ms` : "0ms" }}
@@ -131,9 +138,13 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <div className="mt-auto flex items-center justify-between">
-          <Link href="/giris" className="eyebrow u-line" onClick={() => setOpen(false)}>
-            Giriş
+        <div className="mt-auto flex items-center justify-between gap-4">
+          <Link
+            href="/hizmetler/kompozisyon"
+            className="eyebrow u-line"
+            onClick={() => setOpen(false)}
+          >
+            Stüdyoyu aç
           </Link>
           <span className="eyebrow text-ash">{site.tagline}</span>
         </div>

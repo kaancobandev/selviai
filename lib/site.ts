@@ -7,14 +7,16 @@ export const site = {
   /** Yayındaki adres — mutlak URL üreten her yer bunu kullanır */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://selviai.com",
   /** İletişim adresleri — alan adıyla birlikte değişir */
-  email: "studio@selviai.com",
-  pressEmail: "press@selviai.com",
-  tagline: "Yapay Zekâ Destekli Yaratıcı Tasarım Platformu",
+  email: "info@selviai.com",
+  tagline: "Tasarım için yapay zekâ görsel üretimi",
   description:
     "Fikirden gerçek ürüne — tasarım öğrenme, üretme ve satma süreçlerini tek platformda birleştiren yapay zekâ altyapısı.",
+  /* Çıpa tabanlı: dördü de ana sayfada yazılmış bölüm. Yeni rota yok,
+     dolayısıyla 404 riski de yok. */
   nav: [
-    { href: "/hizmetler", label: "Hizmetler" },
-    { href: "/market", label: "Market" },
-    { href: "/akademi", label: "Akademi" },
+    { href: "/#urun", label: "Ürün" },
+    { href: "/#dikeyler", label: "Dikeyler" },
+    { href: "/#fiyatlandirma", label: "Fiyatlandırma" },
+    { href: "/#karsilastirma", label: "Karşılaştırma" },
   ],
 } as const;
