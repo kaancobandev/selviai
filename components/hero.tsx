@@ -80,7 +80,7 @@ export function Hero() {
         <form
           onSubmit={gonder}
           data-hareket={hareket ? undefined : "durdu"}
-          className="selvi-kutu rise rise-3 mt-10 w-full max-w-2xl [@media(max-height:820px)]:mt-6 bg-paper/[0.06] text-left backdrop-blur-xl"
+          className="selvi-kutu rise rise-3 mt-10 w-full max-w-2xl [@media(max-height:820px)]:mt-6 bg-ink/35 text-left backdrop-blur-xl"
         >
           <PromptAurora />
           {/* Konumlanmış kardeşler akış içeriğinden SONRA boyanır; içeriği kendi

@@ -147,8 +147,7 @@ body {
     rgb(61 43 94 / 0) 302deg
   );
   filter: blur(30px);
-  opacity: 0.62;
-  animation: selvi-kavis-1 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  animation: selvi-kavis-1 34s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
 
 .selvi-kavis-2 {
@@ -169,20 +168,44 @@ body {
     rgb(110 81 160 / 0) 298deg
   );
   filter: blur(48px);
-  opacity: 0.4;
-  animation: selvi-kavis-2 37s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  animation: selvi-kavis-2 47s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
 
-/* Yay dönmüyor, süzülüyor: dönme bir elipste yalpalama gibi durur. Bunun
-   yerine yatay kayma ve hafif ölçek değişimi — iki yay farklı hızda
-   gidince kesiştikleri yer ve renk yoğunluğu sürekli başkalaşıyor. */
+/* Hareketin karakteri referanstan alındı: yay geniş genlikle KABARIP ÇEKİLİYOR.
+   Ölçüm için Stitch'i uzun aralıklarla izledim — 8 saniyede kompozisyon
+   neredeyse aynı kalıyor, ama ~30 saniyede yay ekranın üçte birini kaplayan
+   bir kütleden köşedeki küçük bir parçaya iniyor. İlk sürümümdeki ±%7 ölçek
+   bunun yanında hiç kalıyordu.
+
+   Üç şey birlikte oynuyor:
+     ölçek   — kabarma ve çekilme (asıl hareket)
+     kayma   — kompozisyonun sağa-sola salınması, iki yay zıt yönde
+     dönüş   — küçük açı, elipsi yalpalatmadan renk bantlarını yay boyunca
+               kaydırıyor; referanstaki renk sürüklenmesi bu
+
+   Süreler 34 ve 47 sn. Tam dönüşleri 68 ve 94 sn, ortak katları ~53 dakika:
+   desen pratikte tekrarlamıyor. İki kare kullanıyoruz, yani yumuşatma tüm
+   geçişe uygulanıyor ve ortada duraksama olmuyor (üç kareli sürümde bunu
+   bir kez yaşamıştık). */
 @keyframes selvi-kavis-1 {
-  from { transform: translate3d(-5%, 1%, 0) scale(1); }
-  to { transform: translate3d(6%, -3%, 0) scale(1.07); }
+  from {
+    transform: translate3d(-9%, 3%, 0) scale(0.86) rotate(-7deg);
+    opacity: 0.34;
+  }
+  to {
+    transform: translate3d(7%, -4%, 0) scale(1.18) rotate(6deg);
+    opacity: 0.56;
+  }
 }
 @keyframes selvi-kavis-2 {
-  from { transform: translate3d(5%, -1%, 0) scale(1.05); }
-  to { transform: translate3d(-6%, 2%, 0) scale(0.97); }
+  from {
+    transform: translate3d(8%, -2%, 0) scale(1.14) rotate(5deg);
+    opacity: 0.48;
+  }
+  to {
+    transform: translate3d(-10%, 3%, 0) scale(0.82) rotate(-8deg);
+    opacity: 0.22;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -190,8 +213,8 @@ body {
   .selvi-kavis-2 {
     animation: none;
   }
-  .selvi-kavis-1 { transform: translate3d(0, -1%, 0) scale(1.03); }
-  .selvi-kavis-2 { transform: translate3d(0, 0, 0) scale(1.01); }
+  .selvi-kavis-1 { transform: translate3d(-1%, 0, 0) scale(1.02) rotate(-1deg); opacity: 0.5; }
+  .selvi-kavis-2 { transform: translate3d(0, 0, 0) scale(0.98) rotate(-2deg); opacity: 0.35; }
 }
 
 /* ------------------------------------------------------------------
