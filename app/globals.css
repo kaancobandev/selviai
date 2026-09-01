@@ -261,6 +261,35 @@ body {
 }
 
 /* ------------------------------------------------------------------
+   Hero → içerik geçişi.
+
+   Hero `overflow-hidden` ve tam ekran yüksekliğinde; kavislerin ışığı alt
+   kenarda sertçe kesiliyor ve hemen altında düz siyah başlıyordu. Göz bunu
+   çizgi olarak okuyor.
+
+   Bu katman hero'nun HEMEN ALTINDA duruyor ve aynı ışığı sınırın altına
+   taşıyıp söndürüyor. Hero'nun kendisine dokunmuyor — sınırı yumuşatan şey
+   alt taraftaki devam.
+
+   Renkler kavislerden alındı: solda maviye, sağda lilaya çalan iki kütle.
+   ------------------------------------------------------------------ */
+.selvi-gecis {
+  /* Izgara da devam ediyor. İlk denemede yalnız ışığı taşımıştım ama sınır
+     hâlâ okunuyordu: asıl çizgiyi noktaların birden bitmesi çiziyor.
+     Aralık ve konum hero'nunkiyle aynı, böylece sütunlar hizalı sürüyor. */
+  --nokta-aralik: 11.5px;
+  --nokta-r: 1px;
+  background:
+    radial-gradient(120% 120% at 18% 0%, rgb(66 87 230 / 0.16) 0%, rgb(66 87 230 / 0) 58%),
+    radial-gradient(115% 120% at 84% 0%, rgb(124 92 184 / 0.18) 0%, rgb(124 92 184 / 0) 56%),
+    radial-gradient(150% 90% at 50% 0%, rgb(191 166 238 / 0.07) 0%, rgb(191 166 238 / 0) 70%),
+    radial-gradient(circle, #625d6b var(--nokta-r), transparent var(--nokta-r)) calc(var(--nokta-aralik) / 2) calc(var(--nokta-aralik) / 2) / var(--nokta-aralik) var(--nokta-aralik);
+  /* Tüm katman aşağı doğru sönüyor — ışık da ızgara da birlikte bitiyor. */
+  -webkit-mask: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 45%, transparent 95%);
+  mask: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 45%, transparent 95%);
+}
+
+/* ------------------------------------------------------------------
    Nokta ızgarası — iki üst üste katman, üstteki imleçle maskeleniyor.
 
    Stitch'in hero'sundaki teknik bu (uygulama paketinden okundu). Noktalar

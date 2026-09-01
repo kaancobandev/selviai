@@ -110,10 +110,15 @@ export default function HomePage() {
     <>
       <Hero />
 
+      {/* Hero ile içerik arasındaki geçiş — kavislerin ışığı sınırın altında
+          sönerek devam ediyor, böylece iki alan arasında keskin çizgi kalmıyor.
+          Hero'ya dokunmadan çözülüyor. */}
+      <div aria-hidden className="selvi-gecis pointer-events-none h-56 md:h-72" />
+
       {/* ── Ürün ─────────────────────────────────────────────────── */}
       <section
         id="urun"
-        className="scroll-mt-16 px-5 pb-24 pt-28 md:scroll-mt-20 md:px-10 md:pb-32 md:pt-40"
+        className="scroll-mt-16 px-5 pb-24 pt-4 md:scroll-mt-20 md:px-10 md:pb-32 md:pt-8"
       >
         <Reveal className="mx-auto max-w-4xl">
           <p className="eyebrow text-ash">Ürün</p>
