@@ -39,14 +39,14 @@ export default async function ServicePage({ params }: { params: Params }) {
     <div className="grid flex-1 lg:grid-cols-12">
       <div className="flex flex-col px-6 pb-12 pt-12 md:px-12 md:pt-16 lg:col-span-6 lg:min-h-[calc(100svh-5rem)]">
         <div className="flex items-center gap-4">
-          <ServiceGlyph icon={s.icon} className="text-ink/60" />
-          <p className="eyebrow text-ash">{s.phase}</p>
+          <ServiceGlyph icon={s.icon} className="text-kalem/60" />
+          <p className="eyebrow text-fog">{s.phase}</p>
         </div>
         <h1 className="mt-8 max-w-[14ch] font-display text-5xl leading-[0.98] tracking-[-0.01em] md:text-6xl">
           {s.name}
         </h1>
-        <p className="mt-8 max-w-[44ch] font-display text-xl leading-snug text-ink md:text-2xl">{s.summary}</p>
-        <p className="mt-6 max-w-[52ch] text-[15px] leading-7 text-smoke">{s.detail}</p>
+        <p className="mt-8 max-w-[44ch] font-display text-xl leading-snug text-kalem md:text-2xl">{s.summary}</p>
+        <p className="mt-6 max-w-[52ch] text-[15px] leading-7 text-fog">{s.detail}</p>
 
         <div className="mt-10 flex items-center gap-8">
           <Button href={`mailto:${site.email}?subject=${encodeURIComponent(`Teklif: ${s.name}`)}`}>
@@ -57,9 +57,9 @@ export default async function ServicePage({ params }: { params: Params }) {
           </Link>
         </div>
 
-        <div className="mt-14 border-t border-mist pt-6">
-          <p className="eyebrow text-ash">Çalışma alanı</p>
-          <p className="mt-3 max-w-[44ch] text-sm leading-6 text-smoke">
+        <div className="mt-14 border-t border-hair pt-6">
+          <p className="eyebrow text-fog">Çalışma alanı</p>
+          <p className="mt-3 max-w-[44ch] text-sm leading-6 text-fog">
             Bu hizmetin çalışma alanı hazırlanıyor. Şimdilik stüdyo ekibiyle birlikte yürütülür;
             ilham panonuz başlangıç noktasıdır.
           </p>
@@ -67,7 +67,7 @@ export default async function ServicePage({ params }: { params: Params }) {
 
         <nav aria-label="Hizmetler arasında gezin" className="mt-auto flex items-center justify-between pt-12 eyebrow">
           {prev ? (
-            <Link href={`/hizmetler/${prev.slug}`} className="group inline-flex items-center gap-3 text-ash u-line hover:text-ink">
+            <Link href={`/hizmetler/${prev.slug}`} className="group inline-flex items-center gap-3 text-fog u-line hover:text-kalem">
               <Arrow className="rotate-180 transition-transform duration-500 group-hover:-translate-x-1" />
               {prev.short}
             </Link>
@@ -75,7 +75,7 @@ export default async function ServicePage({ params }: { params: Params }) {
             <span />
           )}
           {next && (
-            <Link href={`/hizmetler/${next.slug}`} className="group inline-flex items-center gap-3 text-ash u-line hover:text-ink">
+            <Link href={`/hizmetler/${next.slug}`} className="group inline-flex items-center gap-3 text-fog u-line hover:text-kalem">
               {next.short}
               <Arrow className="transition-transform duration-500 group-hover:translate-x-1" />
             </Link>
@@ -83,7 +83,7 @@ export default async function ServicePage({ params }: { params: Params }) {
         </nav>
       </div>
 
-      <div className="relative min-h-[46vh] bg-mist lg:col-span-6 lg:min-h-full">
+      <div className="relative min-h-[46vh] bg-hair lg:col-span-6 lg:min-h-full">
         <Image src={s.image} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="photo object-cover" />
       </div>
     </div>

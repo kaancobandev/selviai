@@ -29,7 +29,7 @@ export function MarketGrid({ collections }: { collections: Collection[] }) {
   return (
     <>
       {/* Filtre çubuğu — kaydırınca başlığın altına yapışır */}
-      <div className="sticky top-16 z-30 -mx-5 mt-14 border-y border-mist bg-bone/90 px-5 backdrop-blur-md md:top-20 md:-mx-10 md:px-10">
+      <div className="sticky top-16 z-30 -mx-5 mt-14 border-y border-hair bg-zemin/90 px-5 backdrop-blur-md md:top-20 md:-mx-10 md:px-10">
         <div className="flex items-center justify-between gap-6">
           <div className="-mx-1 flex min-w-0 gap-6 overflow-x-auto py-4 pr-8 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {collectionCategories.map((cat) => (
@@ -40,7 +40,7 @@ export function MarketGrid({ collections }: { collections: Collection[] }) {
                 data-active={category === cat}
                 className={cn(
                   "mx-1 whitespace-nowrap eyebrow u-line transition-colors duration-500",
-                  category === cat ? "text-ink" : "text-ash hover:text-ink",
+                  category === cat ? "text-kalem" : "text-fog hover:text-kalem",
                 )}
               >
                 {cat}
@@ -48,13 +48,13 @@ export function MarketGrid({ collections }: { collections: Collection[] }) {
             ))}
           </div>
 
-          <label className="flex shrink-0 items-center gap-3 eyebrow text-ash">
+          <label className="flex shrink-0 items-center gap-3 eyebrow text-fog">
             <span className="hidden sm:inline">Sırala</span>
             <span className="relative">
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as Sort)}
-                className="cursor-pointer appearance-none bg-transparent py-4 pr-5 eyebrow text-ink outline-none"
+                className="cursor-pointer appearance-none bg-transparent py-4 pr-5 eyebrow text-kalem outline-none"
               >
                 {(Object.keys(sortLabels) as Sort[]).map((k) => (
                   <option key={k} value={k}>
@@ -65,7 +65,7 @@ export function MarketGrid({ collections }: { collections: Collection[] }) {
               <svg
                 aria-hidden
                 viewBox="0 0 16 16"
-                className="pointer-events-none absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-ink"
+                className="pointer-events-none absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-kalem"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1"

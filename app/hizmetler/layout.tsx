@@ -7,7 +7,7 @@ import { ServicesNav } from "@/components/services-nav";
  */
 export default function ServicesLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="ada-acik flex flex-1 flex-col pt-16 md:pt-20">
+    <div className="flex flex-1 flex-col pt-16 md:pt-20">
       <div className="flex flex-1 flex-col lg:flex-row">
         <ServicesNav />
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>

@@ -19,10 +19,10 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
   if (done) {
     return (
       <div className="mx-auto max-w-2xl px-5 pb-28 pt-40 text-center md:pt-52">
-        <p className="eyebrow text-ash">Sipariş alındı</p>
+        <p className="eyebrow text-fog">Sipariş alındı</p>
         <h1 className="mt-6 font-display text-6xl leading-[0.95] md:text-8xl">Teşekkürler.</h1>
-        <p className="mx-auto mt-8 max-w-[40ch] text-[15px] leading-7 text-smoke">
-          <span className="font-display text-lg text-ink">{plan.name}</span> erişiminiz açıldı.
+        <p className="mx-auto mt-8 max-w-[40ch] text-[15px] leading-7 text-fog">
+          <span className="font-display text-lg text-kalem">{plan.name}</span> erişiminiz açıldı.
           Giriş bilgileri e-postanıza gönderildi.
         </p>
         <div className="mt-12 flex items-center justify-center gap-8">
@@ -37,7 +37,7 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
 
   return (
     <div className="px-5 pb-28 pt-28 md:px-10 md:pt-40">
-      <Link href="/akademi#fiyatlandirma" className="inline-flex items-center gap-3 eyebrow text-ash u-line">
+      <Link href="/akademi#fiyatlandirma" className="inline-flex items-center gap-3 eyebrow text-fog u-line">
         <svg aria-hidden viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1">
           <path d="M15 8H2M7 3 2 8l5 5" />
         </svg>
@@ -56,7 +56,7 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
         >
           <h1 className="font-display text-5xl leading-[0.98] tracking-[-0.01em] md:text-7xl">Ödeme</h1>
 
-          <section className="mt-14 border-t border-mist pt-10">
+          <section className="mt-14 border-t border-hair pt-10">
             <h2 className="eyebrow">Hesap</h2>
             <div className="mt-8 grid gap-9">
               <Field label="E-posta" htmlFor="email" hint="Erişim bilgileri bu adrese gönderilir.">
@@ -65,7 +65,7 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
             </div>
           </section>
 
-          <section className="mt-14 border-t border-mist pt-10">
+          <section className="mt-14 border-t border-hair pt-10">
             <h2 className="eyebrow">Fatura bilgileri</h2>
             <div className="mt-8 grid gap-x-10 gap-y-9 sm:grid-cols-2">
               <Field label="Ad" htmlFor="first">
@@ -90,10 +90,10 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
             </div>
           </section>
 
-          <section className="mt-14 border-t border-mist pt-10">
+          <section className="mt-14 border-t border-hair pt-10">
             <div className="flex items-baseline justify-between">
               <h2 className="eyebrow">Kart bilgileri</h2>
-              <span className="eyebrow text-ash">Güvenli ödeme</span>
+              <span className="eyebrow text-fog">Güvenli ödeme</span>
             </div>
             <div className="mt-8 grid gap-x-10 gap-y-9 sm:grid-cols-2">
               <Field label="Kart üzerindeki isim" htmlFor="cc-name" className="sm:col-span-2">
@@ -119,22 +119,22 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
             </div>
           </section>
 
-          <div className="mt-14 border-t border-mist pt-10">
+          <div className="mt-14 border-t border-hair pt-10">
             <Checkbox
               id="terms"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
               label={
                 <>
-                  <Link href="/#" className="u-line text-ink">Satış şartlarını</Link> ve{" "}
-                  <Link href="/#" className="u-line text-ink">gizlilik politikasını</Link> okudum, kabul ediyorum.
+                  <Link href="/#" className="u-line text-kalem">Satış şartlarını</Link> ve{" "}
+                  <Link href="/#" className="u-line text-kalem">gizlilik politikasını</Link> okudum, kabul ediyorum.
                 </>
               }
             />
             <Button type="submit" size="lg" className="mt-10 w-full sm:w-auto" disabled={!agreed}>
               Ödemeyi tamamla · {formatTRY(plan.price)}
             </Button>
-            <p className="mt-6 text-[11px] leading-4 text-ash">
+            <p className="mt-6 text-[11px] leading-4 text-fog">
               Bu ekran bir arayüz prototipidir; kart bilgileri işlenmez, ödeme alınmaz.
             </p>
           </div>
@@ -142,16 +142,16 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
 
         {/* Sipariş özeti */}
         <aside className="lg:col-span-4 lg:col-start-9">
-          <div className="border border-mist bg-paper p-8 lg:sticky lg:top-28">
+          <div className="border border-hair bg-paper/[0.04] p-8 lg:sticky lg:top-28">
             <div className="flex items-baseline justify-between">
-              <p className="eyebrow text-ash">Sipariş özeti</p>
+              <p className="eyebrow text-fog">Sipariş özeti</p>
               <Link href="/akademi#fiyatlandirma" className="eyebrow u-line">
                 Planı değiştir
               </Link>
             </div>
             <p className="mt-8 font-display text-3xl leading-tight">{plan.name}</p>
-            <p className="mt-2 text-sm leading-6 text-smoke">{plan.note}</p>
-            <ul className="mt-8 space-y-2.5 text-sm leading-6 text-smoke">
+            <p className="mt-2 text-sm leading-6 text-fog">{plan.note}</p>
+            <ul className="mt-8 space-y-2.5 text-sm leading-6 text-fog">
               {plan.features.map((f) => (
                 <li key={f} className="flex gap-4">
                   <span aria-hidden className="mt-3 h-px w-3 shrink-0 bg-current opacity-60" />
@@ -159,22 +159,22 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
                 </li>
               ))}
             </ul>
-            <div aria-hidden className="seam mt-10 text-ink" />
+            <div aria-hidden className="seam mt-10 text-kalem" />
             <dl className="mt-6 space-y-3 text-sm tabular-nums">
-              <div className="flex justify-between text-smoke">
+              <div className="flex justify-between text-fog">
                 <dt>Ara toplam</dt>
                 <dd>{formatTRY(net)}</dd>
               </div>
-              <div className="flex justify-between text-smoke">
+              <div className="flex justify-between text-fog">
                 <dt>KDV (%20)</dt>
                 <dd>{formatTRY(vat)}</dd>
               </div>
-              <div className="flex items-baseline justify-between border-t border-mist pt-4">
+              <div className="flex items-baseline justify-between border-t border-hair pt-4">
                 <dt className="eyebrow">Toplam</dt>
                 <dd className="font-display text-2xl">{formatTRY(plan.price)}</dd>
               </div>
             </dl>
-            <p className="mt-6 text-[11px] leading-4 text-ash">Tek seferlik ödeme · 14 gün iade garantisi.</p>
+            <p className="mt-6 text-[11px] leading-4 text-fog">Tek seferlik ödeme · 14 gün iade garantisi.</p>
           </div>
         </aside>
       </div>

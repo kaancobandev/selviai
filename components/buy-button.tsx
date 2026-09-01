@@ -10,7 +10,7 @@ export function BuyButton({ className }: { className?: string }) {
   return (
     <Button
       variant="ghost"
-      className={cn("w-full", added && "border-ink bg-ink text-bone", className)}
+      className={cn("w-full", added && "border-kalem bg-kalem text-zemin", className)}
       aria-live="polite"
       onClick={() => {
         if (added) return;

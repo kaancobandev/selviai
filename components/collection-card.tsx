@@ -20,7 +20,7 @@ export function CollectionCard({ collection: c, className, priority, interactive
 
   return (
     <article className={cn("group flex flex-col", className)}>
-      <div className="relative aspect-[4/5] overflow-hidden bg-mist">
+      <div className="relative aspect-[4/5] overflow-hidden bg-hair">
         {c.image ? (
           <Image
             src={c.image}
@@ -32,7 +32,7 @@ export function CollectionCard({ collection: c, className, priority, interactive
             className="photo-reveal object-cover group-hover:scale-[1.04]"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center eyebrow text-ash">
+          <div className="absolute inset-0 flex items-center justify-center eyebrow text-fog">
             Görsel
           </div>
         )}
@@ -46,7 +46,7 @@ export function CollectionCard({ collection: c, className, priority, interactive
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h3 className="font-display text-lg leading-tight sm:text-xl">{c.name || "Koleksiyon adı"}</h3>
-          <p className="mt-2 eyebrow leading-4 text-ash">
+          <p className="mt-2 eyebrow leading-4 text-fog">
             {c.designer || "Tasarımcı"}
             {c.pieces ? ` · ${c.pieces} parça` : ""}
           </p>

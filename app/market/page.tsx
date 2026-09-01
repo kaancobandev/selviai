@@ -10,16 +10,16 @@ export const metadata: Metadata = {
 
 export default function MarketPage() {
   return (
-    <div className="ada-acik px-5 pb-28 pt-28 md:px-10 md:pt-40">
+    <div className="px-5 pb-28 pt-28 md:px-10 md:pt-40">
       <header className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="eyebrow text-ash">Koleksiyon Marketi</p>
+          <p className="eyebrow text-fog">Koleksiyon Marketi</p>
           <h1 className="mt-5 font-display text-6xl leading-[0.95] tracking-[-0.01em] md:text-8xl">
             Market
           </h1>
         </div>
         <div className="flex items-center gap-8">
-          <span className="eyebrow tabular-nums text-ash">{collections.length} koleksiyon</span>
+          <span className="eyebrow tabular-nums text-fog">{collections.length} koleksiyon</span>
           <Button href="/market/yukle" variant="ghost">
             Koleksiyon yükle
           </Button>

@@ -15,10 +15,10 @@ export function NewsletterForm() {
         setDone(true);
       }}
     >
-      <label htmlFor="newsletter" className="eyebrow text-ash">
+      <label htmlFor="newsletter" className="eyebrow text-fog">
         Bülten
       </label>
-      <div className="mt-3 flex items-end gap-6 border-b border-mist transition-colors duration-500 focus-within:border-ink">
+      <div className="mt-3 flex items-end gap-6 border-b border-hair transition-colors duration-500 focus-within:border-kalem">
         <input
           id="newsletter"
           type="email"
@@ -33,7 +33,7 @@ export function NewsletterForm() {
           {done ? "Kaydedildi" : "Abone ol"}
         </button>
       </div>
-      <p className="mt-3 text-[11px] leading-4 text-ash">
+      <p className="mt-3 text-[11px] leading-4 text-fog">
         {done ? "Teşekkürler. Ayda bir yazıyoruz." : "Ayda bir: yeni koleksiyonlar, dersler ve stüdyo notları."}
       </p>
     </form>

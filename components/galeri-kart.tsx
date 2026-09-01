@@ -53,7 +53,7 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
     <figure className={cn("group flex flex-col", siliniyor && "opacity-40")}>
       <div
         className={cn(
-          "relative overflow-hidden border border-mist bg-bone",
+          "relative overflow-hidden border border-hair bg-zemin",
           OLCU[kayit.enBoy ?? "4:5"] ?? "aspect-[4/5]",
         )}
       >
@@ -66,7 +66,7 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
         />
         {kayit.kabul === false && (
           <span
-            className="absolute left-2 top-2 bg-paper/90 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-smoke"
+            className="absolute left-2 top-2 bg-paper/90 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-ink"
             title={kayit.gerekce ?? undefined}
           >
             Eşiğin altında
@@ -75,8 +75,8 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
       </div>
 
       <figcaption className="mt-2 flex flex-col gap-1">
-        <span className="eyebrow tabular-nums text-ash">{tarih}</span>
-        <span className="text-[11px] leading-4 text-smoke">
+        <span className="eyebrow tabular-nums text-fog">{tarih}</span>
+        <span className="text-[11px] leading-4 text-fog">
           {kayit.yerlesim} · {kayit.kirpma}
           {kayit.puan != null && ` · ${kayit.puan.toFixed(1)}`}
         </span>
@@ -85,7 +85,7 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
           <a
             href={`/api/kare/${kayit.id}`}
             download={`selvi-${kayit.id.slice(0, 8)}.jpg`}
-            className="eyebrow u-line hover:text-ink"
+            className="eyebrow u-line hover:text-kalem"
           >
             İndir
           </a>
@@ -95,14 +95,14 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
                 type="button"
                 onClick={sil}
                 disabled={siliniyor}
-                className="eyebrow text-ink u-line"
+                className="eyebrow text-kalem u-line"
               >
                 Emin misiniz
               </button>
               <button
                 type="button"
                 onClick={() => setOnay(false)}
-                className="eyebrow text-ash u-line hover:text-ink"
+                className="eyebrow text-fog u-line hover:text-kalem"
               >
                 Vazgeç
               </button>
@@ -111,13 +111,13 @@ export function GaleriKart({ kayit }: { kayit: GaleriKaydi }) {
             <button
               type="button"
               onClick={() => setOnay(true)}
-              className="eyebrow text-ash u-line hover:text-ink"
+              className="eyebrow text-fog u-line hover:text-kalem"
             >
               Sil
             </button>
           )}
         </div>
-        {hata && <span className="text-[11px] text-smoke">{hata}</span>}
+        {hata && <span className="text-[11px] text-fog">{hata}</span>}
       </figcaption>
     </figure>
   );

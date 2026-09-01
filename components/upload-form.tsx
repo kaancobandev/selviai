@@ -93,10 +93,10 @@ export function UploadForm() {
   if (published) {
     return (
       <div className="mx-auto max-w-2xl py-24 text-center md:py-36">
-        <p className="eyebrow text-ash">Koleksiyon yayınlandı</p>
+        <p className="eyebrow text-fog">Koleksiyon yayınlandı</p>
         <h2 className="mt-6 font-display text-5xl leading-[1] md:text-7xl">Teşekkürler.</h2>
-        <p className="mx-auto mt-6 max-w-[40ch] text-[15px] leading-7 text-smoke">
-          <span className="font-display text-lg text-ink">{form.name}</span> incelemeye alındı.
+        <p className="mx-auto mt-6 max-w-[40ch] text-[15px] leading-7 text-fog">
+          <span className="font-display text-lg text-kalem">{form.name}</span> incelemeye alındı.
           Onaylandığında Market&apos;te görünecek ve size e-posta ile haber vereceğiz.
         </p>
         <div className="mt-12 flex items-center justify-center gap-8">
@@ -140,11 +140,11 @@ export function UploadForm() {
             onDrop={onDrop}
             className={cn(
               "relative flex aspect-[16/9] cursor-pointer flex-col items-center justify-center border border-dashed text-center transition-[border-color,background-color] duration-500 sm:aspect-[21/9]",
-              dragging ? "border-ink bg-paper" : "border-ink/30 bg-transparent hover:border-ink/60 hover:bg-paper/60",
+              dragging ? "border-kalem bg-kalem/[0.08]" : "border-kalem/30 bg-transparent hover:border-kalem/60 hover:bg-kalem/[0.05]",
             )}
           >
             <p className="font-display text-2xl md:text-3xl">Görselleri buraya bırakın</p>
-            <p className="mt-4 eyebrow text-ash">veya dosya seçin · JPG, PNG · en fazla {MAX_FILES} görsel</p>
+            <p className="mt-4 eyebrow text-fog">veya dosya seçin · JPG, PNG · en fazla {MAX_FILES} görsel</p>
             <input
               ref={inputRef}
               type="file"
@@ -161,10 +161,10 @@ export function UploadForm() {
           {files.length > 0 && (
             <ul className="mt-5 grid grid-cols-4 gap-3 sm:grid-cols-6">
               {files.map((f, i) => (
-                <li key={f.id} className="group relative aspect-[4/5] overflow-hidden bg-mist">
+                <li key={f.id} className="group relative aspect-[4/5] overflow-hidden bg-hair">
                   <Image src={f.url} alt={f.name} fill unoptimized sizes="120px" className="object-cover" />
                   {i === 0 && (
-                    <span className="absolute left-1.5 top-1.5 bg-bone/90 px-1.5 py-1 text-[9px] uppercase tracking-[0.18em]">
+                    <span className="absolute left-1.5 top-1.5 bg-bone/90 px-1.5 py-1 text-[9px] uppercase tracking-[0.18em] text-ink">
                       Kapak
                     </span>
                   )}
@@ -172,7 +172,7 @@ export function UploadForm() {
                     type="button"
                     aria-label={`${f.name} görselini kaldır`}
                     onClick={() => removeFile(f.id)}
-                    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center bg-ink/80 text-bone opacity-0 transition-opacity duration-300 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center bg-ink/80 text-paper opacity-0 transition-opacity duration-300 focus-visible:opacity-100 group-hover:opacity-100"
                   >
                     <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="1">
                       <path d="M2 2l8 8M10 2l-8 8" />
@@ -218,8 +218,8 @@ export function UploadForm() {
             </Field>
           </div>
 
-          <div className="mt-14 flex flex-col-reverse items-stretch gap-4 border-t border-mist pt-8 sm:flex-row sm:items-center sm:justify-between">
-            <button type="button" className="eyebrow text-ash u-line self-center sm:self-auto" onClick={() => setToast("Taslak kaydedildi.")}>
+          <div className="mt-14 flex flex-col-reverse items-stretch gap-4 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" className="eyebrow text-fog u-line self-center sm:self-auto" onClick={() => setToast("Taslak kaydedildi.")}>
               Taslak kaydet
             </button>
             <Button type="submit" size="lg">
@@ -231,7 +231,7 @@ export function UploadForm() {
         {/* Canlı önizleme */}
         <aside className="lg:col-span-4 lg:col-start-9">
           <div className="lg:sticky lg:top-28">
-            <p className="eyebrow text-ash">Önizleme</p>
+            <p className="eyebrow text-fog">Önizleme</p>
             <div className="mt-5 max-w-[360px]">
               <CollectionCard
                 interactive={false}
@@ -245,7 +245,7 @@ export function UploadForm() {
                 }}
               />
             </div>
-            <p className="mt-5 max-w-[36ch] text-[11px] leading-4 text-ash">
+            <p className="mt-5 max-w-[36ch] text-[11px] leading-4 text-fog">
               Market&apos;te böyle görünecek. İlk görsel kapak olarak kullanılır.
             </p>
           </div>

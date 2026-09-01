@@ -14,17 +14,17 @@ export const metadata: Metadata = {
 
 export default function AcademyPage() {
   return (
-    <div className="ada-acik pb-28 pt-28 md:pt-40">
+    <div className="pb-28 pt-28 md:pt-40">
       {/* Başlık */}
       <header className="px-5 md:px-10">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="eyebrow text-ash">Akademi</p>
+            <p className="eyebrow text-fog">Akademi</p>
             <h1 className="mt-5 font-display text-6xl leading-[0.95] tracking-[-0.01em] md:text-8xl">
               Akademi
             </h1>
           </div>
-          <p className="max-w-[40ch] text-[15px] leading-7 text-smoke md:pb-3">
+          <p className="max-w-[40ch] text-[15px] leading-7 text-fog md:pb-3">
             Uygulamanın her adımını anlatan kısa dersler. Ücretsiz başlayın, programla
             derinleşin.
           </p>
@@ -36,7 +36,7 @@ export default function AcademyPage() {
         <Reveal>
           <Link
             href="#dersler"
-            className="group relative block aspect-[16/9] overflow-hidden bg-mist md:aspect-[21/9]"
+            className="group relative block aspect-[16/9] overflow-hidden bg-hair md:aspect-[21/9]"
             aria-label={`${featuredLesson.title} — izle`}
           >
             <Image
@@ -49,16 +49,16 @@ export default function AcademyPage() {
             />
             <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
             <PlayRing />
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 text-bone sm:flex-row sm:items-end sm:justify-between md:p-8">
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 text-paper sm:flex-row sm:items-end sm:justify-between md:p-8">
               <div>
-                <p className="eyebrow text-bone/70">
+                <p className="eyebrow text-paper/70">
                   {featuredLesson.access} · {featuredLesson.level}
                 </p>
                 <p className="mt-3 font-display text-2xl leading-tight md:text-4xl">
                   {featuredLesson.title}
                 </p>
               </div>
-              <span className="eyebrow tabular-nums text-bone/70">{featuredLesson.duration}</span>
+              <span className="eyebrow tabular-nums text-paper/70">{featuredLesson.duration}</span>
             </div>
           </Link>
         </Reveal>
@@ -66,15 +66,15 @@ export default function AcademyPage() {
 
       {/* Dersler */}
       <section id="dersler" className="scroll-mt-24 px-5 pt-24 md:px-10 md:pt-32">
-        <Reveal className="flex items-end justify-between border-b border-mist pb-6">
+        <Reveal className="flex items-end justify-between border-b border-hair pb-6">
           <h2 className="font-display text-3xl md:text-4xl">Dersler</h2>
-          <span className="eyebrow tabular-nums text-ash">{lessons.length + 1} ders</span>
+          <span className="eyebrow tabular-nums text-fog">{lessons.length + 1} ders</span>
         </Reveal>
         <div className="mt-12 grid gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
           {lessons.map((l, i) => (
             <Reveal key={l.id} delay={(i % 3) * 80}>
               <article className="group cursor-pointer">
-                <div className="relative aspect-[16/10] overflow-hidden bg-mist">
+                <div className="relative aspect-[16/10] overflow-hidden bg-hair">
                   <Image
                     src={l.image}
                     alt=""
@@ -96,7 +96,7 @@ export default function AcademyPage() {
                   <PlayRing className="h-12 w-12 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <h3 className="mt-4 font-display text-xl leading-tight">{l.title}</h3>
-                <p className="mt-2 eyebrow text-ash">{l.level}</p>
+                <p className="mt-2 eyebrow text-fog">{l.level}</p>
               </article>
             </Reveal>
           ))}
@@ -106,33 +106,33 @@ export default function AcademyPage() {
       {/* Fiyatlandırma */}
       <section id="fiyatlandirma" className="scroll-mt-24 px-5 pt-28 md:px-10 md:pt-40">
         <Reveal className="max-w-2xl">
-          <p className="eyebrow text-ash">Fiyatlandırma</p>
+          <p className="eyebrow text-fog">Fiyatlandırma</p>
           <h2 className="mt-5 font-display text-4xl leading-[1.05] md:text-5xl">
             Eğitime <em>erişim.</em>
           </h2>
-          <p className="mt-6 max-w-[44ch] text-[15px] leading-7 text-smoke">
+          <p className="mt-6 max-w-[44ch] text-[15px] leading-7 text-fog">
             Tek seferlik ödeme, ömür boyu erişim. Bütün planlarda 14 gün koşulsuz iade.
           </p>
         </Reveal>
 
         <Reveal delay={100} className="mt-14">
-          <div className="grid gap-px border border-mist bg-mist md:grid-cols-3">
+          <div className="grid gap-px border border-hair bg-hair md:grid-cols-3">
             {plans.map((p) => (
               <div
                 key={p.id}
                 className={cn(
                   "flex flex-col p-8 md:p-10",
-                  p.featured ? "bg-ink text-bone" : "bg-bone text-ink",
+                  p.featured ? "ada-acik bg-paper text-kalem" : "bg-paper/[0.04] text-paper",
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <p className={cn("eyebrow", p.featured ? "text-bone/60" : "text-ash")}>{p.name}</p>
-                  {p.featured && <span className="eyebrow text-bone/60">En çok tercih edilen</span>}
+                  <p className={cn("eyebrow", p.featured ? "text-kalem/60" : "text-fog")}>{p.name}</p>
+                  {p.featured && <span className="eyebrow text-kalem/60">En çok tercih edilen</span>}
                 </div>
                 <p className="mt-8 font-display text-5xl tabular-nums tracking-[-0.01em] md:text-6xl">
                   {formatTRY(p.price)}
                 </p>
-                <p className={cn("mt-3 text-sm leading-6", p.featured ? "text-bone/70" : "text-smoke")}>
+                <p className={cn("mt-3 text-sm leading-6", p.featured ? "text-kalem/70" : "text-fog")}>
                   {p.note}
                 </p>
                 <ul className="mt-10 space-y-3 text-sm leading-6">
@@ -146,7 +146,7 @@ export default function AcademyPage() {
                 <div className="mt-auto pt-12">
                   <Button
                     href={`/akademi/odeme?plan=${p.id}`}
-                    variant={p.featured ? "light" : "ghost"}
+                    variant={p.featured ? "solid" : "ghost"}
                     className="w-full"
                   >
                     Kursu satın al
