@@ -107,23 +107,11 @@ export default function HomePage() {
         id="urun"
         className="scroll-mt-16 px-5 pb-24 pt-4 md:scroll-mt-20 md:px-10 md:pb-32 md:pt-8"
       >
-        <Reveal className="mx-auto max-w-4xl">
-          <p className="eyebrow text-ash">Ürün</p>
-          <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            Üç görsel giriyor, <em className="text-lila-soft">bir tasarım karesi</em> çıkıyor.
-          </h2>
-          <p className="mt-7 max-w-[58ch] text-[15px] leading-7 text-fog md:text-base">
-            Selvi bir tasarım yapay zekâ sistemi. Model, ürün ve mekân görselini yüklüyorsunuz;
-            kadrajı, ürünün yerleşimini, ışığı ve en-boy oranını siz seçiyorsunuz. Medyan üretim
-            süresi 12 saniye.
-          </p>
-        </Reveal>
-
         {/* Üç girdi kart olarak: önceden ince ayraçlarla bölünmüş düz bir
             şeritti ve "yüklenecek üç şey" olduğu okunmuyordu. Hairline
             ızgara (gap-px + bg-hair) sayfanın kendi kart dili — kalite
             kapısı bölümü de aynısını kullanıyor. */}
-        <Reveal delay={120} className="mx-auto mt-16 max-w-5xl">
+        <Reveal className="mx-auto max-w-5xl">
           <div className="grid gap-px bg-hair sm:grid-cols-3">
             {GIRDILER.map((g, i) => (
               <div key={g.etiket} className="flex flex-col bg-ink p-7 md:p-8">
@@ -140,7 +128,7 @@ export default function HomePage() {
           </div>
         </Reveal>
 
-        <Reveal delay={200} className="mx-auto mt-14 max-w-5xl">
+        <Reveal delay={120} className="mx-auto mt-14 max-w-5xl">
           <div>
             <Button href="/hizmetler/kompozisyon" variant="koyuDolgu">
               Stüdyoyu aç
