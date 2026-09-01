@@ -73,70 +73,139 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   Hero aurora — üç kütle, faz farkıyla sürükleniyor.
-   Sadece transform ve opacity oynatılıyor: ikisi de derleyici (compositor)
-   üzerinde çalışır, her karede yeniden yerleşim (layout) tetiklemez.
+   Hero zemini — SABİT. Animasyon yok, filter yok, kare başına maliyet sıfır.
 
-   Süreler bilinçli olarak kısa (9–13 sn) ve yol uzun: 19–27 saniyelik ilk
-   sürümde hareket teknik olarak vardı ama sayfaya üç saniye bakan biri
-   göremiyordu. Ölçüt "kod hareket ediyor mu" değil, "göz hareketi seçiyor mu".
+   Önceki sürümde burada blur(80px) uygulanan, sürekli hareket eden üç kütle
+   vardı. İki sorunu vardı: (1) bulanıklık şeklin KENDİSİNE uygulandığı için
+   geriye şekil kalmıyordu — "bulut" hissi tam olarak buradan geliyordu;
+   (2) sürekli değişen bir zemin, formun backdrop-blur'ünü her karede yeniden
+   hesaplatıyordu. Artık hero'da hareket eden tek şey prompt kutusunun halkası.
    ------------------------------------------------------------------ */
-@keyframes aurora-sol {
-  0%   { transform: translate3d(-8%, 12%, 0) scale(0.86); opacity: 0.45;
-         animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
-  50%  { transform: translate3d(5%, -1%, 0) scale(1.02); opacity: 0.92;
-         animation-timing-function: cubic-bezier(0, 0, 0.6, 1); }
-  100% { transform: translate3d(14%, -11%, 0) scale(1.16); opacity: 0.6; }
-}
-@keyframes aurora-sag {
-  0%   { transform: translate3d(9%, 14%, 0) scale(1.14); opacity: 0.9;
-         animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
-  50%  { transform: translate3d(-2%, 2%, 0) scale(1); opacity: 0.5;
-         animation-timing-function: cubic-bezier(0, 0, 0.6, 1); }
-  100% { transform: translate3d(-14%, -10%, 0) scale(0.86); opacity: 0.82; }
-}
-/* Dikkat: burada translate3d'nin X bileseni SIFIR merkezli.
-   Yatay ortalamayi Tailwind'in `-translate-x-1/2` sinifi yapiyor ve o,
-   `transform` degil ayri `translate` CSS ozelligi uretiyor. Ikisi
-   birbirini ezmez, BIRLESIR. Keyframe'e -50% yazmak kutleyi kendi
-   genisliginin yarisi kadar fazladan sola itiyordu (olculdu: merkez
-   x=760 yerine x=28). */
-@keyframes aurora-orta {
-  0%   { transform: translate3d(-4%, 10%, 0) scale(0.9) rotate(-2deg); opacity: 0.3;
-         animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
-  50%  { transform: translate3d(0, 1%, 0) scale(1.04) rotate(0.5deg); opacity: 0.72;
-         animation-timing-function: cubic-bezier(0, 0, 0.6, 1); }
-  100% { transform: translate3d(4%, -9%, 0) scale(1.18) rotate(3deg); opacity: 0.42; }
+.selvi-zemin {
+  background:
+    radial-gradient(118% 66% at 16% 116%, #6e51a0 0%, rgb(110 81 160 / 0.5) 32%, rgb(110 81 160 / 0) 68%),
+    radial-gradient(112% 62% at 85% 118%, #7c5cb8 0%, rgb(124 92 184 / 0.46) 30%, rgb(124 92 184 / 0) 66%),
+    radial-gradient(150% 44% at 50% 130%, #bfa6ee 0%, rgb(191 166 238 / 0.26) 34%, rgb(191 166 238 / 0) 62%);
 }
 
-/* Sureler `linear`: yumusatma artik her karenin kendi
-   animation-timing-function'inda. Kisayola bezier yazmak onu HER
-   keyframe'de yeniden baslatiyordu; olculen sonuc, hareketin %50
-   noktasinda tepe hizin %2'sine dusmesiydi (4.5 saniyede bir tam
-   duraksama). Simdi hiz tek tepe yapiyor: uclarda sifir, ortada azami. */
-.aurora-sol  { animation: aurora-sol   9s linear infinite alternate; }
-.aurora-sag  { animation: aurora-sag  11s linear infinite alternate; }
-.aurora-orta { animation: aurora-orta 13s linear infinite alternate; }
+/* ------------------------------------------------------------------
+   Prompt kutusu aurorası — dönen conic-gradient + halka maskesi.
 
-/* Yalniz `animation: none` yetmiyor: keyframe'ler devreden cikinca eleman
-   kendi taban durumuna dusuyor — hicbir donusum ve opaklik 1.0, yani
-   animasyonlu her kareden DAHA parlak ve yanlis konumda. Onun yerine %50
-   karesini elle sabitliyoruz. */
+   Şekil hissinin sırrı: aynı kare İKİ kez çiziliyor. Biri maskelenip net
+   kenarlık oluyor (şekli veren o), biri bulanıklaştırılıp hâle oluyor.
+   Bulanıklığı halkanın kendisine uygularsak yine buluta döneriz.
+
+   Döndürülen şey gradyanın AÇISI değil, elemanın kendisi: rotate compositor
+   üzerinde çalışır; @property ile açıyı animasyonlamak conic-gradient'i her
+   karede yeniden boyatır. Burada iki katman birden döndüğü ve biri blur'lu
+   olduğu için bu fark büyük.
+
+   Dönen eleman KARE olmak zorunda: bir dikdörtgenin bütün açılarda kapsadığı
+   ortak alan iç teğet dairesidir, dolayısıyla kenarı kutunun köşegeninden
+   kısaysa köşelerde boşluk açılır. width:150% + aspect-ratio:1 fazlasıyla yeter.
+   ------------------------------------------------------------------ */
+.selvi-kutu {
+  --selvi-radius: 1rem;
+  --selvi-sure: 7s;
+  position: relative;
+  border-radius: var(--selvi-radius);
+  isolation: isolate;
+}
+
+/* translate ve rotate bağımsız CSS özellikleri; birleşme sırası
+   translate -> rotate olduğu için kare önce ortalanıyor, sonra kendi merkezi
+   etrafında dönüyor. Böylece keyframe içinde translate'i tekrar yazmak
+   zorunda kalmıyoruz — bu depoda tam olarak o çakışmadan bir hata çıkmıştı
+   (Tailwind'in -translate-x-1/2 sınıfı transform'u ezmiyor, onunla birleşiyordu). */
+.selvi-donen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(
+    from 0deg,
+    #3d2b5e 0deg,
+    #6e51a0 62deg,
+    #bfa6ee 124deg,
+    #efe8ff 158deg,
+    #bfa6ee 192deg,
+    #6e51a0 254deg,
+    #4a3570 312deg,
+    #3d2b5e 360deg
+  );
+  animation: selvi-don var(--selvi-sure) linear infinite;
+}
+@keyframes selvi-don {
+  to { rotate: 1turn; }
+}
+
+/* Halka oyma: alttaki maske tüm kutuyu, üstteki yalnız content-box'ı kaplıyor.
+   exclude üsttekini alttakinden çıkarınca geriye tam padding kalınlığında bir
+   halka kalıyor ve halkanın İÇİ saydam kalıyor. İç yarıçapı elle hesaplamıyoruz;
+   content-box'ı tarayıcı kendisi (R eksi kalınlık) olarak küçültüyor. */
+.selvi-halka,
+.selvi-dis-hale {
+  position: absolute;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+/* Keskin kenarlık — "şekil" hissini veren katman budur */
+.selvi-halka {
+  inset: 0;
+  padding: 1.5px;
+}
+
+/* Dış hâle — aynı halkanın bulanık kopyası. overflow:hidden dönen kareyi
+   kırpıyor, ama filtre kırpmadan SONRA uygulandığı için bulanıklık dışarı
+   taşabiliyor. */
+.selvi-dis-hale {
+  inset: -4px;
+  padding: 3px;
+  border-radius: calc(var(--selvi-radius) + 4px);
+  filter: blur(7px);
+  opacity: 0.75;
+}
+
+/* Alt kenarda süzülen ince ışık */
+.selvi-cubuk {
+  position: absolute;
+  inset: auto 8% 0 8%;
+  height: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, #bfa6ee, transparent);
+  background-size: 200% 100%;
+  filter: blur(5px);
+  animation: selvi-suzul var(--selvi-sure) linear infinite;
+}
+@keyframes selvi-suzul {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Durdurma düğmesi. animation-play-state: paused açıyı olduğu yerde tutuyor,
+   sıfıra sıçratmıyor. Sayfa açılır açılmaz dönen bir hareket için WCAG 2.2.2
+   görünür bir durdurma yolu şart koşuyor. */
+.selvi-kutu[data-hareket="durdu"] .selvi-donen,
+.selvi-kutu[data-hareket="durdu"] .selvi-cubuk {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .aurora-sol {
+  .selvi-donen {
     animation: none;
-    transform: translate3d(5%, -1%, 0) scale(1.02);
-    opacity: 0.92;
+    rotate: 42deg;
   }
-  .aurora-sag {
+  .selvi-cubuk {
     animation: none;
-    transform: translate3d(-2%, 2%, 0) scale(1);
-    opacity: 0.5;
-  }
-  .aurora-orta {
-    animation: none;
-    transform: translate3d(0, 1%, 0) scale(1.04) rotate(0.5deg);
-    opacity: 0.72;
   }
 }
 

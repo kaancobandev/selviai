@@ -25,9 +25,12 @@ const ETKI = 420; // imlecin etki yarıçapı (px)
 const GIRIS_SURESI = 1400; // noktaların belirme süresi (ms)
 const GECIKME = 700; // metin girişine binmesin diye beklenen süre (ms)
 
-/* Ortam dalgası — imleç hiç kıpırdamasa bile ızgarada sürekli bir hareket
-   olsun diye. Izgara boyunca süzülen tek bir sinüs; noktaların parlaklığını
-   ±%55 oynatıyor.
+/* Ortam dalgası — ızgara boyunca süzülen tek bir sinüs, noktaların
+   parlaklığını oynatıyor.
+
+   ŞU AN KAPALI (DERINLIK 0). Hero'da hareket eden tek şey prompt kutusunun
+   halkası olsun istiyoruz; dalga açıkken ızgara "yapı" değil "duman" gibi
+   duruyordu. Geri açmak için DERINLIK'i 0.55 yapmak yeterli.
 
    Hız ölçülerek seçildi: 7 sn periyot, saniyede ~%43 parlaklık değişimi.
    Daha yavaşı (15 sn) bakan gözün hareket olarak seçemediği, daha hızlısı
@@ -35,7 +38,7 @@ const GECIKME = 700; // metin girişine binmesin diye beklenen süre (ms)
 const DALGA_HIZ = 0.0009;
 const DALGA_OLCEK_X = 0.0075;
 const DALGA_OLCEK_Y = 0.011;
-const DALGA_DERINLIK = 0.55;
+const DALGA_DERINLIK = 0;
 
 /* İmleç takibi zaman tabanlı. Önceki sürüm kare başına sabit bir katsayı
    (0.12) uyguluyordu; bu, takip hızını doğrudan ekranın tazeleme hızına
@@ -113,17 +116,21 @@ export function DotField({ className = "" }: { className?: string }) {
         y += (hedefY - y) * k;
       }
 
-      // Hareket azaltılmışsa ve imleç yoksa görüntü kareden kareye birebir
-      // aynı. Bir kez çizdikten sonra tekrar çizmenin anlamı yok.
-      const durgun = azHareket && x < 0;
-      if (durgun && sonKareDurgun) return;
-      sonKareDurgun = durgun;
-
       // Açılış: gecikmeden sonra 0 → 1
       const giris = azHareket
         ? 1
         : Math.max(0, Math.min(1, (zaman - GECIKME) / GIRIS_SURESI));
       const g = giris * giris * (3 - 2 * giris); // yumuşak giriş eğrisi
+
+      const dalgaAcik = !azHareket && DALGA_DERINLIK > 0;
+
+      // Görüntünün değişmesi için üç sebepten biri gerekiyor: açılış sürüyor,
+      // dalga açık, ya da imleç alanda. Üçü de yoksa kare birebir aynı çıkar;
+      // bir kez çizip duruyoruz. Dalga kapalıyken bu, imleç dışarıdayken kare
+      // başına ~2.400 daireyi sıfıra indiriyor.
+      const durgun = giris >= 1 && !dalgaAcik && x < 0;
+      if (durgun && sonKareDurgun) return;
+      sonKareDurgun = durgun;
 
       ctx!.clearRect(0, 0, gen, yuk);
 
@@ -154,11 +161,11 @@ export function DotField({ className = "" }: { className?: string }) {
             }
           }
 
-          const dalga = azHareket
-            ? 1
-            : 1 +
+          const dalga = dalgaAcik
+            ? 1 +
               DALGA_DERINLIK *
-                Math.sin(nx * DALGA_OLCEK_X + ny * DALGA_OLCEK_Y + dalgaFaz);
+                Math.sin(nx * DALGA_OLCEK_X + ny * DALGA_OLCEK_Y + dalgaFaz)
+            : 1;
 
           const yaricap = (TABAN_YARICAP * dalga + (TEPE_YARICAP - TABAN_YARICAP) * t) * g;
           const alfa = (TABAN_ALFA * dalga + (TEPE_ALFA - TABAN_ALFA) * t) * g;

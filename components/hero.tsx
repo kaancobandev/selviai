@@ -3,20 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DotField } from "@/components/dot-field";
+import { PromptAurora } from "@/components/prompt-aurora";
 import { Arrow } from "@/components/ui/button";
 
 /**
- * Hero — siyah zemin, arkada akan aurora, üstte imlece tepki veren nokta ızgarası.
+ * Hero — siyah zemin, sabit lila yıkama, imlece tepki veren nokta ızgarası ve
+ * prompt kutusunun dönen ışık halkası.
  *
  * Katman sırası aşağıdan yukarı:
  *   1. siyah zemin
- *   2. aurora kütleleri (bulanık, yavaş hareketli — `aurora-*` animasyonları)
+ *   2. sabit lila yıkama (animasyonsuz)
  *   3. nokta ızgarası (canvas, imleçle etkileşimli)
  *   4. okunurluk perdeleri
- *   5. içerik
+ *   5. içerik + prompt kutusu halkası
  *
- * Aurora bilinçli olarak noktaların ALTINDA: nokta dokusu aurora parladıkça
- * ortaya çıkıyor, tek başına siyah zeminde neredeyse görünmüyor.
+ * Hero'da hareket eden TEK şey prompt kutusunun halkası. Zemin bilerek sabit:
+ * hareketli bulanık kütleler şeklin kendisini yok ediyordu ve kutunun
+ * backdrop-blur'ünü her karede yeniden hesaplatıyordu.
  */
 
 const ipuclari = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"];
@@ -24,6 +27,8 @@ const ipuclari = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"];
 export function Hero() {
   const router = useRouter();
   const [istek, setIstek] = useState("");
+  // Halka sayfa açılır açılmaz dönüyor; WCAG 2.2.2 gereği durdurulabilir olmalı.
+  const [hareket, setHareket] = useState(true);
 
   function gonder(e: React.FormEvent) {
     e.preventDefault();
@@ -33,32 +38,9 @@ export function Hero() {
   }
 
   return (
-    <section className="relative isolate flex h-[100svh] min-h-[680px] flex-col overflow-hidden bg-ink text-paper">
-      {/* ── 2. katman: aurora ─────────────────────────────────────── */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20">
-        <div
-          className="aurora-sol absolute -bottom-[22%] -left-[12%] h-[72%] w-[54%] rounded-full blur-[80px]"
-          style={{
-            background:
-              "radial-gradient(closest-side, #e2d3ff 0%, #a97cf0 22%, #6d3ec4 44%, #24308f 66%, transparent 84%)",
-          }}
-        />
-        <div
-          className="aurora-sag absolute -bottom-[24%] -right-[12%] h-[74%] w-[56%] rounded-full blur-[80px]"
-          style={{
-            background:
-              "radial-gradient(closest-side, #d8e6ff 0%, #7aa2f0 20%, #8b5cf6 42%, #3b2a9c 66%, transparent 84%)",
-          }}
-        />
-        {/* Alt kenarı iki kütle arasında bağlayan ince ışık sırtı */}
-        <div
-          className="aurora-orta absolute -bottom-[50%] left-1/2 h-[72%] w-[80%] -translate-x-1/2 rounded-[50%] blur-[70px]"
-          style={{
-            background:
-              "radial-gradient(closest-side, transparent 62%, #7c3aed 72%, #c9a3ff 78%, #5b2ea8 86%, transparent 96%)",
-          }}
-        />
-      </div>
+    <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-ink text-paper">
+      {/* ── 2. katman: sabit lila yıkama ──────────────────────────── */}
+      <div aria-hidden className="selvi-zemin pointer-events-none absolute inset-0 -z-20" />
 
       {/* ── 3. katman: nokta ızgarası ─────────────────────────────── */}
       <DotField className="pointer-events-none absolute inset-0 -z-10 h-full w-full" />
@@ -70,16 +52,16 @@ export function Hero() {
       />
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10">
+      <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
         <p className="rise rise-1 eyebrow text-lila-soft">
           Yapay zekâ destekli yaratıcı tasarım platformu
         </p>
 
-        <h1 className="rise rise-2 mt-7 max-w-[16ch] font-display text-[14vw] leading-[0.95] tracking-[-0.02em] sm:text-[10vw] md:text-[6.5rem] lg:text-[7.5rem]">
+        <h1 className="rise rise-2 mt-7 max-w-[16ch] [@media(max-height:820px)]:mt-4 font-display text-[14vw] leading-[0.95] tracking-[-0.02em] sm:text-[10vw] md:text-[6.5rem] lg:text-[7.5rem]">
           Yapay zekâ hızında tasarla
         </h1>
 
-        <p className="rise rise-3 mt-7 max-w-[52ch] text-[15px] leading-7 text-paper/70 md:text-base">
+        <p className="rise rise-3 mt-7 max-w-[52ch] [@media(max-height:820px)]:mt-4 text-[15px] leading-7 text-paper/70 md:text-base">
           Öğrenme, tasarım, görselleştirme ve satış tek platformda.
           <span className="text-paper"> Learn → Create → Sell.</span>
         </p>
@@ -87,8 +69,13 @@ export function Hero() {
         {/* Prompt kutusu — gerçek bir giriş kapısı, sahte demo değil */}
         <form
           onSubmit={gonder}
-          className="rise rise-3 mt-10 w-full max-w-2xl rounded-2xl border border-paper/15 bg-paper/[0.06] p-4 text-left backdrop-blur-xl transition-colors duration-300 focus-within:border-lila-soft/50 md:p-5"
+          data-hareket={hareket ? undefined : "durdu"}
+          className="selvi-kutu rise rise-3 mt-10 w-full max-w-2xl [@media(max-height:820px)]:mt-6 bg-paper/[0.06] text-left backdrop-blur-xl"
         >
+          <PromptAurora />
+          {/* Konumlanmış kardeşler akış içeriğinden SONRA boyanır; içeriği kendi
+              yığın seviyesine almazsak hâle metnin üstüne yayılır. */}
+          <div className="relative z-10 p-4 md:p-5">
           <label htmlFor="hero-fikir" className="sr-only">
             Ne tasarlamak istiyorsun?
           </label>
@@ -117,13 +104,15 @@ export function Hero() {
             >
               <Arrow className="transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover:translate-x-0.5" />
             </button>
+            </div>
           </div>
         </form>
       </div>
 
       {/* ── Alt şerit ─────────────────────────────────────────────── */}
-      <div className="rise rise-3 px-5 pb-9 md:px-10 md:pb-11">
-        <div className="flex flex-col gap-6 border-t border-paper/12 pt-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="rise rise-3 px-5 pb-9 md:px-10 md:pb-11 [@media(max-height:820px)]:pb-5">
+        <div className="flex flex-col gap-6 border-t border-paper/12 pt-6 sm:flex-row sm:items-start sm:justify-between [@media(max-height:820px)]:gap-4 [@media(max-height:820px)]:pt-4">
+          <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
           <dl className="flex flex-wrap gap-x-12 gap-y-4">
             <div>
               <dt className="text-[15px] font-semibold leading-tight">Learn → Create → Sell</dt>
@@ -134,6 +123,18 @@ export function Hero() {
               <dd className="mt-1.5 eyebrow text-paper/45">İlk dikey</dd>
             </div>
           </dl>
+            {/* Halka sayfa açılır açılmaz döndüğü için WCAG 2.2.2 görünür bir
+                durdurma yolu istiyor. Alt şeride koyduk: bu satır zaten iki
+                satır yüksekliğinde, dibe hizalanınca ek yer kaplamıyor. */}
+            <button
+              type="button"
+              onClick={() => setHareket((h) => !h)}
+              aria-pressed={!hareket}
+              className="eyebrow text-paper/75 underline-offset-4 transition-colors duration-200 hover:text-paper hover:underline"
+            >
+              {hareket ? "Hareketi durdur" : "Hareketi başlat"}
+            </button>
+          </div>
           <p className="max-w-[36ch] text-[15px] leading-7 text-paper/65 sm:text-right">
             Fashion is where we start. <span className="text-paper">Design is where we go.</span>
           </p>
