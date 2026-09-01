@@ -647,11 +647,11 @@ input[type="number"] {
      kenardaki harfler çarpıtılırdı — çok satırlı başlıkta bu, dev taşan
      gölgeler üretiyordu.
 
-     Değer kaynaktaki 1000px ile aynı, ama bilerek: sözde elemanlar 0.6em
-     ileri itiliyor ve 80px puntoda bu 48px ediyor. 320px perspektifte ön yüz
-     %18 büyüyüp ikinci bir hayalet gibi okunuyordu; 1000px'te büyüme %5'e
-     iniyor. Fark, perspektifin artık harfin kendi merkezinden uygulanması. */
-  perspective: 1000px;
+     Değer 320px: sözde elemanlar 0.6em ileri itildiği için ön yüz belirgin
+     biçimde büyüyor ve dönüş sırasında derinlikli, katmanlı bir görüntü
+     çıkıyor. Kaynaktaki 1000px bunu neredeyse görünmez kılıyor. İstenen
+     görünüm bu, yani değer düşük olsun diye seçildi. */
+  perspective: 320px;
   color: inherit;
   -webkit-text-fill-color: transparent;
   height: 1.2em;
@@ -681,22 +681,21 @@ input[type="number"] {
 
 /* Ön yüz */
 .flip-char::after {
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translateZ(0.6em);
 }
 
 /* Alttan dönerek gelen yüz */
 .flip-char::before {
-  transform: translate(-50%, -50%) rotateX(-90deg);
+  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(0.6em);
   opacity: 0;
   --opacity: 1;
 }
 
-/* Kaynakta iki yüz de `translateZ(0.6em)` ile öne itiliyordu. Onu kaldırdık:
-   Z kayması, perspektif altında yüzü büyütüp yanına ikinci bir kopya gibi
-   düşürüyordu ve çok satırlı başlıkta bu, okunaksız hayaletler üretiyordu.
-   Çevirme için Z kaymasına gerek yok — iki yüz aynı düzlemde dururken
-   `rotateX` ve `backface-visibility` zaten birini gösterip diğerini
-   gizliyor. */
+/* `translateZ(0.6em)` kaynakta olduğu gibi duruyor ve BİLEREK duruyor.
+   Bir ara bunu bir render hatası sanıp kaldırmıştım: dönüş sırasında harfin
+   yanında ikinci, daha büyük bir kopya beliriyor. Ama o kopya efektin
+   kendisi — yüzlerin öne itilmesinden doğan derinlik. Çıkarınca çevirme
+   yassılaşıyor. */
 
 @keyframes flip-char-turn {
   0% {
