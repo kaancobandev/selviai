@@ -21,7 +21,7 @@ const sutunlar = [
       { etiket: "Ne yapıyor", href: "/#urun" },
       { etiket: "Kalite kapısı", href: "/#kalite-kapisi" },
       { etiket: "Dikeyler", href: "/#dikeyler" },
-      { etiket: "Fiyatlandırma", href: "/#fiyatlandirma" },
+      { etiket: "Fiyatlandırma", href: "/fiyatlandirma" },
     ],
   },
   {

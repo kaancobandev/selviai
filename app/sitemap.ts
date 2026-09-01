@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const paths = [
     "/",
+    "/fiyatlandirma",
     "/hizmetler",
     "/hizmetler/kompozisyon",
     ...services.map((s) => `/hizmetler/${s.slug}`),
@@ -20,6 +21,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${site.url}${path}`,
     lastModified: now,
     changeFrequency: path === "/" ? "weekly" : "monthly",
-    priority: path === "/" ? 1 : 0.7,
+    priority: path === "/" ? 1 : path === "/fiyatlandirma" ? 0.9 : 0.7,
   }));
 }

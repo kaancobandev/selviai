@@ -1,6 +1,7 @@
 import { Hero } from "@/components/hero";
 import { Reveal } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
+import { abonelikPlanlari } from "@/lib/planlar";
 
 /**
  * Ana sayfa — hero ve altındaki sekiz bölüm.
@@ -80,12 +81,6 @@ const RAKIPLER = [
     kapi: "Yok",
     yerel: "Yok",
   },
-];
-
-const PLANLAR = [
-  { ad: "Normal", aylik: "₺699", kredi: 70, krediBasi: "₺9,99", kare: "₺19,98" },
-  { ad: "Pro", aylik: "₺2.199", kredi: 260, krediBasi: "₺8,46", kare: "₺16,92", oneCikan: true },
-  { ad: "Enterprise", aylik: "₺5.999", kredi: 850, krediBasi: "₺7,06", kare: "₺14,12" },
 ];
 
 const KIMLER = [
@@ -356,14 +351,14 @@ export default function HomePage() {
 
         <Reveal delay={120} className="mx-auto mt-14 max-w-5xl">
           <div className="grid gap-px overflow-hidden bg-hair sm:grid-cols-3">
-            {PLANLAR.map((p) => (
+            {abonelikPlanlari.map((p) => (
               <div key={p.ad} className="flex flex-col gap-6 bg-ink p-8">
                 <div className="flex items-baseline justify-between gap-3">
                   {/* lang="en": sayfa lang="tr" ve eyebrow uppercase uyguluyor.
                       Türkçe kuralda "i" -> "İ" olduğu için "Enterprise"
                       "ENTERPRİSE" diye çıkıyordu. */}
                   <span
-                    lang="en"
+                    lang={p.dil}
                     className={p.oneCikan ? "eyebrow text-lila-soft" : "eyebrow text-ash"}
                   >
                     {p.ad}
@@ -398,9 +393,14 @@ export default function HomePage() {
           </p>
 
           <div className="mt-10 flex flex-col items-start gap-4">
-            <Button href="mailto:info@selviai.com" variant="koyuHatli">
-              Erken erişim için yazın
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button href="/fiyatlandirma" variant="koyuDolgu">
+                Tüm planlar
+              </Button>
+              <Button href="mailto:info@selviai.com" variant="koyuHatli">
+                Erken erişim için yazın
+              </Button>
+            </div>
             {/* Ödeme altyapısı kodda hiç yok. Çalışmayan bir "Satın al"
                 düğmesi koymak yerine bunu açıkça söylüyoruz. */}
             <span className="text-[13px] text-ash">Ödeme altyapısı henüz açık değil.</span>

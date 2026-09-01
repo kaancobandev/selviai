@@ -11,12 +11,13 @@ export const site = {
   tagline: "Tasarım için yapay zekâ görsel üretimi",
   description:
     "Fikirden gerçek ürüne — tasarım öğrenme, üretme ve satma süreçlerini tek platformda birleştiren yapay zekâ altyapısı.",
-  /* Çıpa tabanlı: dördü de ana sayfada yazılmış bölüm. Yeni rota yok,
-     dolayısıyla 404 riski de yok. */
+  /* Üçü ana sayfada bölüm çıpası, fiyatlandırma ise kendi rotası.
+     Gerçek rota olduğu için site-header'daki isActive artık bu maddede
+     çalışıyor ve menüde aktif alt çizgi çiziliyor. */
   nav: [
     { href: "/#urun", label: "Ürün" },
     { href: "/#dikeyler", label: "Dikeyler" },
-    { href: "/#fiyatlandirma", label: "Fiyatlandırma" },
+    { href: "/fiyatlandirma", label: "Fiyatlandırma" },
     { href: "/#karsilastirma", label: "Karşılaştırma" },
   ],
 } as const;
