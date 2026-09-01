@@ -17,12 +17,12 @@
   --color-lila: #6e51a0;
   --color-lila-soft: #bfa6ee;
 
-  /* Gövde fontu bilerek sistem yığını: her işletim sisteminde hazır bulunan
-     bir grotesk. Önce Archivo (Google Fonts) yüklüyorduk; özel bir gereksinim
-     olmadığı için kaldırdık — böylece font indirmesi, yükleme gecikmesi ve
-     yedek fontla ölçü kayması sorunları da ortadan kalkıyor.
-     mac: Helvetica Neue · Windows: Arial · Android: Roboto · Linux: Liberation Sans */
-  --font-sans: "Helvetica Neue", Arial, Roboto, "Liberation Sans", sans-serif;
+  /* var()'a yedek verilmesi bilinçli. Yedeksiz `var(--font-archivo)` yazarsak
+     ve o değişken herhangi bir sebeple tanımsız kalırsa (bayat önbellek, font
+     yüklemesinin kaldırılması) bildirim tümüyle geçersiz sayılır; font-family
+     kalıtsal olduğu için değer html'e kadar boş gider ve sayfa tarayıcının
+     varsayılanına, yani Times New Roman'a düşer. Bir kez başımıza geldi. */
+  --font-sans: var(--font-archivo, "Helvetica Neue"), Arial, Roboto, "Liberation Sans", sans-serif;
   --font-display: var(--font-bodoni), "Bodoni MT", "Didot", Georgia, serif;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

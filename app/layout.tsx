@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Bodoni_Moda } from "next/font/google";
+import { Archivo, Bodoni_Moda } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -12,6 +12,12 @@ const display = Bodoni_Moda({
   style: ["normal", "italic"],
   axes: ["opsz"],
   variable: "--font-bodoni",
+  display: "swap",
+});
+
+const sans = Archivo({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-archivo",
   display: "swap",
 });
 
@@ -40,7 +46,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="tr" className={`${display.variable} h-full`}>
+    <html lang="tr" className={`${display.variable} ${sans.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <SiteHeader />
         <main className="flex flex-1 flex-col">{children}</main>
