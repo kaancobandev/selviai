@@ -242,7 +242,7 @@ export default function HomePage() {
         <Reveal className="mx-auto max-w-4xl">
           <p className="eyebrow text-ash">Karşılaştırma</p>
           <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            En ucuzu değiliz. <em className="text-lila-soft">Ayrıştığımız yer</em> başka.
+            <em className="text-lila-soft">Ayrıştığımız yer</em> başka.
           </h2>
         </Reveal>
 
