@@ -3,7 +3,7 @@
  * Marka adını değiştirmek için yalnızca `name` alanını güncelleyin.
  */
 export const site = {
-  name: "Selvi",
+  name: "Selvi AI",
   /** Yayındaki adres — mutlak URL üreten her yer bunu kullanır */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://selviai.com",
   /** İletişim adresleri — alan adıyla birlikte değişir */

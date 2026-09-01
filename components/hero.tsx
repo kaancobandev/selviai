@@ -27,8 +27,6 @@ const ipuclari = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"];
 export function Hero() {
   const router = useRouter();
   const [istek, setIstek] = useState("");
-  // Halka sayfa açılır açılmaz dönüyor; WCAG 2.2.2 gereği durdurulabilir olmalı.
-  const [hareket, setHareket] = useState(true);
 
   function gonder(e: React.FormEvent) {
     e.preventDefault();
@@ -63,10 +61,6 @@ export function Hero() {
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
-        <p className="rise rise-1 eyebrow text-lila-soft">
-          Yapay zekâ destekli yaratıcı tasarım platformu
-        </p>
-
         <h1 className="rise rise-2 mt-7 max-w-[16ch] [@media(max-height:820px)]:mt-4 font-display text-[14vw] leading-[0.95] tracking-[-0.02em] sm:text-[10vw] md:text-[6.5rem] lg:text-[7.5rem]">
           Yapay zekâ hızında tasarla
         </h1>
@@ -79,7 +73,6 @@ export function Hero() {
         {/* Prompt kutusu — gerçek bir giriş kapısı, sahte demo değil */}
         <form
           onSubmit={gonder}
-          data-hareket={hareket ? undefined : "durdu"}
           className="selvi-kutu rise rise-3 mt-10 w-full max-w-2xl [@media(max-height:820px)]:mt-6 bg-ink/35 text-left backdrop-blur-xl"
         >
           <PromptAurora />
@@ -122,29 +115,12 @@ export function Hero() {
       {/* ── Alt şerit ─────────────────────────────────────────────── */}
       <div className="rise rise-3 px-5 pb-9 md:px-10 md:pb-11 [@media(max-height:820px)]:pb-5">
         <div className="flex flex-col gap-6 border-t border-paper/12 pt-6 sm:flex-row sm:items-start sm:justify-between [@media(max-height:820px)]:gap-4 [@media(max-height:820px)]:pt-4">
-          <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
           <dl className="flex flex-wrap gap-x-12 gap-y-4">
             <div>
               <dt className="text-[15px] font-semibold leading-tight">Learn → Create → Sell</dt>
               <dd className="mt-1.5 eyebrow text-paper/45">Tek platform</dd>
             </div>
-            <div>
-              <dt className="text-[15px] font-semibold leading-tight">Moda</dt>
-              <dd className="mt-1.5 eyebrow text-paper/45">İlk dikey</dd>
-            </div>
           </dl>
-            {/* Halka sayfa açılır açılmaz döndüğü için WCAG 2.2.2 görünür bir
-                durdurma yolu istiyor. Alt şeride koyduk: bu satır zaten iki
-                satır yüksekliğinde, dibe hizalanınca ek yer kaplamıyor. */}
-            <button
-              type="button"
-              onClick={() => setHareket((h) => !h)}
-              aria-pressed={!hareket}
-              className="eyebrow text-paper/75 underline-offset-4 transition-colors duration-200 hover:text-paper hover:underline"
-            >
-              {hareket ? "Hareketi durdur" : "Hareketi başlat"}
-            </button>
-          </div>
           <p className="max-w-[36ch] text-[15px] leading-7 text-paper/65 sm:text-right">
             Fashion is where we start. <span className="text-paper">Design is where we go.</span>
           </p>

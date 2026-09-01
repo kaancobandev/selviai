@@ -235,9 +235,13 @@ body {
 
    Ölçülen referans değerleri: aralık 10px, ışık yarıçapı 120px, imleç
    durduktan sonra 800 ms'de sönme, koyu temada nokta rengi #666.
+
+   Bizde aralık 11.5px: referanstaki 10px fazla kalabalık geliyordu. Nokta
+   adedi aralığın karesiyle ters orantılı olduğu için 10 → 11.5 tam olarak
+   %25 daha az nokta demek, dağılım aynı kalıyor.
    ------------------------------------------------------------------ */
 .selvi-izgara-katman {
-  --nokta-aralik: 10px;
+  --nokta-aralik: 11.5px;
   --nokta-r: 1px;
   position: absolute;
   inset: 0;
@@ -363,14 +367,6 @@ body {
 @keyframes selvi-suzul {
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
-}
-
-/* Durdurma düğmesi. animation-play-state: paused açıyı olduğu yerde tutuyor,
-   sıfıra sıçratmıyor. Sayfa açılır açılmaz dönen bir hareket için WCAG 2.2.2
-   görünür bir durdurma yolu şart koşuyor. */
-.selvi-kutu[data-hareket="durdu"] .selvi-donen,
-.selvi-kutu[data-hareket="durdu"] .selvi-cubuk {
-  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
