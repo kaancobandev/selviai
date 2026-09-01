@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DotField } from "@/components/dot-field";
 import { PromptAurora } from "@/components/prompt-aurora";
+import { FlipText } from "@/components/ui/flip-text";
 import { Arrow } from "@/components/ui/button";
 
 /**
@@ -23,6 +24,8 @@ import { Arrow } from "@/components/ui/button";
  */
 
 const ipuclari = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"];
+
+const BASLIK = "Öğrenme Tasarım Görselleştirme ve Satış Tek Platformda";
 
 export function Hero() {
   const router = useRouter();
@@ -62,7 +65,13 @@ export function Hero() {
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
         <h1 className="rise rise-2 mt-7 max-w-[20ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[10.5vw] leading-[1.02] tracking-[-0.035em] sm:text-[7.5vw] md:text-[4.4rem] lg:text-[5rem]">
-          Öğrenme Tasarım Görselleştirme ve Satış Tek Platformda
+          {/* FlipText her harfi ayrı span'e koyuyor; ekran okuyucu bunu harf
+              harf okuyabilir. Düz metni ayrıca veriyoruz, animasyonlu düğümü
+              erişilebilirlik ağacından çıkarıyoruz. */}
+          <span className="sr-only">{BASLIK}</span>
+          <span aria-hidden="true">
+            <FlipText duration={2.6}>{BASLIK}</FlipText>
+          </span>
         </h1>
 
         {/* Prompt kutusu — gerçek bir giriş kapısı, sahte demo değil */}
