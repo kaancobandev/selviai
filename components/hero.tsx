@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DotField } from "@/components/dot-field";
 import { PromptAurora } from "@/components/prompt-aurora";
+import { FlipText } from "@/components/ui/flip-text";
 import { Arrow } from "@/components/ui/button";
 
 /**
@@ -64,7 +65,18 @@ export function Hero() {
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
         <h1 className="rise rise-2 mt-7 max-w-[14ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[15vw] leading-[1.02] tracking-[-0.035em] sm:text-[11vw] md:text-[6.5rem] lg:text-[7.6rem]">
-          {BASLIK}
+          {/* FlipText her harfi ayrı span'e koyuyor; ekran okuyucu bunu harf
+              harf okuyabilir. Düz metni ayrıca veriyoruz, animasyonlu düğümü
+              erişilebilirlik ağacından çıkarıyoruz. */}
+          <span className="sr-only">{BASLIK}</span>
+          <span aria-hidden="true">
+            {/* Açılışta bir kez çevriliyor (loop kapalı), forwards ile bitiş
+                karesinde kalıyor. Sonsuz döngüde harfler her birkaç saniyede
+                bir eğilip büyüyordu. */}
+            <FlipText duration={2.6} loop={false}>
+              {BASLIK}
+            </FlipText>
+          </span>
         </h1>
 
         {/* Prompt kutusu — gerçek bir giriş kapısı, sahte demo değil */}

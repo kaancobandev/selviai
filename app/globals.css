@@ -632,3 +632,117 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* ------------------------------------------------------------------
+   Flip Text — harf harf çevrilen yazı.
+
+   Kaynak: Vengeance UI (components/ui/flip-text.tsx ile birlikte gelir).
+   Çalışma biçimi: harfin kendi metni saydam; görünen iki sözde eleman.
+   `::after` ön yüz, `::before` alttan dönerek gelen yüz. Span X ekseninde
+   90° dönerken ön yüz soluyor, alt yüz beliriyor.
+
+   TABAN ÇİZGİSİ — bu efekti bir kez kaldırmak zorunda kalmıştık, sebebi buydu.
+   Kaynak sözde elemanı `top:50%; left:50%; display:flex; align-items:center`
+   ile harfin kutusunda ORTALIYOR, üstüne `.flip-char`'a `height:1.2em` verip
+   satır yüksekliğini de eziyor. Normal dizgide harfler ortak bir taban
+   çizgisine oturur; ortalayınca her harf kendi kutusunun merkezine göre
+   yerleşiyor ve yazı, aynı özelliklerle yazılmış düz metinle örtüşmüyor.
+   Fark karışımıyla ölçtük: satırlar üst üste bindirildiğinde siyah kalması
+   gerekirken harfler kaymış hâlde çiftleniyordu. Büyük harflerde en çok göze
+   çarpıyor, çünkü taban çizgisiyle ilişkileri en belirgin olanlar.
+
+   Doğrusu: `.flip-char` satır yüksekliğine dokunmuyor (h1'inkini miras
+   alıyor), sözde eleman da `inset: 0` ile span'in kutusuna birebir oturuyor
+   ve metin normal akışında kalıyor. Kutu ile satır yüksekliği aynı olduğu
+   için sözde elemanın taban çizgisi, span'in kendi (saydam) harfinin taban
+   çizgisiyle aynı yere düşüyor. Yatayda da kutu genişliği zaten harfin
+   ilerleme genişliği olduğu için harf tam yerine oturuyor.
+   ------------------------------------------------------------------ */
+/* Bileşen sarmalayıcıya `leading-none` veriyor, yani satır yüksekliği 1.
+   Başlığın kendi satır yüksekliği 1.02; aradaki 2,4px satır kutusunu
+   daraltıyor ve efektli metni düz metinden ayırıyor. Miras aldırıyoruz. */
+.flip-text-wrapper {
+  line-height: inherit;
+}
+.flip-char {
+  /* Perspektif harf başına. Sarmalayıcıya verilseydi merkezden uygulanır ve
+     kenardaki harfler çarpıtılırdı; çok satırlı bir başlıkta bu, dev taşan
+     gölgeler üretiyor.
+
+     320px bilinçli olarak düşük: sözde eleman 0.6em ileri itildiği için ön yüz
+     belirgin biçimde büyüyor ve dönüş sırasında katmanlı, derinlikli bir
+     görüntü çıkıyor. İstenen görünüm bu. */
+  perspective: 320px;
+  color: inherit;
+  -webkit-text-fill-color: transparent;
+  animation: flip-char-turn var(--flip-duration, 2.2s) var(--flip-delay, 0s)
+    var(--flip-iteration, infinite) ease forwards;
+}
+
+.flip-char::before,
+.flip-char::after {
+  content: attr(data-char);
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  animation: flip-char-fade var(--flip-duration, 2.2s) var(--flip-delay, 0s)
+    var(--flip-iteration, infinite) ease forwards;
+}
+
+/* Ön yüz — yalnızca açılışta ve çevirme sırasında görünüyor.
+   translateZ derinliği veren şey; perspektif altında yüzü büyüttüğü için
+   SADECE burada, duran yüzde değil. */
+.flip-char::after {
+  transform: translateZ(0.6em);
+}
+
+/* Alttan dönerek gelen yüz — çevirme bitince ekranda DURAN yüz bu.
+   translateZ yok: olsaydı duran yazı %17,6 büyük çizilir, harfler kutularından
+   taşar ve kelime boşlukları görsel olarak yenirdi. */
+.flip-char::before {
+  transform: rotateX(-90deg);
+  opacity: 0;
+  --opacity: 1;
+}
+
+@keyframes flip-char-turn {
+  0% {
+    transform: rotateX(0deg);
+  }
+  25%,
+  100% {
+    transform: rotateX(90deg);
+  }
+}
+
+@keyframes flip-char-fade {
+  0% {
+    opacity: 1;
+  }
+  30%,
+  100% {
+    opacity: var(--opacity, 0);
+  }
+}
+
+/* Harflerin kendi metni saydam olduğu için animasyonu tamamen kapatmak yazıyı
+   görünmez bırakırdı. Onun yerine dönüşü bitmiş kabul edip duran yüzü açık
+   tutuyoruz: metin okunur, hareket yok. */
+@media (prefers-reduced-motion: reduce) {
+  .flip-char,
+  .flip-char::before,
+  .flip-char::after {
+    animation: none;
+  }
+  .flip-char {
+    transform: rotateX(90deg);
+  }
+  .flip-char::before {
+    opacity: 1;
+  }
+  .flip-char::after {
+    opacity: 0;
+  }
+}
