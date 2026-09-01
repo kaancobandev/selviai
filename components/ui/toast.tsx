@@ -38,7 +38,7 @@ export function Toast({ message, onHide, duration = 2600 }: Props) {
         visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
       )}
     >
-      <div className="bg-ink px-5 py-3 eyebrow text-bone shadow-[0_10px_40px_-20px_rgba(0,0,0,0.5)]">
+      <div className="bg-kalem px-5 py-3 eyebrow text-zemin shadow-[0_10px_40px_-20px_rgba(0,0,0,0.5)]">
         {message ?? last}
       </div>
     </div>

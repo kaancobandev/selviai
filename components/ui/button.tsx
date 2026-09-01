@@ -11,12 +11,19 @@ const base =
   "ease-[var(--ease-out-expo)] disabled:opacity-40 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
-  /* Koyu zemin için iki varyant. Mevcut dördü açık zemine göre yazılmış ve
-     hero'nun Arrow'u bu dosyadan geldiği için onlara dokunulmadı. */
+  /* Koyu zemin için lila vurgulu iki varyant — ana sayfa bunları çağırıyor. */
   koyuDolgu: "bg-paper text-ink hover:bg-lila-soft",
   koyuHatli: "border border-paper/25 text-paper hover:border-paper hover:bg-paper hover:text-ink",
-  solid: "bg-ink text-bone hover:bg-smoke",
-  ghost: "border border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-bone",
+
+  /* solid ve ghost artık zemin-BAĞIMSIZ. Önceden mürekkebe çiviliydiler
+     (bg-ink text-bone), yani koyu sayfada siyah üstüne siyah düğme
+     çıkıyordu. kalem/zemin `.ada-acik` içinde ters bağlandığı için beyaz
+     adalardaki görünüm eskisiyle birebir aynı kalıyor; koyu tarafta ise
+     çağrı yerlerine dokunmadan kendiliğinden düzeliyorlar. */
+  solid: "bg-kalem text-zemin hover:bg-kalem/85",
+  ghost: "border border-kalem/25 text-kalem hover:border-kalem hover:bg-kalem hover:text-zemin",
+
+  /* Fotoğraf üstü — her iki zeminde de beyaz kalmalı. */
   light: "bg-bone text-ink hover:bg-paper",
   link: "u-line px-0 h-auto",
 };

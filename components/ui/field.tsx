@@ -3,12 +3,17 @@ import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------
    Alt çizgili form sistemi — kutu yok, yalnızca bir hairline.
-   Odakta çizgi mürekkep rengine döner.
+   Odakta çizgi kalem rengine döner.
+
+   Zemin-BAĞIMSIZ yazıldı: kalem/zemin/hair/fog dördü `.ada-acik` içinde
+   yeniden bağlandığı için aynı alan hem koyu kromda hem beyaz adada doğru
+   çalışıyor. Sabit text-ink / border-mist yazsaydık koyu sayfada alan
+   siyah üstüne siyah kalırdı.
    ------------------------------------------------------------------ */
 
 const control =
-  "peer w-full bg-transparent border-0 border-b border-mist py-3 text-[15px] leading-6 " +
-  "text-ink outline-none transition-colors duration-500 focus:border-ink " +
+  "peer w-full bg-transparent border-0 border-b border-hair py-3 text-[15px] leading-6 " +
+  "text-kalem outline-none transition-colors duration-500 focus:border-kalem " +
   "disabled:opacity-40 rounded-none";
 
 type WrapProps = {
@@ -24,13 +29,13 @@ export function Field({ label, hint, htmlFor, className, children, trailing }: W
   return (
     <div className={cn("group/field", className)}>
       <div className="flex items-baseline justify-between">
-        <label htmlFor={htmlFor} className="eyebrow text-ash">
+        <label htmlFor={htmlFor} className="eyebrow text-fog">
           {label}
         </label>
-        {trailing && <span className="eyebrow text-ash">{trailing}</span>}
+        {trailing && <span className="eyebrow text-fog">{trailing}</span>}
       </div>
       {children}
-      {hint && <p className="mt-2 text-[11px] leading-4 text-ash">{hint}</p>}
+      {hint && <p className="mt-2 text-[11px] leading-4 text-fog">{hint}</p>}
     </div>
   );
 }
@@ -58,7 +63,7 @@ export function Select({ className, children, ...props }: ComponentPropsWithoutR
       <svg
         aria-hidden
         viewBox="0 0 16 16"
-        className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-ash"
+        className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-fog"
         fill="none"
         stroke="currentColor"
         strokeWidth="1"
@@ -75,10 +80,10 @@ export function Checkbox({
   ...props
 }: ComponentPropsWithoutRef<"input"> & { label: ReactNode }) {
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-start gap-3 text-sm text-smoke">
+    <label htmlFor={id} className="flex cursor-pointer items-start gap-3 text-sm text-fog">
       <span className="relative mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-        <input id={id} type="checkbox" className="peer absolute inset-0 appearance-none cursor-pointer border border-ink/40 checked:border-ink checked:bg-ink" {...props} />
-        <svg aria-hidden viewBox="0 0 12 12" className="pointer-events-none relative h-2 w-2 opacity-0 peer-checked:opacity-100 text-bone" fill="none" stroke="currentColor" strokeWidth="1.2">
+        <input id={id} type="checkbox" className="peer absolute inset-0 appearance-none cursor-pointer border border-kalem/40 checked:border-kalem checked:bg-kalem" {...props} />
+        <svg aria-hidden viewBox="0 0 12 12" className="pointer-events-none relative h-2 w-2 opacity-0 peer-checked:opacity-100 text-zemin" fill="none" stroke="currentColor" strokeWidth="1.2">
           <path d="M2 6.5l2.5 2.5L10 3" />
         </svg>
       </span>

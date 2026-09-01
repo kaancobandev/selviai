@@ -30,6 +30,13 @@
   --color-fog: #a5a2ad;    /* koyu zeminde ikincil metin — 7,85:1 */
   --color-odak: #bfa6ee;   /* klavye odak halkası */
 
+  /* Zeminin kendisi ve üstündeki kalem rengi. Bunlar olmadan sürgü, form
+     alanı gibi ham CSS'le boyanan parçalar --color-ink / --color-paper'a
+     çivili kalıyordu: koyu zeminde dolu sürgü izi siyah üstüne siyah,
+     yani görünmez. Tailwind bunlardan text-kalem / bg-zemin üretiyor. */
+  --color-kalem: #ffffff;  /* zemin üstündeki ön plan */
+  --color-zemin: #0b0b0b;  /* zeminin kendisi */
+
   /* Gövde fontu bilerek sistem yığını: her işletim sisteminde hazır bulunan
      bir grotesk. Önce Archivo (Google Fonts) yüklüyorduk; özel bir gereksinim
      olmadığı için kaldırdık — böylece font indirmesi, yükleme gecikmesi ve
@@ -88,6 +95,8 @@ body {
   --color-hair: #e6e4ea;
   --color-fog: #55525c;
   --color-odak: #0b0b0b;
+  --color-kalem: #0b0b0b;
+  --color-zemin: #ffffff;
 }
 
 .font-display {
@@ -630,8 +639,8 @@ body {
   height: 1px;
   background: linear-gradient(
     90deg,
-    var(--color-ink) var(--p, 0%),
-    var(--color-mist) var(--p, 0%)
+    var(--color-kalem) var(--p, 0%),
+    var(--color-hair) var(--p, 0%)
   );
 }
 .slider::-webkit-slider-thumb {
@@ -641,8 +650,8 @@ body {
   height: 14px;
   margin-top: -6.5px;
   border-radius: 9999px;
-  border: 1px solid var(--color-ink);
-  background: var(--color-paper);
+  border: 1px solid var(--color-kalem);
+  background: var(--color-zemin);
   transition: transform 0.3s var(--ease-out-expo), background-color 0.3s;
 }
 .slider:hover::-webkit-slider-thumb,
@@ -650,22 +659,22 @@ body {
   transform: scale(1.2);
 }
 .slider:active::-webkit-slider-thumb {
-  background: var(--color-ink);
+  background: var(--color-kalem);
 }
 .slider::-moz-range-track {
   height: 1px;
-  background: var(--color-mist);
+  background: var(--color-hair);
 }
 .slider::-moz-range-progress {
   height: 1px;
-  background: var(--color-ink);
+  background: var(--color-kalem);
 }
 .slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 9999px;
-  border: 1px solid var(--color-ink);
-  background: var(--color-paper);
+  border: 1px solid var(--color-kalem);
+  background: var(--color-zemin);
 }
 .slider:focus-visible::-moz-range-thumb {
   transform: scale(1.2);
@@ -682,7 +691,8 @@ textarea {
 }
 input::placeholder,
 textarea::placeholder {
-  color: color-mix(in srgb, var(--color-ash) 80%, transparent);
+  /* --color-ash açık zemine çivili; koyuda soluk kalıyordu. */
+  color: color-mix(in srgb, var(--color-fog) 75%, transparent);
 }
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
