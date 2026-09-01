@@ -673,7 +673,15 @@ input[type="number"] {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* Kaynak burada `center` kullanıyor ve harf kendi kutusunun ortasına
+     itiliyor. Kutunun genişliği zaten harfin ilerleme genişliği (advance)
+     olduğu için ortalamak dizgiyi bozuyor: harfin doğal yan boşlukları
+     (sidebearing) yok sayılıyor, kelimenin son harfi sağa, sonraki kelimenin
+     ilk harfi sola kayıyor ve aradaki boşluk görsel olarak yeniyor.
+     Ölçüldü: kutu aralığı 21px (normal metinle aynı) ama "Learn Create Sell"
+     tek kelime gibi okunuyordu. Sola hizalayınca harf tam da normal dizgideki
+     yerine oturuyor. */
+  justify-content: flex-start;
   backface-visibility: hidden;
   animation: flip-char-fade var(--flip-duration, 2.2s) var(--flip-delay, 0s)
     var(--flip-iteration, infinite) ease;
@@ -684,9 +692,17 @@ input[type="number"] {
   transform: translate(-50%, -50%) translateZ(0.6em);
 }
 
-/* Alttan dönerek gelen yüz */
+/* Alttan dönerek gelen yüz — DURAN yüz de bu.
+
+   Bunda translateZ YOK, bilerek. Z kayması perspektif altında yüzü
+   ölçekliyor: 0.6em, 122px puntoda 48px eder ve 320px perspektifte
+   320/(320-48) = 1.176, yani %17,6 büyüme. Çevirme bittikten sonra ekranda
+   duran yüz bu olduğu için harfler kutularından taşıyor, birbirine giriyor
+   ve kelime boşlukları görsel olarak yeniyordu — "Learn Create Sell" tek
+   kelime gibi okunuyordu. Z'yi yalnızca ::after'da bırakınca derinlik
+   çevirme ANINDA görünüyor, duran yazı ise doğru dizgisine oturuyor. */
 .flip-char::before {
-  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(0.6em);
+  transform: translate(-50%, -50%) rotateX(-90deg);
   opacity: 0;
   --opacity: 1;
 }
