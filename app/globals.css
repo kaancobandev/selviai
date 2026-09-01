@@ -89,6 +89,112 @@ body {
 }
 
 /* ------------------------------------------------------------------
+   Kavis — hero'nun asıl hareketi.
+
+   Referanstaki form bulanık bir küme değil, dev bir ELİPSİN ALT KENARI:
+   kenarlarda yukarı kıvrılıp ortada alçalan bir yay, üzerinde renk geçişi.
+   Kıvrımı okunur kılan şey, ışığın bir kenar boyunca dizilmesi.
+
+   Kuruluş: elipsi conic-gradient ile boyuyoruz (renk yay boyunca değişsin
+   diye), sonra radial maskeyle yalnızca kenar bandını bırakıyoruz. İçi
+   saydam kaldığı için ortada gerçek bir kıvrım okunuyor. Blur ölçülü —
+   fazlası kenarı yok edip her şeyi yine buluta çeviriyor.
+
+   Konum iki turda oturdu. Önce elipsi çok büyük yapmıştım, halka bandı
+   görünür alanın tamamen dışında kalıyordu. Sonra doğru boyutta ama fazla
+   yukarıdaydı ve yay başlığın içinden geçiyordu. Şimdi yay başlığın altında,
+   prompt kutusu hizasında geçiyor — referanstaki yerleşim de bu.
+   ------------------------------------------------------------------ */
+.selvi-kavis {
+  position: absolute;
+  pointer-events: none;
+  -webkit-mask: radial-gradient(
+    closest-side,
+    transparent 66%,
+    #000 78%,
+    #000 91%,
+    transparent 100%
+  );
+  mask: radial-gradient(
+    closest-side,
+    transparent 66%,
+    #000 78%,
+    #000 91%,
+    transparent 100%
+  );
+}
+
+/* Renk yay boyunca dağılıyor ve 180°'de (yayın tam ortası) neredeyse sönüyor.
+   Referansta da yayın ortası koyu, iki yanı parlak; bu hem formu okunur kılıyor
+   hem de prompt kutusunun altını karanlık bırakıp yazıyı kurtarıyor. */
+.selvi-kavis-1 {
+  left: -34%;
+  right: -34%;
+  top: -56%;
+  height: 150%;
+  background: conic-gradient(
+    from 0deg,
+    rgb(61 43 94 / 0) 58deg,
+    #7c5cb8 92deg,
+    #bfa6ee 120deg,
+    #efe8ff 141deg,
+    #8b6fc8 161deg,
+    rgb(48 34 78 / 0.3) 180deg,
+    #8b6fc8 199deg,
+    #efe8ff 219deg,
+    #bfa6ee 240deg,
+    #7c5cb8 268deg,
+    rgb(61 43 94 / 0) 302deg
+  );
+  filter: blur(30px);
+  opacity: 0.62;
+  animation: selvi-kavis-1 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+
+.selvi-kavis-2 {
+  left: -50%;
+  right: -50%;
+  top: -40%;
+  height: 132%;
+  background: conic-gradient(
+    from 0deg,
+    rgb(110 81 160 / 0) 72deg,
+    #6e51a0 106deg,
+    #a98ce0 136deg,
+    #d9c8ff 158deg,
+    rgb(58 42 92 / 0.25) 180deg,
+    #d9c8ff 202deg,
+    #a98ce0 226deg,
+    #6e51a0 264deg,
+    rgb(110 81 160 / 0) 298deg
+  );
+  filter: blur(48px);
+  opacity: 0.4;
+  animation: selvi-kavis-2 37s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+
+/* Yay dönmüyor, süzülüyor: dönme bir elipste yalpalama gibi durur. Bunun
+   yerine yatay kayma ve hafif ölçek değişimi — iki yay farklı hızda
+   gidince kesiştikleri yer ve renk yoğunluğu sürekli başkalaşıyor. */
+@keyframes selvi-kavis-1 {
+  from { transform: translate3d(-5%, 1%, 0) scale(1); }
+  to { transform: translate3d(6%, -3%, 0) scale(1.07); }
+}
+@keyframes selvi-kavis-2 {
+  from { transform: translate3d(5%, -1%, 0) scale(1.05); }
+  to { transform: translate3d(-6%, 2%, 0) scale(0.97); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selvi-kavis-1,
+  .selvi-kavis-2 {
+    animation: none;
+  }
+  .selvi-kavis-1 { transform: translate3d(0, -1%, 0) scale(1.03); }
+  .selvi-kavis-2 { transform: translate3d(0, 0, 0) scale(1.01); }
+}
+
+/* ------------------------------------------------------------------
    Nokta ızgarası — iki üst üste katman, üstteki imleçle maskeleniyor.
 
    Stitch'in hero'sundaki teknik bu (uygulama paketinden okundu). Noktalar

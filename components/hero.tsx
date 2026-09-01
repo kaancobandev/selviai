@@ -39,8 +39,15 @@ export function Hero() {
 
   return (
     <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-ink text-paper">
-      {/* ── 2. katman: sabit lila yıkama ──────────────────────────── */}
-      <div aria-hidden className="selvi-zemin pointer-events-none absolute inset-0 -z-20" />
+      {/* ── 2. katman: zemin yıkaması ve kavisler ─────────────────
+          Kavisler hero'nun asıl hareketi: dev bir dairenin kenar bandı,
+          maskeyle kesilmiş, yavaşça dönüyor. Zemin yıkaması altlarında
+          sadece rengi tutuyor. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 overflow-hidden">
+        <div className="selvi-zemin absolute inset-0" />
+        <div className="selvi-kavis selvi-kavis-2" />
+        <div className="selvi-kavis selvi-kavis-1" />
+      </div>
 
       {/* ── 3. katman: nokta ızgarası ─────────────────────────────── */}
       <DotField className="pointer-events-none absolute inset-0 -z-10 h-full w-full" />
