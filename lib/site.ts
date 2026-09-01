@@ -16,7 +16,7 @@ export const site = {
      çalışıyor ve menüde aktif alt çizgi çiziliyor. */
   nav: [
     { href: "/#urun", label: "Ürün" },
-    { href: "/#dikeyler", label: "Dikeyler" },
+    { href: "/#sektorler", label: "Sektörler" },
     { href: "/fiyatlandirma", label: "Fiyatlandırma" },
     { href: "/#karsilastirma", label: "Karşılaştırma" },
   ],

@@ -20,7 +20,7 @@ const sutunlar = [
     baglantilar: [
       { etiket: "Ne yapıyor", href: "/#urun" },
       { etiket: "Kalite kapısı", href: "/#kalite-kapisi" },
-      { etiket: "Dikeyler", href: "/#dikeyler" },
+      { etiket: "Sektörler", href: "/#sektorler" },
       { etiket: "Fiyatlandırma", href: "/fiyatlandirma" },
     ],
   },
