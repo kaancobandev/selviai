@@ -19,12 +19,24 @@ import { useEffect, useRef } from "react";
 
 const ARALIK = 22;          // noktalar arası mesafe (px)
 const TABAN_YARICAP = 1.0;  // dinlenme hâlindeki nokta yarıçapı
-const TEPE_YARICAP = 2.4;   // imlecin tam altındaki yarıçap
-const TABAN_ALFA = 0.24;
-const TEPE_ALFA = 0.95;
-const ETKI = 150;           // imlecin etki yarıçapı (px)
+const TEPE_YARICAP = 2.6;   // imlecin tam altındaki yarıçap
+const TABAN_ALFA = 0.22;
+const TEPE_ALFA = 1.0;
+const ETKI = 420;           // imlecin etki yarıçapı (px)
 const GIRIS_SURESI = 1400;  // noktaların belirme süresi (ms)
-const GECIKME = 900;        // aurora yerleşsin diye beklenen süre (ms)
+const GECIKME = 700;        // aurora yerleşsin diye beklenen süre (ms)
+
+/* Ortam dalgası — imleç hiç kıpırdamasa bile ızgarada sürekli bir hareket
+   olsun diye. Izgara boyunca süzülen tek bir sinüs; noktaların parlaklığını
+   ±%55 oynatıyor.
+
+   Hız seçimi ölçülerek yapıldı: 7 sn periyot, saniyede ~%43 parlaklık
+   değişimi, 120 px/sn süzülme. Daha yavaşı (15 sn) bakan gözün hareket
+   olarak seçemediği, daha hızlısı huzursuz duran bir aralığa düşüyordu. */
+const DALGA_HIZ = 0.0009;
+const DALGA_OLCEK_X = 0.0075;
+const DALGA_OLCEK_Y = 0.011;
+const DALGA_DERINLIK = 0.55;
 
 export function DotField({ className = "" }: { className?: string }) {
   const tuvalRef = useRef<HTMLCanvasElement>(null);
@@ -106,8 +118,15 @@ export function DotField({ className = "" }: { className?: string }) {
             }
           }
 
-          const yaricap = (TABAN_YARICAP + (TEPE_YARICAP - TABAN_YARICAP) * t) * g;
-          const alfa = (TABAN_ALFA + (TEPE_ALFA - TABAN_ALFA) * t) * g;
+          // Sürekli ortam dalgası: 0 → 1 arası, ızgara boyunca ilerliyor
+          const dalga = azHareket
+            ? 1
+            : 1 +
+              DALGA_DERINLIK *
+                Math.sin(nx * DALGA_OLCEK_X + ny * DALGA_OLCEK_Y + zaman * DALGA_HIZ);
+
+          const yaricap = (TABAN_YARICAP * dalga + (TEPE_YARICAP - TABAN_YARICAP) * t) * g;
+          const alfa = (TABAN_ALFA * dalga + (TEPE_ALFA - TABAN_ALFA) * t) * g;
           if (yaricap <= 0.05 || alfa <= 0.004) continue;
 
           // İmlece yaklaştıkça beyazdan lilaya kayan bir ton
@@ -122,8 +141,9 @@ export function DotField({ className = "" }: { className?: string }) {
         }
       }
 
-      // Hareket azaltılmışsa ve açılış bittiyse döngüyü durdur
-      if (azHareket && x < 0) return;
+      // Döngü her hâlükârda sürüyor: hareket azaltılmış olsa bile imleç
+      // etkileşiminin çalışması için yeniden çizim gerekiyor. (Önceki sürüm
+      // burada duruyordu ve etkileşimi de öldürüyordu.)
       cerceve = requestAnimationFrame(ciz);
     }
 
