@@ -37,14 +37,14 @@ export function Hero() {
       {/* ── 2. katman: aurora ─────────────────────────────────────── */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-20">
         <div
-          className="aurora-sol absolute -bottom-[34%] -left-[26%] h-[74%] w-[58%] rounded-full blur-[80px]"
+          className="aurora-sol absolute -bottom-[22%] -left-[12%] h-[72%] w-[54%] rounded-full blur-[80px]"
           style={{
             background:
               "radial-gradient(closest-side, #e2d3ff 0%, #a97cf0 22%, #6d3ec4 44%, #24308f 66%, transparent 84%)",
           }}
         />
         <div
-          className="aurora-sag absolute -bottom-[36%] -right-[26%] h-[78%] w-[60%] rounded-full blur-[80px]"
+          className="aurora-sag absolute -bottom-[24%] -right-[12%] h-[74%] w-[56%] rounded-full blur-[80px]"
           style={{
             background:
               "radial-gradient(closest-side, #d8e6ff 0%, #7aa2f0 20%, #8b5cf6 42%, #3b2a9c 66%, transparent 84%)",
@@ -52,7 +52,7 @@ export function Hero() {
         />
         {/* Alt kenarı iki kütle arasında bağlayan ince ışık sırtı */}
         <div
-          className="aurora-orta absolute -bottom-[74%] left-1/2 h-[86%] w-[86%] -translate-x-1/2 rounded-[50%] blur-[70px]"
+          className="aurora-orta absolute -bottom-[50%] left-1/2 h-[72%] w-[80%] -translate-x-1/2 rounded-[50%] blur-[70px]"
           style={{
             background:
               "radial-gradient(closest-side, transparent 62%, #7c3aed 72%, #c9a3ff 78%, #5b2ea8 86%, transparent 96%)",

@@ -82,24 +82,41 @@ body {
    göremiyordu. Ölçüt "kod hareket ediyor mu" değil, "göz hareketi seçiyor mu".
    ------------------------------------------------------------------ */
 @keyframes aurora-sol {
-  0%   { transform: translate3d(-10%, 14%, 0) scale(0.82); opacity: 0.42; }
-  50%  { transform: translate3d(8%, -4%, 0)  scale(1.14); opacity: 0.92; }
-  100% { transform: translate3d(16%, -14%, 0) scale(0.95); opacity: 0.58; }
+  0%   { transform: translate3d(-8%, 12%, 0) scale(0.86); opacity: 0.45;
+         animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  50%  { transform: translate3d(5%, -1%, 0) scale(1.02); opacity: 0.92;
+         animation-timing-function: cubic-bezier(0, 0, 0.6, 1); }
+  100% { transform: translate3d(14%, -11%, 0) scale(1.16); opacity: 0.6; }
 }
 @keyframes aurora-sag {
-  0%   { transform: translate3d(10%, 16%, 0)  scale(1.12); opacity: 0.9; }
-  50%  { transform: translate3d(-9%, -2%, 0)  scale(0.84); opacity: 0.45; }
-  100% { transform: translate3d(-18%, -12%, 0) scale(1.06); opacity: 0.8; }
+  0%   { transform: translate3d(9%, 14%, 0) scale(1.14); opacity: 0.9;
+         animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  50%  { transform: translate3d(-2%, 2%, 0) scale(1); opacity: 0.5;
+         animation-timing-function: cubic-bezier(0, 0, 0.6, 1); }
+  100% { transform: translate3d(-14%, -10%, 0) scale(0.86); opacity: 0.82; }
 }
+/* Dikkat: burada translate3d'nin X bileseni SIFIR merkezli.
+   Yatay ortalamayi Tailwind'in `-translate-x-1/2` sinifi yapiyor ve o,
+   `transform` degil ayri `translate` CSS ozelligi uretiyor. Ikisi
+   birbirini ezmez, BIRLESIR. Keyframe'e -50% yazmak kutleyi kendi
+   genisliginin yarisi kadar fazladan sola itiyordu (olculdu: merkez
+   x=760 yerine x=28). */
 @keyframes aurora-orta {
-  0%   { transform: translate3d(-50%, 12%, 0)  scale(0.88) rotate(0deg); opacity: 0.28; }
-  50%  { transform: translate3d(-44%, -6%, 0)  scale(1.18) rotate(4deg); opacity: 0.75; }
-  100% { transform: translate3d(-56%, -16%, 0) scale(0.96) rotate(-3deg); opacity: 0.4; }
+  0%   { transform: translate3d(-4%, 10%, 0) scale(0.9) rotate(-2deg); opacity: 0.3;
+         animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  50%  { transform: translate3d(0, 1%, 0) scale(1.04) rotate(0.5deg); opacity: 0.72;
+         animation-timing-function: cubic-bezier(0, 0, 0.6, 1); }
+  100% { transform: translate3d(4%, -9%, 0) scale(1.18) rotate(3deg); opacity: 0.42; }
 }
 
-.aurora-sol  { animation: aurora-sol   9s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
-.aurora-sag  { animation: aurora-sag  11s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
-.aurora-orta { animation: aurora-orta 13s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
+/* Sureler `linear`: yumusatma artik her karenin kendi
+   animation-timing-function'inda. Kisayola bezier yazmak onu HER
+   keyframe'de yeniden baslatiyordu; olculen sonuc, hareketin %50
+   noktasinda tepe hizin %2'sine dusmesiydi (4.5 saniyede bir tam
+   duraksama). Simdi hiz tek tepe yapiyor: uclarda sifir, ortada azami. */
+.aurora-sol  { animation: aurora-sol   9s linear infinite alternate; }
+.aurora-sag  { animation: aurora-sag  11s linear infinite alternate; }
+.aurora-orta { animation: aurora-orta 13s linear infinite alternate; }
 
 @media (prefers-reduced-motion: reduce) {
   .aurora-sol, .aurora-sag, .aurora-orta { animation: none; }
