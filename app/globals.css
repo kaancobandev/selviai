@@ -811,3 +811,433 @@ input[type="number"] {
     opacity: 0;
   }
 }
+
+/* ==================================================================
+   /fiyatlandirma — DERİN CAM
+
+   Neden ayrı `.fiyat-*` öneki: bu dosyada `.reveal`, `.rise`, `.fade`,
+   `.selvi-*` adları dolu ve sonradan gelen tanım öncekini global olarak
+   eziyor. Hero kurallarına (.selvi-kavis, .selvi-izgara-katman,
+   .selvi-halka, .flip-char, .selvi-gecis) DOKUNULMADI; buradaki her şey
+   dosyanın SONUNA eklendi.
+
+   Neden bu bölümde hiç hareket yok: kullanıcı gradyanı OKUNURLUK
+   gerekçesiyle sabit istedi. Hareket eden bir gradyan göz her baktığında
+   kontrastı değiştirir; ayrıca backdrop-filter'a bağlanan her renk geçişi
+   backdrop'u kare başına yeniden rasterize ettirir. Bu bloğun tamamında
+   hover kuralı da yok — düğme kenarı odakta ve hover'da aynı değerde
+   kalıyor, yani kenarın ölçülmüş 3,66:1'i her durumda geçerli.
+
+   ÖLÇÜM YÖNTEMİ (sayıların nereden geldiği):
+   Kart yarı saydam olduğu için oranlar ham hex'ten DEĞİL bileşkeden
+   hesaplandı ve zincir şu sırayla kuruldu:
+     sayfa #0b0b0b → .fiyat-zemin (tüm lekeler AYNI ANDA tepe yapıyor
+     varsayımıyla) → backdrop saturate(150%) → kart dolgusu → kutup
+     ışıkları → grain.
+   saturate() terimi bilerek hesaba KATILDI: saturate matrisi kodlanmış
+   sRGB üzerinde Rec.601 luma'sını korur, WCAG bağıl parlaklığını değil;
+   gama genişletme konveks olduğu için saturate parlaklığı YÜKSELTİR ve
+   kontrastı DÜŞÜRÜR. Atlanırsa her oran kendi lehine ~%1 kayar.
+   Zemin tavanı: ham #4d4380 → saturate(150%) sonrası #4f409b.
+
+   ÖLÇÜLEN DEĞERLER (beyaz metin / ikincil metin %86 beyaz / vurgu #e2d8fb):
+     kart üst kenarı  #3249c2 →  7,35 / 5,89 / 5,40   (metin yok)
+     plan adı+rozet   #3448bd →  7,53 / 6,03 / 5,54
+     özet metni       #3644b2 →  7,99 / 6,38 / 5,88
+     fiyat rakamı     #3942aa →  8,28 / 6,60 / 6,09
+     döküm satırları  #4a43a5 →  7,95 / 6,36 / 5,85
+     CTA bölgesi      #654eab →  6,47 / 5,28 / 4,76
+     kart alt kenarı  #7557b0 →  5,62 / 4,64 / 4,13   (EN KÖTÜ, metin yok)
+   Yani kartın HER pikselinde beyaz metin ≥ 5,62:1, metnin gerçekten
+   oturduğu her bölgede ≥ 6,47:1. AA (4,5:1) hiçbir noktada tehlikede
+   değil ve garanti YERLEŞİMDEN değil DOLGUNUN KENDİSİNDEN geliyor:
+   içerik yeniden aksa, bir satır kaysa, kart uzasa bile oran değişmez.
+
+   DİKKAT: bu sayılar .fiyat-zemin'deki alfa tavanlarına bağlı. Biri
+   "lekeler biraz daha canlı olsun" diye o değerleri yükseltirse en kötü
+   durak sessizce aşağı iner; yarı saydam yüzeyleri hiçbir otomatik
+   denetçi ölçemediği için kimse fark etmez. Zemin değişirse bu tablo
+   yeniden hesaplanmalı.
+   ================================================================== */
+
+/* Kartların kapsayıcısı.
+   DİKKAT — buraya overflow / filter / opacity / mask / clip-path /
+   transform / mix-blend-mode YAZMAYIN. Bunlardan herhangi biri "backdrop
+   root" açar; o anda kartların backdrop-filter'ı sayfa zeminini değil
+   yalnızca bu kutunun içini örneklemeye başlar ve cam, hata vermeden düz
+   renge döner. Ayıklaması zordur çünkü CSS doğru görünür.
+
+   --color-odak burada yeniden bağlanıyor. Sitenin tek odak kuralı
+   `:focus-visible { outline: 1px solid var(--color-odak) }` ve token
+   #bfa6ee. O renk siyah sayfada 9,28:1 veriyor ama bu sayfada odak
+   halkası CAM ÜZERİNDE çiziliyor: kartın en açık noktasında (#7557b0)
+   yalnız 2,64:1 kalıyor ve WCAG 1.4.11'in 3:1 eşiğini KAYBEDİYOR.
+   #ded0ff aynı lila ailesinde ama ölçülmüş: kartın en açık noktasında
+   3,89:1, sayfa zemininde 13,66:1. Token'ı yerel olarak yeniden bağlama
+   kalıbı depoda zaten var (`.ada-acik` aynı şeyi yapıyor). */
+.fiyat-alan {
+  position: relative;
+  --color-odak: #ded0ff;
+}
+
+/* Camın görülebilmesi için ZORUNLU katman.
+   Düz #0b0b0b üzerinde blur() hiçbir iş yapmaz: tek renkli bir alanda
+   bulanıklaştırmanın çıktısı girdiye eşittir. Bulanıklaştırılacak doku
+   olmadan kartlar "buzlu cam" değil, yarı saydam renkli dikdörtgen olur.
+
+   ÖLÇEK, doku seçiminin tek kriteri: blur(18px) standart sapması 18px
+   olan bir Gauss'tur, yani 18px'in ALTINDAKİ her yapıyı tamamen düzler.
+   Bu yüzden 11,5px'lik nokta ızgarası camın altında "buğu" bırakmaz —
+   geriye yalnız düz bir parlaklık artışı kalır (ızgara bu yüzden duruyor:
+   zararsız ve zemine ölçülü bir açıklık katıyor, ama frost'un sebebi O
+   DEĞİL). Blur'den sağ çıkan iki yapı var ve ikisi de bilerek kondu:
+   (1) kart kenarlarını KESEN büyük ışık kütleleri — leke tümüyle tek bir
+   kartın altında kalsaydı bulanık sonuç yine homojen çıkardı;
+   (2) 104px periyotlu diyagonal şeritler — orta frekans, yani blur'ün
+   gerçekten yumuşatıp dalgalandırdığı asıl malzeme.
+
+   filter: blur() KULLANILMADI — radial-gradient'in kendi yumuşak geçişi
+   aynı işi görüyor ve her kaydırmada yeniden rasterize edilmiyor. Aynı
+   ders hero'da bir kez öğrenilmişti (yukarıdaki .selvi-zemin notu).
+
+   Yüzde yerine rem tabanlı inset: yüzde inset kapsayıcının yüksekliğine
+   göre çözüldüğü için kart sayısı ya da kart uzunluğu değişince leke
+   konumu kayar, rem sabit kalır. */
+.fiyat-zemin {
+  position: absolute;
+  /* Yatay taşma 0: -1rem yazıldığında katman bölümün iki yanından 16px
+     taşıp sayfaya yatay kaydırma çubuğu getiriyordu. Kırpmayı ata öğeye
+     overflow ile yapmak mümkün DEĞİL (backdrop root açar, camı öldürür),
+     bu yüzden çözüm katmanı daraltmak. Işığın kart kenarlarını geçmesi
+     zaten sürüyor: .fiyat-alan'ın kendi px-5 / md:px-10 iç boşluğu
+     kart ızgarasının dışında 20–40px pay bırakıyor. */
+  inset: -3.5rem 0;
+  z-index: 0;
+  pointer-events: none;
+  --fiyat-nokta: 11.5px;
+  --fiyat-nokta-r: 1px;
+  background-color: transparent;
+  background-image:
+    radial-gradient(circle, #625d6b var(--fiyat-nokta-r), transparent var(--fiyat-nokta-r)),
+    repeating-linear-gradient(64deg, rgb(255 255 255 / 0.03) 0 26px, rgb(255 255 255 / 0) 26px 104px),
+    radial-gradient(52% 46% at 14% 20%, rgb(66 87 230 / 0.34) 0%, rgb(66 87 230 / 0.1) 48%, rgb(66 87 230 / 0) 72%),
+    radial-gradient(48% 44% at 86% 26%, rgb(124 92 184 / 0.16) 0%, rgb(124 92 184 / 0) 68%),
+    radial-gradient(54% 48% at 52% 92%, rgb(110 81 160 / 0.38) 0%, rgb(110 81 160 / 0.12) 46%, rgb(110 81 160 / 0) 72%);
+  background-position:
+    calc(var(--fiyat-nokta) / 2) calc(var(--fiyat-nokta) / 2),
+    0 0,
+    0 0,
+    0 0,
+    0 0;
+  background-size:
+    var(--fiyat-nokta) var(--fiyat-nokta),
+    auto,
+    auto,
+    auto,
+    auto;
+  /* Kırpma için ata öğeye overflow: hidden yazmak yerine maskeyi katmanın
+     KENDİSİNE veriyoruz. Chrome overflow kırpmasını filtreden ÖNCE
+     uygular — ata overflow'u camı öldürürdü. Maske ise filtreden SONRA
+     uygulanıyor ve üç motorda da çalışıyor. Maske burada bir KARDEŞ
+     üzerinde, ata üzerinde değil; backdrop root açmıyor. */
+  -webkit-mask: radial-gradient(78% 84% at 50% 50%, #000 0%, rgb(0 0 0 / 0.72) 60%, transparent 100%);
+  mask: radial-gradient(78% 84% at 50% 50%, #000 0%, rgb(0 0 0 / 0.72) 60%, transparent 100%);
+}
+
+/* Kartın kendisi yalnızca konum + yarıçap + dış gölge taşır; cam yüzey
+   ayrı bir kardeş katman. Sebebi: backdrop-filter border-radius'a saygı
+   duymuyor (WebKit 158483, Chromium 41212594) ve bulanıklaştırılan alan
+   köşelerde kare kalıyor. Yüzeyi ayrı katman yapıp `isolation: isolate`
+   vermek köşedeki hayalet bandı üç motorda da kapatıyor.
+   Karta filter/opacity/transform ASLA verilmeyecek — içindeki camı
+   öldürür (hero'da .selvi-dis-hale'nin ayrı öğe olmasının sebebi bu). */
+.fiyat-kart {
+  position: relative;
+  z-index: 1;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.45);
+}
+
+.fiyat-kart-one {
+  box-shadow: 0 28px 70px rgb(0 0 0 / 0.5);
+}
+
+/* Camın bileşenleri bir arada: (1) grain, (2) iki kutup ışığı, (3) kart
+   İÇİ kesintisiz mavi→lila gradyan, (4) backdrop blur + saturate, (5)
+   üstte parlak / altta sönük iki inset çizgi, camın KALINLIĞINI okutur.
+
+   RENK KARARI — kazanan tasarımın tek gerçek kusuru buradaydı: gradyan
+   okunurluk adına o kadar söndürülmüştü ki (#1f265e → #463573) en kötü
+   nokta 10,4:1 çıkıyor, yani AA eşiğinin 2,3 katı; kullanıcının istediği
+   "mavi → lila" ise lacivert→erik olarak okunuyordu. 10:1 kimsenin
+   istemediği bir fazlalık ve bedeli tam olarak istenen renkti. Uçlar
+   gerçek maviye ve gerçek lilaya tırmandırıldı; karşılığında en kötü
+   nokta 5,62:1'e indi — hâlâ AA'nın (4,5) üstünde, metnin oturduğu her
+   yerde 6,47:1 ve üstü. Bileşke uçlar #3249c2 (mavi) → #7557b0 (lila).
+
+   Dolgu neden opak değil: alfa hem camı hem KONTRASTI kazandırıyor.
+   Yarı saydam katman koyu sayfanın üstüne bindiği için bileşke renk ham
+   hex'ten daha koyu çıkıyor. Opak yazsaydık hem cam hem kontrast payı
+   kaybolurdu. 0,78: altında arkadaki doku fazla sızıp gradyanı kirletiyor,
+   üstünde blur'ün bulanıklaştıracağı sinyal kalmıyor.
+
+   KUTUP IŞIKLARI (kazanan tasarıma dışarıdan taşınan fikir): merkezleri
+   kartın DIŞINDA (50% -10% ve 50% 110%), dikey yarıçap %52. Böylece kart
+   üzerinde gradyanın tepesi değil SÖNÜMÜ görünüyor: renk üst ve alt
+   kenarda güçleniyor, metnin oturduğu orta bant düz ve sakin kalıyor —
+   göz satır boyunca değişen bir zemine uyum sağlamak zorunda kalmıyor.
+   Kutuplar gradyanın YERİNE geçmiyor, ÜSTÜNE ekleniyor; kart içi dolgu
+   kesintisiz mavi→lila kalıyor, yani "renk kenarda, gövde siyah" tuzağına
+   düşülmüyor. Kart üstündeki en yüksek kutup alfası 0,143 (üst-orta ve
+   alt-orta kenar); %24 aşağıda 0,034'e, kartın ortasında 0'a iniyor.
+
+   GRAIN: gerçek buzlu camın mikro dokusu vardır; bu olmadan yüzey "temiz
+   yarı saydam plastik" hissi verir. 11,5px'lik nokta ızgarası blur(18px)
+   altında tamamen düzleştiği için o dokuyu veremez — dokuyu camın
+   ÜSTÜNDEKİ grain verir. feTurbulence çıktısının alfası 0,35·R − 0,14
+   ile ölçekleniyor: yerel ortalama ~%3,5 beyaz. Kontrast hesabında bu
+   ortalama değil, ondan yüksek düz %5 beyaz kullanıldı (kötümser taraf).
+
+   Yalnızca `background-color` + `background-image` yazıldı, `background`
+   kısayolu değil: üstüne binen bir Tailwind `bg-*` sınıfı renk bileşenini
+   sessizce sıfırlamasın. Bu öğeye JSX tarafından hiçbir `bg-*` verilmiyor. */
+.fiyat-cam {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  isolation: isolate;
+  background-color: transparent;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cfilter%20id='g'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='3'%20stitchTiles='stitch'%20result='n'/%3E%3CfeColorMatrix%20in='n'%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200.35%200%200%200%20-0.14'/%3E%3C/filter%3E%3Crect%20width='140'%20height='140'%20filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(128% 52% at 50% -10%, rgb(56 96 240 / 0.16) 0%, rgb(56 96 240 / 0.13) 34%, rgb(56 96 240 / 0.04) 62%, rgb(56 96 240 / 0) 86%),
+    radial-gradient(128% 52% at 50% 110%, rgb(150 104 214 / 0.16) 0%, rgb(150 104 214 / 0.13) 34%, rgb(150 104 214 / 0.04) 62%, rgb(150 104 214 / 0) 86%),
+    linear-gradient(
+      152deg,
+      rgb(24 56 190 / 0.78) 0%,
+      rgb(38 54 168 / 0.78) 40%,
+      rgb(70 56 160 / 0.78) 72%,
+      rgb(110 76 168 / 0.78) 100%
+    );
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 140px 140px, auto, auto, auto;
+  /* -webkit- öneki elle yazılan CSS'te ZORUNLU. Tailwind bunu yalnız
+     `backdrop-blur-*` yardımcısında kendisi üretiyor. Unutulursa Safari'de
+     cam hiç oluşmaz, geriye yarı saydam bir dikdörtgen kalır — üstelik
+     saturate da kaybolacağı için kontrast tablosu da değişir.
+     18px: 8px altında cam okunmuyor; 24px üstünde hem GPU maliyeti kareyle
+     büyüyor hem görüntü "süt"e dönüp arkadaki formu silerek yine düz kart
+     hissi veriyor. */
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.24),
+    inset 0 -1px 0 rgb(255 255 255 / 0.05);
+}
+
+/* 1px'lik gradyan kenarlık — camın en ucuz ve en güçlü ipucu.
+   Düz beyaz çerçeve plastik okunuyor; cam levhanın kenarı dolgunun
+   gradyan yönünü takip eden değişken bir hairline olduğunda okunuyor.
+   İçi SAYDAM kaldığı için altındaki backdrop-blur çalışmaya devam ediyor.
+
+   TEK NOKTA ARIZASI KAPATILDI: bu teknik `mask-composite` çiftine bağlı
+   ve o çift çöktüğü anda halka 1px çerçeve olmaktan çıkıp DOLU bir gradyan
+   bloğuna dönüyor — hata mesajı yok, CSS doğru görünüyor, kartın zemini
+   sessizce açılıyor. Bu yüzden halkanın dolgusu @supports'un İÇİNE alındı:
+   composite desteklenmiyorsa halka boyanmıyor bile, kart camlı ve okunur
+   kalıyor. Kenar görevini o durumda .fiyat-cam'in inset çizgileri sürdürüyor.
+
+   Ölçüm: halkanın üst ucu kart gövdesine karşı 3,81:1, alt ucu 3,17:1,
+   sayfa zeminine karşı 11,11:1. Halka metin değil, dekoratif kenar. */
+.fiyat-halka {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  .fiyat-halka {
+    background-image: linear-gradient(
+      165deg,
+      rgb(214 230 255 / 0.72) 0%,
+      rgb(255 255 255 / 0.16) 34%,
+      rgb(255 255 255 / 0.12) 62%,
+      rgb(230 214 255 / 0.78) 100%
+    );
+  }
+
+  /* Öne çıkan plan RENKLE değil KENARLA ayrılıyor: dolgu üç kartta da
+     birebir aynı, böylece kontrast tablosu üçünde de aynen geçerli. */
+  .fiyat-kart-one .fiyat-halka {
+    background-image: linear-gradient(
+      165deg,
+      rgb(214 230 255 / 0.9) 0%,
+      rgb(255 255 255 / 0.3) 34%,
+      rgb(255 255 255 / 0.24) 62%,
+      rgb(230 214 255 / 0.95) 100%
+    );
+  }
+}
+
+/* Cam yüzeyde ikincil metin.
+   Mevcut token'lar burada çöküyor: #8a8792 (ash) ve #a5a2ad (fog) siyah
+   zemine göre ayarlı; kartın açık ucunda ikisi de AA'nın altına iniyor.
+   Onun yerine beyazın alfası: zemin ne kadar açılırsa açılsın oran
+   hesaplanabilir kalıyor. 0,86'da en kötü durak 4,64:1, metnin oturduğu
+   bölgelerde 5,28–6,60:1.
+   Not: bu kural katmansız yazıldığı için Tailwind'in @layer utilities
+   içindeki `text-*` yardımcılarını YENER — kasıtlı, aynı öğeye ikinci bir
+   renk sınıfı yazılmasın. Sürpriz kaynağı olduğu için burada yazıyor:
+   .fiyat-ikincil taşıyan bir öğeye sonradan text-fog eklenirse hiçbir şey
+   olmaz. */
+.fiyat-ikincil {
+  color: rgb(255 255 255 / 0.86);
+}
+
+/* Plan adı. Marka lilası #bfa6ee bu gradyanda 3,44:1'e kadar iniyor ve
+   10px'lik eyebrow için AA'yı kaybediyor; #d6c8f6 de 4,68 ile sınırda
+   kalıyordu. #e2d8fb aynı lila ailesinde ama ölçülmüş: plan adının
+   oturduğu bölgede 5,54:1, kartın en kötü noktasında bile 4,13:1. */
+.fiyat-vurgu {
+  color: #e2d8fb;
+}
+
+/* Kart içi ayraç. `border-hair` (#26242c) siyah zemine göre ayarlı olduğu
+   için cam yüzeyde tamamen kayboluyor. %34 beyaz, döküm bölgesinde
+   2,30:1 — ayraç metin de arayüz denetimi de olmadığı için 1.4.11'in
+   3:1'i buraya uygulanmıyor; değer okunur bir hairline için seçildi. */
+.fiyat-ayrac {
+  border-top: 1px solid rgb(255 255 255 / 0.34);
+}
+
+/* Rozet. İÇ İÇE CAM YOK: backdrop-filter'lı öğenin kendisi backdrop
+   root'tur, dolayısıyla rozete ikinci bir cam vermek yalnız kartın içini
+   bulanıklaştırırdı — orada bulanıklaştıracak bir şey yok. Düz alfa dolgu
+   + kenar yeterli ve ikinci bir kompozit katman maliyeti ödenmiyor.
+   Dolgu %12 beyaz; üstündeki beyaz metin 5,65:1. */
+.fiyat-rozet {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.34);
+  color: #ffffff;
+}
+
+/* Hatlı düğmenin kenarı cam üstünde. Tailwind'in `border-paper/25`'i koyu
+   düz zeminde yeterliyken bu camın üstünde 1,76:1'e düşüyor ve düğme
+   sınırı WCAG 1.4.11'in 3:1 eşiğini kaybediyor. %70 beyaz: CTA'nın
+   oturduğu bölgede 4,13:1, kartın en açık noktasında 3,66:1.
+   Kural katmansız olduğu için Tailwind'in border rengini her koşulda
+   yener — hover'da da aynı kalır, yani bu sayfada düğme kenarı hiç
+   değişmiyor ve ölçülen değer her durumda geçerli. */
+.fiyat-dugme-hat {
+  border-color: rgb(255 255 255 / 0.7);
+}
+
+/* Kademeli geri çekilme 1 — backdrop-filter hiç yoksa.
+   Opak yedek doğrudan YUKARIDA ÖLÇÜLEN BİLEŞKE renkler: görüntü aynı
+   kalıyor ve tablo olduğu gibi geçerli oluyor (5,62 – 8,28:1). */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .fiyat-cam {
+    background-image: linear-gradient(
+      152deg,
+      #3249c2 0%,
+      #3448bd 10%,
+      #3644b2 24%,
+      #3942aa 40%,
+      #4a43a5 62%,
+      #654eab 86%,
+      #7557b0 100%
+    );
+  }
+}
+
+/* Kademeli geri çekilme 2 — kullanıcı saydamlığı azaltmış.
+   Chrome 118+ ve Safari 18+ destekliyor, Firefox desteklemiyor; bu yüzden
+   tek savunma hattı değil, ilerleyici iyileştirme olarak duruyor. Tailwind
+   4.3.3'te bu sorgunun varyantı yok, ham @media şart.
+   .fiyat-zemin de gizleniyor: cam opak yedeğe düşse bile lekeler ve nokta
+   ızgarası kartların çevresinde görünür kalırsa saydamlığı azaltmak
+   isteyen kullanıcı yine gürültülü bir zemin alır. */
+@media (prefers-reduced-transparency: reduce) {
+  .fiyat-cam {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-image: linear-gradient(
+      152deg,
+      #3249c2 0%,
+      #3448bd 10%,
+      #3644b2 24%,
+      #3942aa 40%,
+      #4a43a5 62%,
+      #654eab 86%,
+      #7557b0 100%
+    );
+  }
+
+  .fiyat-zemin {
+    display: none;
+  }
+}
+
+/* Kademeli geri çekilme 3 — Windows yüksek kontrast.
+   Bu modda arka planlar sistem renklerine zorlanır; kartları ayıran tek
+   işaret gradyan olsaydı üç kart tek bloğa yapışır ve hangi fiyatın hangi
+   plana ait olduğu anlaşılmazdı. Rozet, ayraç ve düğme kenarı da açıktan
+   ele alınıyor: ikisinin de dolgusu beyaz alfa, yani sistem renklerine
+   bağlı değil. `forced-color-adjust: none` KULLANILMADI, modun amacını
+   bozar. */
+@media (forced-colors: active) {
+  .fiyat-zemin,
+  .fiyat-halka {
+    display: none;
+  }
+
+  .fiyat-cam {
+    background-image: none;
+    background-color: Canvas;
+    border: 1px solid CanvasText;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .fiyat-kart,
+  .fiyat-kart-one {
+    box-shadow: none;
+  }
+
+  .fiyat-ikincil,
+  .fiyat-vurgu {
+    color: CanvasText;
+  }
+
+  .fiyat-ayrac {
+    border-top-color: CanvasText;
+  }
+
+  .fiyat-rozet {
+    background-color: Canvas;
+    border-color: CanvasText;
+    color: CanvasText;
+  }
+
+  .fiyat-dugme-hat {
+    border-color: CanvasText;
+  }
+}
+
