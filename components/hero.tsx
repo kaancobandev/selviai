@@ -70,9 +70,8 @@ export function Hero() {
               erişilebilirlik ağacından çıkarıyoruz. */}
           <span className="sr-only">{BASLIK}</span>
           <span aria-hidden="true">
-            {/* loop kapalı: açılışta bir kez çevriliyor, sonra duruyor.
-                Sonsuz döngüde harfler her 2,6 saniyede eğilip %17 büyüyordu. */}
-            <FlipText duration={2.6} loop={false}>
+            {/* loop varsayılan açık: harfler sürekli devriliyor (referanstaki gibi). */}
+            <FlipText duration={2.2}>
               {BASLIK}
             </FlipText>
           </span>

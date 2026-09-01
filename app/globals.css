@@ -634,49 +634,40 @@ input[type="number"] {
 }
 
 /* ------------------------------------------------------------------
-   Flip Text — harf harf çevrilen yazı.
+   Flip Text — harf harf çevrilen, sürekli dönen başlık.
 
-   Kaynak: Vengeance UI (components/ui/flip-text.tsx ile birlikte gelir).
-   Çalışma biçimi: harfin kendi metni saydam; görünen iki sözde eleman.
-   `::after` ön yüz, `::before` alttan dönerek gelen yüz. Span X ekseninde
-   90° dönerken ön yüz soluyor, alt yüz beliriyor — split-flap panolarındaki
-   gibi.
+   Kaynak: Vengeance UI — vengenceui.com/components/flip-text
+   Kurulum, referansın CANLI demosundan birebir okunarak eşitlendi. Bir süre
+   kendi "iyileştirmelerimle" saptık ve efekt bozuldu; sapmalar geri alındı.
 
-   Keyframe adları DEĞİŞTİRİLDİ: kaynakta `flip` ve `fade` olarak geçiyorlar,
-   ama bizde zaten bir `@keyframes fade` var (`.fade` sınıfı, fabric-lab'de
-   kullanılıyor). Aynı isimde iki tanım olsaydı sonra gelen diğerini global
-   olarak ezerdi ve ikisinden biri bozulurdu.
+   Referanstan okunan gerçek değerler:
+     .flip-char        height/line-height 1.2em, vertical-align middle,
+                       animation: flip 2.2s infinite ease (fill-mode YOK)
+     ::before/::after  top/left 50%, width/height 100%, flex + center/center,
+                       translate(-50%,-50%) translateZ(0.6em)
+     ::before          ayrıca rotateX(-90deg), opacity 0, --opacity 1
+     sarmalayıcı       perspective 1000px
+     @keyframes flip   0% rotateX(0) -> 25%,100% rotateX(90deg)
+     @keyframes fade   0% opacity 1 -> 30%,100% opacity var(--opacity, 0)
+
+   PERSPEKTİF SARMALAYICIDA, 1000px. Bir ara bunu harf başına 320px'e
+   çevirmiştim; o değer yüzü %17,6 büyütüyor ve harfler kutularından taşıp
+   "eğik ve orantısız" görünüyordu. Referansın 1000px'i çok daha ince bir
+   etki veriyor ve perspektifin sarmalayıcı merkezinden uygulanması, kenardaki
+   harflerin hafifçe açılanması efektin kendi karakteri.
+
+   Keyframe adları kaynaktakinden farklı (flip/fade değil). Kaynağın `fade`
+   adı bizdeki `.fade` sınıfıyla çakışıyordu; aynı isimde iki tanım olsaydı
+   sonra gelen diğerini global olarak ezerdi.
    ------------------------------------------------------------------ */
-/* `forwards` kaynakta yok, biz ekledik. Döngü kapatılınca animasyon bitip
-   elemanı başlangıç durumuna döndürüyor; o da ::after yüzü, yani
-   translateZ'li ve %17 büyük olan. Sonuç: çevirme bittikten sonra yazı
-   kalıcı olarak bozuk kalıyordu. `forwards` bitiş karesini tutuyor —
-   ::before görünür kalıyor ve dizgi doğru oturuyor. */
-/* Bileşen sarmalayıcıya `leading-none` veriyor, yani satır yüksekliği 1;
-   başlığın kendi satır yüksekliği farklı olduğu için satır kutusu daralıyor
-   ve efektli metin düz metinden ayrışıyordu. Ölçülerek bulundu, miras
-   aldırıyoruz. */
-.flip-text-wrapper {
-  line-height: inherit;
-}
-
 .flip-char {
-  /* Perspektif harf başına. Sarmalayıcıya verilseydi merkezden uygulanır ve
-     kenardaki harfler çarpıtılırdı — çok satırlı başlıkta bu, dev taşan
-     gölgeler üretiyordu.
-
-     Değer 320px: sözde elemanlar 0.6em ileri itildiği için ön yüz belirgin
-     biçimde büyüyor ve dönüş sırasında derinlikli, katmanlı bir görüntü
-     çıkıyor. Kaynaktaki 1000px bunu neredeyse görünmez kılıyor. İstenen
-     görünüm bu, yani değer düşük olsun diye seçildi. */
-  perspective: 320px;
   color: inherit;
   -webkit-text-fill-color: transparent;
+  vertical-align: middle;
   height: 1.2em;
   line-height: 1.2em;
-  vertical-align: middle;
   animation: flip-char-turn var(--flip-duration, 2.2s) var(--flip-delay, 0s)
-    var(--flip-iteration, infinite) ease forwards;
+    var(--flip-iteration, infinite) ease;
 }
 
 .flip-char::before,
@@ -684,25 +675,17 @@ input[type="number"] {
   color: inherit;
   -webkit-text-fill-color: currentColor;
   content: attr(data-char);
+  backface-visibility: hidden;
+  width: 100%;
+  height: 100%;
+  animation: flip-char-fade var(--flip-duration, 2.2s) var(--flip-delay, 0s)
+    var(--flip-iteration, infinite) ease;
+  justify-content: center;
+  align-items: center;
+  display: flex;
   position: absolute;
   top: 50%;
   left: 50%;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  /* Kaynak burada `center` kullanıyor ve harf kendi kutusunun ortasına
-     itiliyor. Kutunun genişliği zaten harfin ilerleme genişliği (advance)
-     olduğu için ortalamak dizgiyi bozuyor: harfin doğal yan boşlukları
-     (sidebearing) yok sayılıyor, kelimenin son harfi sağa, sonraki kelimenin
-     ilk harfi sola kayıyor ve aradaki boşluk görsel olarak yeniyor.
-     Ölçüldü: kutu aralığı 21px (normal metinle aynı) ama "Learn Create Sell"
-     tek kelime gibi okunuyordu. Sola hizalayınca harf tam da normal dizgideki
-     yerine oturuyor. */
-  justify-content: flex-start;
-  backface-visibility: hidden;
-  animation: flip-char-fade var(--flip-duration, 2.2s) var(--flip-delay, 0s)
-    var(--flip-iteration, infinite) ease forwards;
 }
 
 /* Ön yüz */
@@ -710,26 +693,12 @@ input[type="number"] {
   transform: translate(-50%, -50%) translateZ(0.6em);
 }
 
-/* Alttan dönerek gelen yüz — DURAN yüz de bu.
-
-   Bunda translateZ YOK, bilerek. Z kayması perspektif altında yüzü
-   ölçekliyor: 0.6em, 122px puntoda 48px eder ve 320px perspektifte
-   320/(320-48) = 1.176, yani %17,6 büyüme. Çevirme bittikten sonra ekranda
-   duran yüz bu olduğu için harfler kutularından taşıyor, birbirine giriyor
-   ve kelime boşlukları görsel olarak yeniyordu — "Learn Create Sell" tek
-   kelime gibi okunuyordu. Z'yi yalnızca ::after'da bırakınca derinlik
-   çevirme ANINDA görünüyor, duran yazı ise doğru dizgisine oturuyor. */
+/* Alttan dönerek gelen yüz */
 .flip-char::before {
-  transform: translate(-50%, -50%) rotateX(-90deg);
   opacity: 0;
   --opacity: 1;
+  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(0.6em);
 }
-
-/* `translateZ(0.6em)` kaynakta olduğu gibi duruyor ve BİLEREK duruyor.
-   Bir ara bunu bir render hatası sanıp kaldırmıştım: dönüş sırasında harfin
-   yanında ikinci, daha büyük bir kopya beliriyor. Ama o kopya efektin
-   kendisi — yüzlerin öne itilmesinden doğan derinlik. Çıkarınca çevirme
-   yassılaşıyor. */
 
 @keyframes flip-char-turn {
   0% {
@@ -751,9 +720,10 @@ input[type="number"] {
   }
 }
 
-/* Harflerin kendi metni saydam olduğu için animasyonu tamamen kapatmak
-   yazıyı görünmez bırakırdı. Onun yerine dönüşü sabitleyip ön yüzü açık
-   tutuyoruz: metin okunur kalıyor, hareket bitiyor. */
+/* Harfin kendi metni saydam olduğu için animasyonu tamamen kapatmak yazıyı
+   görünmez bırakırdı. Onun yerine çevirmeyi bitmiş kabul edip alt yüzü açık
+   tutuyoruz: metin okunur, hareket yok. Referansta bu yok, erişilebilirlik
+   için biz ekledik. */
 @media (prefers-reduced-motion: reduce) {
   .flip-char,
   .flip-char::before,
@@ -761,12 +731,12 @@ input[type="number"] {
     animation: none;
   }
   .flip-char {
-    transform: none;
-  }
-  .flip-char::after {
-    opacity: 1;
+    transform: rotateX(90deg);
   }
   .flip-char::before {
+    opacity: 1;
+  }
+  .flip-char::after {
     opacity: 0;
   }
 }

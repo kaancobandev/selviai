@@ -14,11 +14,9 @@ import { cn } from "@/lib/utils";
  * karşılaştırmak kolay olsun diye. Depodaki diğer bileşenler Türkçe adlandırma
  * kullanır; buradaki istisna bilinçli.
  *
- * Kaynakta sarmalayıcıya inline `perspective: 1000px` veriliyordu. Onu
- * kaldırdık: perspektif sarmalayıcının MERKEZİNDEN uygulanıyor, dolayısıyla
- * merkeze uzak harfler aşırı çarpıtılıyordu. Demo tek kısa satır olduğu için
- * sorun görünmüyor; çok satırlı geniş bir başlıkta harfler dev gölgeler
- * halinde taşıyor. Perspektif artık CSS'te harf başına veriliyor.
+ * Perspektif sarmalayıcıda ve 1000px — referanstaki değer. Bir ara harf
+ * başına 320px'e çevirmiştim; o değer yüzü %17,6 büyütüp harfleri eğik ve
+ * orantısız gösteriyordu. Geri alındı.
  *
  * Görünümün tamamı CSS'te: `.flip-char` ve `flip-char-turn` / `flip-char-fade`
  * keyframe'leri (app/globals.css). Bileşenin tek işi her karakteri kendi
@@ -69,7 +67,10 @@ export function FlipText({
   };
 
   return (
-    <div className={cn("flip-text-wrapper inline-block leading-none", className)}>
+    <div
+      className={cn("flip-text-wrapper inline-block leading-none", className)}
+      style={{ perspective: "1000px" }}
+    >
       {words.map((word, wordIndex) => {
         const chars = word.split("");
 
