@@ -2,7 +2,8 @@ import { Cinzel, Cormorant_Garamond, Hanken_Grotesk, Karla } from "next/font/goo
 
 /**
  * Marka stüdyosunda seçilebilen ek yazı tipleri.
- * Bodoni Moda ve Archivo zaten kök düzende yüklüdür (--font-bodoni, --font-archivo).
+ * Bodoni Moda kök düzende yüklüdür (--font-bodoni). Gövde fontu artık indirilen
+ * bir yazı tipi değil, sistem yığını (--font-sans).
  * Bu dosya yalnızca /hizmetler/branding sayfasından içe aktarılır; fontlar orada yüklenir.
  */
 export const cormorant = Cormorant_Garamond({

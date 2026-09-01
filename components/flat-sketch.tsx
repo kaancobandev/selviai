@@ -898,7 +898,7 @@ function MeasureLabel({ a, b, zoom }: { a: Pt; b: Pt; zoom: number }) {
   return (
     <g>
       <rect x={mx - w / 2 - 4 / zoom} y={my - fs - 6 / zoom} width={w + 8 / zoom} height={fs + 6 / zoom} fill="#fff" stroke={SELECT} strokeWidth={1 / zoom} />
-      <text x={mx} y={my - 4 / zoom} textAnchor="middle" fontSize={fs} fontFamily="var(--font-archivo)" fill={INK} style={{ letterSpacing: 0.5 / zoom }}>
+      <text x={mx} y={my - 4 / zoom} textAnchor="middle" fontSize={fs} fontFamily="var(--font-sans)" fill={INK} style={{ letterSpacing: 0.5 / zoom }}>
         {text}
       </text>
     </g>

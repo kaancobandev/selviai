@@ -37,11 +37,11 @@ export const displayFonts: FontOption[] = [
 
 export const bodyFonts: FontOption[] = [
   {
-    id: "archivo",
-    name: "Archivo",
-    cssVar: "--font-archivo",
-    weights: "100–900",
-    note: "Nötr grotesk. Gövde, etiket, teknik metin.",
+    id: "sistem",
+    name: "Sistem Grotesk",
+    cssVar: "--font-sans",
+    weights: "Sistem",
+    note: "Nötr grotesk. Gövde, etiket, teknik metin. İndirme gerektirmez.",
   },
   {
     id: "karla",

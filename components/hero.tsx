@@ -71,10 +71,7 @@ export function Hero() {
           <span className="sr-only">{BASLIK}</span>
           <span aria-hidden="true">
             {/* loop kapalı: açılışta bir kez çevriliyor, sonra duruyor.
-                Sonsuz döngüde harfler her 2,6 saniyede eğilip %17 büyüyor ve
-                başlık zamanın üçte birinde bozuk görünüyordu — ölçüldü, duran
-                hâli düz Archivo ile birebir aynı, bozulan yalnızca çevirme
-                anıydı. */}
+                Sonsuz döngüde harfler her 2,6 saniyede eğilip %17 büyüyordu. */}
             <FlipText duration={2.6} loop={false}>
               {BASLIK}
             </FlipText>
