@@ -126,7 +126,11 @@ body {
 
 /* Renk yay boyunca dağılıyor ve 180°'de (yayın tam ortası) neredeyse sönüyor.
    Referansta da yayın ortası koyu, iki yanı parlak; bu hem formu okunur kılıyor
-   hem de prompt kutusunun altını karanlık bırakıp yazıyı kurtarıyor. */
+   hem de prompt kutusunun altını karanlık bırakıp yazıyı kurtarıyor.
+
+   Yayın iki yanı iki ayrı renk: sağ lob lila, sol lob mavi. Referansta da
+   böyle — bir uçta turkuaz-mavi, öbür uçta mor. Konik açıda 90-180° sağ alta,
+   180-270° sol alta düşüyor, renkler ona göre yerleştirildi. */
 .selvi-kavis-1 {
   left: -34%;
   right: -34%;
@@ -138,16 +142,17 @@ body {
     #7c5cb8 92deg,
     #bfa6ee 120deg,
     #efe8ff 141deg,
-    #8b6fc8 161deg,
+    #a98ce0 161deg,
     rgb(48 34 78 / 0.3) 180deg,
-    #8b6fc8 199deg,
-    #efe8ff 219deg,
-    #bfa6ee 240deg,
-    #7c5cb8 268deg,
-    rgb(61 43 94 / 0) 302deg
+    #4257e6 198deg,
+    #5d90ff 218deg,
+    #8ec2ff 233deg,
+    #4470f0 252deg,
+    #2f3fae 276deg,
+    rgb(35 45 130 / 0) 305deg
   );
   filter: blur(30px);
-  animation: selvi-kavis-1 34s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  animation: selvi-kavis-1 20s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
 
 .selvi-kavis-2 {
@@ -162,13 +167,14 @@ body {
     #a98ce0 136deg,
     #d9c8ff 158deg,
     rgb(58 42 92 / 0.25) 180deg,
-    #d9c8ff 202deg,
-    #a98ce0 226deg,
-    #6e51a0 264deg,
-    rgb(110 81 160 / 0) 298deg
+    #4b62ea 200deg,
+    #7cb0ff 224deg,
+    #4272f2 250deg,
+    #2c3aa8 274deg,
+    rgb(40 52 150 / 0) 300deg
   );
   filter: blur(48px);
-  animation: selvi-kavis-2 47s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  animation: selvi-kavis-2 27s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
 
 /* Hareketin karakteri referanstan alındı: yay geniş genlikle KABARIP ÇEKİLİYOR.
@@ -183,7 +189,7 @@ body {
      dönüş   — küçük açı, elipsi yalpalatmadan renk bantlarını yay boyunca
                kaydırıyor; referanstaki renk sürüklenmesi bu
 
-   Süreler 34 ve 47 sn. Tam dönüşleri 68 ve 94 sn, ortak katları ~53 dakika:
+   Süreler 20 ve 27 sn. Tam dönüşleri 40 ve 54 sn, ortak katları 18 dakika:
    desen pratikte tekrarlamıyor. İki kare kullanıyoruz, yani yumuşatma tüm
    geçişe uygulanıyor ve ortada duraksama olmuyor (üç kareli sürümde bunu
    bir kez yaşamıştık). */
