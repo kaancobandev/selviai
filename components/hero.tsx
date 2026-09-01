@@ -61,7 +61,7 @@ export function Hero() {
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-10 [@media(max-height:820px)]:pt-16">
-        <h1 className="rise rise-2 mt-7 max-w-[16ch] [@media(max-height:820px)]:mt-4 font-display text-[14vw] leading-[0.95] tracking-[-0.02em] sm:text-[10vw] md:text-[6.5rem] lg:text-[7.5rem]">
+        <h1 className="rise rise-2 mt-7 max-w-[16ch] [@media(max-height:820px)]:mt-4 font-sans font-medium text-[13vw] leading-[0.98] tracking-[-0.035em] sm:text-[9.5vw] md:text-[6rem] lg:text-[6.8rem]">
           Yapay zekâ hızında tasarla
         </h1>
 
