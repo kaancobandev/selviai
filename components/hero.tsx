@@ -45,10 +45,13 @@ export function Hero() {
       {/* ── 3. katman: nokta ızgarası ─────────────────────────────── */}
       <DotField className="pointer-events-none absolute inset-0 -z-10 h-full w-full" />
 
-      {/* ── 4. katman: okunurluk perdeleri ────────────────────────── */}
+      {/* ── 4. katman: okunurluk perdesi ───────────────────────────
+          Eskiden merkezde %94'e çıkıyordu; o zaman arkada parlak aurora
+          kütleleri vardı. Artık zemin sabit ve sönük, ızgaranın da tam
+          burada görünmesi gerekiyor — perde hafifletildi. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(95%_62%_at_50%_28%,rgba(11,11,11,0.94)_0%,rgba(11,11,11,0.72)_38%,rgba(11,11,11,0.25)_62%,transparent_80%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(88%_58%_at_50%_30%,rgba(11,11,11,0.62)_0%,rgba(11,11,11,0.4)_40%,rgba(11,11,11,0.12)_66%,transparent_84%)]"
       />
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}

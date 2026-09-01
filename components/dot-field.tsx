@@ -5,249 +5,102 @@ import { useEffect, useRef } from "react";
 /**
  * Hero'nun nokta ızgarası.
  *
- * Neden canvas: 1440×900'de ~2.900 nokta düşüyor. Bunları DOM öğesi yapmak
- * her karede 2.900 stil hesabı demek; canvas'ta tek bir çizim döngüsü oluyor.
+ * İki üst üste katman:
+ *   1. taban  — sönük noktalar, her zaman görünür
+ *   2. parlak — aynı ızgaranın açık renkli kopyası, yalnızca imlecin
+ *               çevresinde `mask-image` ile açılıyor
  *
- * Etkileşim: imlecin çevresindeki noktalar büyüyüp parlıyor. İmleç konumu
- * doğrudan değil, yumuşatılarak takip ediliyor — fare sıçradığında ışık da
- * sıçramasın diye.
+ * Izgaranın kendisi CSS'te tek bir `background-image` tekrarı (globals.css,
+ * `.selvi-izgara-katman`). Burada yapılan tek iş, parlak katmanın maskesini
+ * imlecin altına taşımak.
  *
- * Açılış: noktalar hemen görünmüyor; metin (.rise-*) yerine oturmaya
- * başladıktan sonra biniyorlar.
+ * Önceki sürüm canvas'ta her karede ~2.400 daire çiziyordu. Hem pahalıydı hem
+ * de sonuç seyrek ve sönük olduğu için "sis" gibi duruyordu. Referans aldığımız
+ * Stitch hero'su bu maske yöntemini kullanıyor: aralık 10px, ışık yarıçapı
+ * 120px, imleç durduktan 800 ms sonra sönme.
  */
 
-const ARALIK = 22; // noktalar arası mesafe (px)
-const TABAN_YARICAP = 1.0; // dinlenme hâlindeki nokta yarıçapı
-const TEPE_YARICAP = 2.6; // imlecin tam altındaki yarıçap
-const TABAN_ALFA = 0.22;
-const TEPE_ALFA = 1.0;
-const ETKI = 420; // imlecin etki yarıçapı (px)
-const GIRIS_SURESI = 1400; // noktaların belirme süresi (ms)
-const GECIKME = 700; // metin girişine binmesin diye beklenen süre (ms)
+const ISIK = 170; // imleç parıltısının yarıçapı (px)
+const SOLMA = 800; // imleç durduktan sonra sönme süresi (ms)
 
-/* Ortam dalgası — ızgara boyunca süzülen tek bir sinüs, noktaların
-   parlaklığını oynatıyor.
+// Tamamen saydam maske: parlak katmanı bütünüyle gizler.
+const GIZLI = "linear-gradient(transparent, transparent)";
 
-   ŞU AN KAPALI (DERINLIK 0). Hero'da hareket eden tek şey prompt kutusunun
-   halkası olsun istiyoruz; dalga açıkken ızgara "yapı" değil "duman" gibi
-   duruyordu. Geri açmak için DERINLIK'i 0.55 yapmak yeterli.
-
-   Hız ölçülerek seçildi: 7 sn periyot, saniyede ~%43 parlaklık değişimi.
-   Daha yavaşı (15 sn) bakan gözün hareket olarak seçemediği, daha hızlısı
-   huzursuz duran bir aralığa düşüyordu. */
-const DALGA_HIZ = 0.0009;
-const DALGA_OLCEK_X = 0.0075;
-const DALGA_OLCEK_Y = 0.011;
-const DALGA_DERINLIK = 0;
-
-/* İmleç takibi zaman tabanlı. Önceki sürüm kare başına sabit bir katsayı
-   (0.12) uyguluyordu; bu, takip hızını doğrudan ekranın tazeleme hızına
-   bağlıyordu — 60 Hz'de 391 ms olan oturma süresi 144 Hz'de 163 ms'ye
-   düşüyor, 30 fps'e düşen bir makinede 781 ms'ye çıkıyordu. */
-const TAKIP_TAU = 130; // zaman sabiti (ms)
-
-/* Nokta rengi, imlece yakınlığa (t) göre beyazdan lilaya kayıyor. Renk
-   dizgisini her nokta için yeniden kurmak kare başına ~2.400 dizgi ayırmak
-   demekti; bunun yerine 33 kademelik sabit tablo. */
-const RENK_KADEME = 32;
-const RENKLER = Array.from({ length: RENK_KADEME + 1 }, (_, i) => {
-  const k = 1 - i / RENK_KADEME;
-  return `rgb(${Math.round(214 + 41 * k)}, ${Math.round(196 + 59 * k)}, 255)`;
-});
-const TABAN_RENK = "rgb(226, 224, 235)";
+function maske(x: number, y: number, a: number) {
+  return (
+    `radial-gradient(circle ${ISIK}px at ${x}px ${y}px, ` +
+    `rgba(0, 0, 0, ${a}) 0%, ` +
+    `rgba(0, 0, 0, ${a * 0.8}) 25%, ` +
+    `rgba(0, 0, 0, ${a * 0.4}) 55%, ` +
+    `transparent 100%)`
+  );
+}
 
 export function DotField({ className = "" }: { className?: string }) {
-  const tuvalRef = useRef<HTMLCanvasElement>(null);
+  const parlakRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const tuval = tuvalRef.current;
-    if (!tuval) return;
-    const ctx = tuval.getContext("2d");
-    if (!ctx) return;
+    const parlak = parlakRef.current;
+    if (!parlak) return;
 
-    const sorgu = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let azHareket = sorgu.matches;
-
-    let gen = 0;
-    let yuk = 0;
-    let opr = Math.min(window.devicePixelRatio || 1, 2);
+    let x = 0;
+    let y = 0;
+    let sonHareket = 0;
     let cerceve = 0;
-    let oncekiZaman = 0;
-    let goruntude = true;
-    let sonKareDurgun = false;
 
-    // Hedef ve yumuşatılmış imleç konumu. -1 = imleç alanda değil.
-    let hedefX = -1;
-    let hedefY = -1;
-    let x = -1;
-    let y = -1;
-
-    function olcule() {
-      const r = tuval!.getBoundingClientRect();
-      gen = r.width;
-      yuk = r.height;
-      opr = Math.min(window.devicePixelRatio || 1, 2);
-      tuval!.width = Math.round(gen * opr);
-      tuval!.height = Math.round(yuk * opr);
-      ctx!.setTransform(opr, 0, 0, opr, 0, 0);
-      sonKareDurgun = false; // yeniden boyutlandıktan sonra mutlaka çiz
+    function uygula(deger: string) {
+      parlak!.style.maskImage = deger;
+      parlak!.style.webkitMaskImage = deger;
     }
 
     function ciz(zaman: number) {
-      cerceve = requestAnimationFrame(ciz);
+      const alfa = 1 - Math.min((zaman - sonHareket) / SOLMA, 1);
 
-      // rAF damgası performance.now() ile aynı tabanda, CSS animasyonları da
-      // sayfa yüklenmesinden sayıyor. Bu yüzden ilk kareyi sıfır kabul
-      // etmiyoruz: aksi hâlde noktaların girişi hydration gecikmesi kadar
-      // geriye kayıp metin animasyonundan kopuyordu.
-      const dt = oncekiZaman ? Math.min(zaman - oncekiZaman, 100) : 16.7;
-      oncekiZaman = zaman;
-
-      // İmleci zaman tabanlı yumuşatmayla takip et
-      if (hedefX < 0) {
-        x = -1;
-        y = -1;
-      } else if (x < 0) {
-        x = hedefX;
-        y = hedefY;
-      } else {
-        const k = 1 - Math.exp(-dt / TAKIP_TAU);
-        x += (hedefX - x) * k;
-        y += (hedefY - y) * k;
+      // Söndü: maskeyi kapat ve döngüyü bırak. İmleç yeniden kıpırdayana
+      // kadar hiçbir iş yapılmıyor.
+      if (alfa <= 0.01) {
+        uygula(GIZLI);
+        cerceve = 0;
+        return;
       }
 
-      // Açılış: gecikmeden sonra 0 → 1
-      const giris = azHareket
-        ? 1
-        : Math.max(0, Math.min(1, (zaman - GECIKME) / GIRIS_SURESI));
-      const g = giris * giris * (3 - 2 * giris); // yumuşak giriş eğrisi
-
-      const dalgaAcik = !azHareket && DALGA_DERINLIK > 0;
-
-      // Görüntünün değişmesi için üç sebepten biri gerekiyor: açılış sürüyor,
-      // dalga açık, ya da imleç alanda. Üçü de yoksa kare birebir aynı çıkar;
-      // bir kez çizip duruyoruz. Dalga kapalıyken bu, imleç dışarıdayken kare
-      // başına ~2.400 daireyi sıfıra indiriyor.
-      const durgun = giris >= 1 && !dalgaAcik && x < 0;
-      if (durgun && sonKareDurgun) return;
-      sonKareDurgun = durgun;
-
-      ctx!.clearRect(0, 0, gen, yuk);
-
-      // Izgarayı ortala ki kenarlarda yarım sütun kalmasın
-      const sutun = Math.floor(gen / ARALIK);
-      const satir = Math.floor(yuk / ARALIK);
-      const kaydirX = (gen - sutun * ARALIK) / 2 + ARALIK / 2;
-      const kaydirY = (yuk - satir * ARALIK) / 2 + ARALIK / 2;
-
-      const dalgaFaz = zaman * DALGA_HIZ;
-      const etkiKare = ETKI * ETKI;
-
-      for (let i = 0; i <= sutun; i++) {
-        const nx = kaydirX + i * ARALIK;
-        const dx = nx - x;
-        const dxKare = dx * dx;
-
-        for (let j = 0; j <= satir; j++) {
-          const ny = kaydirY + j * ARALIK;
-
-          let t = 0;
-          if (x >= 0) {
-            const dy = ny - y;
-            const uzaklikKare = dxKare + dy * dy;
-            if (uzaklikKare < etkiKare) {
-              const k = 1 - Math.sqrt(uzaklikKare) / ETKI;
-              t = k * k; // merkeze doğru hızlanan artış
-            }
-          }
-
-          const dalga = dalgaAcik
-            ? 1 +
-              DALGA_DERINLIK *
-                Math.sin(nx * DALGA_OLCEK_X + ny * DALGA_OLCEK_Y + dalgaFaz)
-            : 1;
-
-          const yaricap = (TABAN_YARICAP * dalga + (TEPE_YARICAP - TABAN_YARICAP) * t) * g;
-          const alfa = (TABAN_ALFA * dalga + (TEPE_ALFA - TABAN_ALFA) * t) * g;
-          if (yaricap <= 0.05 || alfa <= 0.004) continue;
-
-          ctx!.fillStyle = t > 0.02 ? RENKLER[(t * RENK_KADEME) | 0] : TABAN_RENK;
-          ctx!.globalAlpha = alfa < 1 ? alfa : 1;
-          ctx!.beginPath();
-          ctx!.arc(nx, ny, yaricap, 0, Math.PI * 2);
-          ctx!.fill();
-        }
-      }
-
-      ctx!.globalAlpha = 1;
-    }
-
-    function basla() {
-      if (cerceve) return;
-      oncekiZaman = 0;
-      sonKareDurgun = false;
+      uygula(maske(x, y, alfa));
       cerceve = requestAnimationFrame(ciz);
-    }
-    function dur() {
-      if (!cerceve) return;
-      cancelAnimationFrame(cerceve);
-      cerceve = 0;
     }
 
     function fareHareket(e: PointerEvent) {
-      const r = tuval!.getBoundingClientRect();
-      hedefX = e.clientX - r.left;
-      hedefY = e.clientY - r.top;
-      sonKareDurgun = false;
+      const r = parlak!.getBoundingClientRect();
+      // Izgara yalnızca hero'yu kaplıyor; imleç dışarıdayken uğraşmıyoruz.
+      if (e.clientY < r.top || e.clientY > r.bottom) return;
+      x = e.clientX - r.left;
+      y = e.clientY - r.top;
+      sonHareket = performance.now();
+      // Maskeyi hemen uygula: rAF'ı beklersek ışık imlecin bir kare gerisinde
+      // kalıyor. Döngünün işi bundan sonrası, yani sönme.
+      uygula(maske(x, y, 1));
+      if (!cerceve) cerceve = requestAnimationFrame(ciz);
     }
+
     function fareCik() {
-      hedefX = -1;
-      hedefY = -1;
-      sonKareDurgun = false;
-    }
-    function hareketDegisti(e: MediaQueryListEvent) {
-      azHareket = e.matches;
-      sonKareDurgun = false;
-    }
-    function sekmeDegisti() {
-      if (document.hidden) dur();
-      else if (goruntude) basla();
+      // Sönmeyi hemen başlat: bir sonraki karede alfa düşmeye başlıyor.
+      sonHareket = performance.now() - SOLMA;
     }
 
-    olcule();
-    basla();
-
-    const boyutIzleyici = new ResizeObserver(olcule);
-    boyutIzleyici.observe(tuval);
-
-    // Hero ekrandan çıkınca çizmeyi bırak. Sayfa uzun ve hero yalnızca ilk
-    // ekranı kaplıyor; kaydırmanın geri kalanında görünmeyen bir tuvale kare
-    // başına ~2.400 daire çizmenin anlamı yok.
-    const gorunumIzleyici = new IntersectionObserver(
-      ([kayit]) => {
-        goruntude = kayit.isIntersecting;
-        if (goruntude) basla();
-        else dur();
-      },
-      { rootMargin: "120px" },
-    );
-    gorunumIzleyici.observe(tuval);
-
+    uygula(GIZLI);
     window.addEventListener("pointermove", fareHareket, { passive: true });
     window.addEventListener("pointerleave", fareCik, { passive: true });
-    document.addEventListener("visibilitychange", sekmeDegisti);
-    sorgu.addEventListener("change", hareketDegisti);
 
     return () => {
-      dur();
-      boyutIzleyici.disconnect();
-      gorunumIzleyici.disconnect();
+      if (cerceve) cancelAnimationFrame(cerceve);
       window.removeEventListener("pointermove", fareHareket);
       window.removeEventListener("pointerleave", fareCik);
-      document.removeEventListener("visibilitychange", sekmeDegisti);
-      sorgu.removeEventListener("change", hareketDegisti);
     };
   }, []);
 
-  return <canvas ref={tuvalRef} aria-hidden className={className} />;
+  return (
+    <div aria-hidden className={className}>
+      <div className="selvi-izgara-katman selvi-izgara-taban" />
+      <div ref={parlakRef} className="selvi-izgara-katman selvi-izgara-parlak" />
+    </div>
+  );
 }
