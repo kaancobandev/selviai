@@ -642,6 +642,11 @@ input[type="number"] {
    kullanılıyor). Aynı isimde iki tanım olsaydı sonra gelen diğerini global
    olarak ezerdi ve ikisinden biri bozulurdu.
    ------------------------------------------------------------------ */
+/* `forwards` kaynakta yok, biz ekledik. Döngü kapatılınca animasyon bitip
+   elemanı başlangıç durumuna döndürüyor; o da ::after yüzü, yani
+   translateZ'li ve %17 büyük olan. Sonuç: çevirme bittikten sonra yazı
+   kalıcı olarak bozuk kalıyordu. `forwards` bitiş karesini tutuyor —
+   ::before görünür kalıyor ve dizgi doğru oturuyor. */
 .flip-char {
   /* Perspektif harf başına. Sarmalayıcıya verilseydi merkezden uygulanır ve
      kenardaki harfler çarpıtılırdı — çok satırlı başlıkta bu, dev taşan
@@ -658,7 +663,7 @@ input[type="number"] {
   line-height: 1.2em;
   vertical-align: middle;
   animation: flip-char-turn var(--flip-duration, 2.2s) var(--flip-delay, 0s)
-    var(--flip-iteration, infinite) ease;
+    var(--flip-iteration, infinite) ease forwards;
 }
 
 .flip-char::before,
@@ -684,7 +689,7 @@ input[type="number"] {
   justify-content: flex-start;
   backface-visibility: hidden;
   animation: flip-char-fade var(--flip-duration, 2.2s) var(--flip-delay, 0s)
-    var(--flip-iteration, infinite) ease;
+    var(--flip-iteration, infinite) ease forwards;
 }
 
 /* Ön yüz */

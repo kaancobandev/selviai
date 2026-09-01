@@ -70,7 +70,14 @@ export function Hero() {
               erişilebilirlik ağacından çıkarıyoruz. */}
           <span className="sr-only">{BASLIK}</span>
           <span aria-hidden="true">
-            <FlipText duration={2.6}>{BASLIK}</FlipText>
+            {/* loop kapalı: açılışta bir kez çevriliyor, sonra duruyor.
+                Sonsuz döngüde harfler her 2,6 saniyede eğilip %17 büyüyor ve
+                başlık zamanın üçte birinde bozuk görünüyordu — ölçüldü, duran
+                hâli düz Archivo ile birebir aynı, bozulan yalnızca çevirme
+                anıydı. */}
+            <FlipText duration={2.6} loop={false}>
+              {BASLIK}
+            </FlipText>
           </span>
         </h1>
 
