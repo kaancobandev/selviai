@@ -43,7 +43,7 @@ export function Croquis({ back = false }: { back?: boolean }) {
           <path key={g.y} d={`M -78 ${g.y} L 78 ${g.y}`} vectorEffect="non-scaling-stroke" />
         ))}
       </g>
-      <g opacity="0.55" fill="#1a1a1a" stroke="none" fontSize="7" fontFamily="var(--font-archivo)" letterSpacing="1">
+      <g opacity="0.55" fill="#1a1a1a" stroke="none" fontSize="7" fontFamily="var(--font-sans)" letterSpacing="1">
         {guides.map((g) => (
           <text key={g.y} x="84" y={g.y + 2.5}>
             {g.label.toUpperCase()}
