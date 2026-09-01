@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function AcademyPage() {
   return (
-    <div className="pb-28 pt-28 md:pt-40">
+    <div className="ada-acik pb-28 pt-28 md:pt-40">
       {/* Başlık */}
       <header className="px-5 md:px-10">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">

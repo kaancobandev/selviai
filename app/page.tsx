@@ -23,7 +23,7 @@ export default function HomePage() {
   const picks = collections.slice(0, 3);
 
   return (
-    <>
+    <div className="ada-acik">
       <Hero />
 
       {/* Stüdyo — tek cümlelik manifesto ve üç kapı */}
@@ -155,6 +155,6 @@ export default function HomePage() {
           </Reveal>
         </div>
       </section>
-    </>
+    </div>
   );
 }

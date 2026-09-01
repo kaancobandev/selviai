@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function MarketPage() {
   return (
-    <div className="px-5 pb-28 pt-28 md:px-10 md:pt-40">
+    <div className="ada-acik px-5 pb-28 pt-28 md:px-10 md:pt-40">
       <header className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="eyebrow text-ash">Koleksiyon Marketi</p>

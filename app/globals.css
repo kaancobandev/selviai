@@ -17,6 +17,19 @@
   --color-lila: #6e51a0;
   --color-lila-soft: #bfa6ee;
 
+  /* Zemin-duyarlı üçlü. Değerleri koyu zemine göre; `.ada-acik` içinde
+     yeniden bağlanıyorlar. Yeni yazılan kod `text-smoke` / `border-mist`
+     KULLANMAZ — onlar açık zemine çivili. Bunun yerine `text-fog` /
+     `border-hair`.
+
+     Neden yeni token: mist ve smoke bugün beyaz panellerde çalışıyor
+     (brand-studio, flat-sketch, inspiration-board) ve o paneller beyaz
+     kalacak. Değerlerini koyulaştırmak o panelleri kalın siyah çizgiye
+     çevirirdi. Tek token iki zemini birden idare edemiyor. */
+  --color-hair: #26242c;   /* koyu zeminde tel çizgi — mist'in aynası */
+  --color-fog: #a5a2ad;    /* koyu zeminde ikincil metin — 7,85:1 */
+  --color-odak: #bfa6ee;   /* klavye odak halkası */
+
   /* Gövde fontu bilerek sistem yığını: her işletim sisteminde hazır bulunan
      bir grotesk. Önce Archivo (Google Fonts) yüklüyorduk; özel bir gereksinim
      olmadığı için kaldırdık — böylece font indirmesi, yükleme gecikmesi ve
@@ -36,11 +49,16 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* Tanımlanmazsa kaydırma çubuğu, <select> açılır listesi, tarih seçici ve
+     autofill dolgusu açık kromla gelir. */
+  color-scheme: dark;
+  /* Aşırı kaydırmada beyaz sıçramayı önlüyor. */
+  background: var(--color-ink);
 }
 
 body {
-  background: var(--color-bone);
-  color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
   font-family: var(--font-sans);
   font-feature-settings: "kern", "liga", "tnum";
   text-rendering: optimizeLegibility;
@@ -49,13 +67,27 @@ body {
 }
 
 ::selection {
-  background: var(--color-ink);
-  color: var(--color-bone);
+  background: var(--color-lila-soft);
+  color: var(--color-ink);
 }
 
 :focus-visible {
-  outline: 1px solid var(--color-ink);
+  /* Sitenin tek klavye odak göstergesi. Siyah zeminde `--color-ink` ile
+     1,00:1 kontrast, yani tamamen görünmez kalıyordu. */
+  outline: 1px solid var(--color-odak);
   outline-offset: 4px;
+}
+
+/* Bu turda koyuya çevrilmeyen rotalar beyaz kalıyor. İçlerindeki mevcut
+   text-ink / bg-paper / border-mist / text-smoke sınıfları aynen çalışsın
+   diye zemini ve zemin-duyarlı üçlüyü burada geri bağlıyoruz. */
+.ada-acik {
+  background: var(--color-bone);
+  color: var(--color-ink);
+  color-scheme: light;
+  --color-hair: #e6e4ea;
+  --color-fog: #55525c;
+  --color-odak: #0b0b0b;
 }
 
 .font-display {

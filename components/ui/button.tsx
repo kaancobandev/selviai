@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentPropsWithoutRef } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "solid" | "ghost" | "light" | "link";
+type Variant = "solid" | "ghost" | "light" | "link" | "koyuDolgu" | "koyuHatli";
 type Size = "md" | "lg";
 
 const base =
@@ -11,6 +11,10 @@ const base =
   "ease-[var(--ease-out-expo)] disabled:opacity-40 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
+  /* Koyu zemin için iki varyant. Mevcut dördü açık zemine göre yazılmış ve
+     hero'nun Arrow'u bu dosyadan geldiği için onlara dokunulmadı. */
+  koyuDolgu: "bg-paper text-ink hover:bg-lila-soft",
+  koyuHatli: "border border-paper/25 text-paper hover:border-paper hover:bg-paper hover:text-ink",
   solid: "bg-ink text-bone hover:bg-smoke",
   ghost: "border border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-bone",
   light: "bg-bone text-ink hover:bg-paper",

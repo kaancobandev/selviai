@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function UploadPage() {
   return (
-    <div className="px-5 pb-28 pt-28 md:px-10 md:pt-40">
+    <div className="ada-acik px-5 pb-28 pt-28 md:px-10 md:pt-40">
       <Link href="/market" className="inline-flex items-center gap-3 eyebrow text-ash u-line">
         <svg aria-hidden viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1">
           <path d="M15 8H2M7 3 2 8l5 5" />
