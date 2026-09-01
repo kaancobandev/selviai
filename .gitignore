@@ -53,3 +53,6 @@ next-env.d.ts
 # kareye dayanıyor. İzlenmezse eşik kararının tek kanıtı ve tek gerileme
 # testinin girdisi bu makineyle birlikte kaybolur.
 !/scripts/olcum/cikti/hakem.json
+
+# Sunum devir notu — yerelde dursun, depoya girmesin
+SUNUM-DEVIR.md
