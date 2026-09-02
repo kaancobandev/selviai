@@ -38,7 +38,18 @@ for (const n of g.noktalar) {
   /* Yığın elementsFromPoint sırasında gelir: EN ÜSTTEKİ ÖNCE. Metnin
      kendisini bul, ondan AŞAĞISINI al, ters çevir ki bileşke en alttan
      başlasın. */
-  const kendiIdx = n.yigin.findIndex((k) => k.etiket === n.etiket);
+  /* Metnin yığındaki yeri KİMLİKLE işaretlenmiş olarak geliyor
+     (`kendiIndeks`). Dize eşleştirmesi yalnız eski girdiler için yedek:
+     kırılgandı, çünkü aynı sınıfı taşıyan iki kardeş, 40 karaktere
+     kırpılmış sınıf adı ya da SVG'nin SVGAnimatedString'i eşleşmeyi
+     bozunca `findIndex` -1 dönüyor ve TÜM yığın kullanılıyordu — yani
+     metnin ÜSTÜNDEKİ katmanlar da altına bindiriliyordu. Teknik çizim
+     sayfasındaki SVG "ÖN" yazısı böyle 1,00:1 raporlandı: gerçekte beyaz
+     tuvalin üstünde siyahtı, ama araç ipucunun siyahıyla eşleştirildi. */
+  const kendiIdx =
+    Number.isInteger(n.kendiIndeks) && n.kendiIndeks >= 0
+      ? n.kendiIndeks
+      : n.yigin.findIndex((k) => k.etiket === n.etiket);
   const altYigin = (kendiIdx >= 0 ? n.yigin.slice(kendiIdx) : n.yigin).slice().reverse();
 
   let bileske = g.sayfaZemini ? g.sayfaZemini.slice(0, 3) : [11, 11, 11];

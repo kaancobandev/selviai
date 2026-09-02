@@ -44,7 +44,7 @@ const sutunlar = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative isolate border-t border-hair">
+    <footer className="relative isolate border-t border-paper/15">
       {/* Arka plan görseli ve ona göre hesaplanmış gradyan peçe.
           Değerlerin nereden geldiği globals.css'teki .selvi-footer-zemin
           yorumunda yazılı — görselin sol tarafı beyaza yakın ve altbilginin
@@ -54,7 +54,7 @@ export function SiteFooter() {
       <div className="px-5 pb-10 pt-20 md:px-10 md:pt-28">
         <div className="grid gap-14 md:grid-cols-12">
           <div className="md:col-span-5">
-            <p className="font-display text-[17vw] leading-[0.85] tracking-[-0.02em] md:text-[7rem] lg:text-[8.5rem]">
+            <p className="font-display text-paper text-[17vw] leading-[0.85] tracking-[-0.02em] md:text-[7rem] lg:text-[8.5rem]">
               {site.name}
             </p>
             <p className="eyebrow mt-6 text-paper/90">{site.tagline}</p>
@@ -92,7 +92,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-20 flex flex-col gap-3 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-20 flex flex-col gap-3 border-t border-paper/15 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <span className="eyebrow text-paper/90">© 2026 {site.name}. Tüm hakları saklıdır.</span>
           <span className="eyebrow text-paper/90">İstanbul</span>
         </div>

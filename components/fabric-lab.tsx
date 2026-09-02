@@ -115,7 +115,7 @@ export function FabricLab() {
                     sizes="168px"
                     className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.05]"
                   />
-                  {marked && <span aria-hidden className="absolute left-2 top-2 h-1.5 w-1.5 bg-kalem" />}
+                  {marked && <span aria-hidden className="absolute left-2 top-2 h-1.5 w-1.5 bg-paper" />}
                 </span>
                 <span
                   aria-hidden

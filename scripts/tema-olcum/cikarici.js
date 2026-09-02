@@ -208,6 +208,18 @@
     return adaylar.reduce((en, r) => (enKotuFark(lum(r)) < enKotuFark(lum(en)) ? r : en));
   };
 
+  /* Sinif adini GUVENLI oku. SVG ogelerinde `className` bir DOMString
+     DEGIL, SVGAnimatedString; String() ona "[object SVGAnimatedString]"
+     diyor. Bu yalniz cirkin bir etiket degil, SESSIZ BIR OLCUM HATASIYDI:
+     etiketler eslesmeyince degerlendirici metnin yiginda nerede oldugunu
+     bulamiyor ve metnin USTUNDEKI katmanlari da bindiriyordu. Teknik cizim
+     sayfasinda SVG "ON" yazisi tam boyle, beyaz tuval yerine arac
+     ipucunun siyahiyla eslesip 1,00:1 raporlandi. */
+  const sinifAdi = (n) => {
+    const c = n.getAttribute && n.getAttribute("class");
+    return typeof c === "string" && c ? "." + c.slice(0, 40) : "";
+  };
+
   window.__temaCikar = async ({ kok = "body", yon = "koyu" } = {}) => {
     /* Animasyonlar rAF ile BEKLENMEZ: panel gizliyken rAF donuyor ve ölçüm
        asılı kalıyor. Senkron bitirilip okunur. */
@@ -468,10 +480,27 @@
 
       /* Yığın: DOM zinciri YÜRÜNMEZ. Ölçülecek metnin arka planı çoğu zaman
          KARDEŞ katmanda; ataları yürüyen bir denetçi onları göremez. */
-      const yigin = document.elementsFromPoint(mx, my).map((n) => {
+      const yiginOgeleri = document.elementsFromPoint(mx, my);
+      /* Metnin yigindaki yeri DIZEYLE degil KIMLIKLE bulunuyor. Dize
+         eslestirmesi kirilgandi: ayni sinifi tasiyan iki kardes, kirpilmis
+         40 karakter, ya da SVG'nin className'i eslesmeyi bozunca
+         degerlendirici metnin USTUNDEKI katmanlari da bindiriyordu. */
+      let kendiIndeks = yiginOgeleri.indexOf(el);
+      if (kendiIndeks < 0) {
+        /* Öğe yığında YOK. Sebebi genelde `pointer-events: none`:
+           elementsFromPoint öyle öğeleri atlıyor ve pointer-events kapısı
+           yalnız ZEMİNİ olanları açıyor — zeminsiz bir SVG <text> açılmıyor.
+           Bu durumda doğru çıpa, yığındaki EN YAKIN ATA: ondan önceki her
+           katman metnin ÜSTÜNDE, sonrakiler ALTINDA kalıyor.
+           (Teknik çizim sayfasındaki SVG "ÖN" yazısı tam böyleydi ve çıpa
+           bulunamayınca araç ipuçlarının siyahı metnin altına bindirilip
+           1,00:1 raporlanıyordu.) */
+        kendiIndeks = yiginOgeleri.findIndex((k) => k !== el && k.contains && k.contains(el));
+      }
+      const yigin = yiginOgeleri.map((n) => {
         const st = getComputedStyle(n);
         const kayit = {
-          etiket: n.tagName + (n.className ? "." + String(n.className).slice(0, 40) : ""),
+          etiket: n.tagName + sinifAdi(n),
           zemin: coz(st.backgroundColor),
           backdrop: st.backdropFilter && st.backdropFilter !== "none" ? st.backdropFilter : null,
           filtre: st.filter !== "none" ? st.filter : null,
@@ -569,7 +598,8 @@
 
       noktalar.push({
         metin: el.textContent.trim().slice(0, 40),
-        etiket: el.tagName + (el.className ? "." + String(el.className).slice(0, 40) : ""),
+        etiket: el.tagName + sinifAdi(el),
+        kendiIndeks,
         renk: metinRengi,
         px: Math.round(parseFloat(cs.fontSize) * 100) / 100,
         kalinlik: cs.fontWeight,
@@ -579,6 +609,29 @@
     }
 
     for (const [el, eski] of kapatilanlar) el.style.pointerEvents = eski;
+
+    /* BUDAMA BURADA YAPILIYOR, çağrı yerinde DEĞİL.
+       Yığınların çoğu bileşkeye hiç katkısı olmayan saydam sarmalayıcı;
+       budanınca JSON 120 KB'dan 65 KB'a iniyor. Ama budama İNDEKS KAYDIRIR
+       ve `kendiIndeks` kimliğe göre işaretlendiği için sessizce bozulurdu.
+       Elle yapıldığı sürece her ölçüm çağrısında yeniden hata riski vardı;
+       tek doğru yer burası. */
+    const bosKatman = (k) =>
+      (!k.zemin || k.zemin[3] === 0) && (!k.katmanlar || k.katmanlar.length === 0) && !k.backdrop;
+    for (const n of noktalar) {
+      if (!n.yigin) continue;
+      /* -1 (çıpa bulunamadı) KORUNUYOR. Önce Math.max(0, …) ile 0'a
+         kırpılıyordu; bu, "bilmiyorum"u sessizce "en üstteki katman benim"
+         yapan bir hataydı ve değerlendirici metnin üstündeki her şeyi
+         altına bindiriyordu. */
+      if (n.kendiIndeks < 0) {
+        n.yigin = n.yigin.filter((k) => !bosKatman(k));
+        continue;
+      }
+      const tut = n.yigin.map((k, i) => i === n.kendiIndeks || !bosKatman(k));
+      n.kendiIndeks = tut.slice(0, n.kendiIndeks).filter(Boolean).length;
+      n.yigin = n.yigin.filter((_, i) => tut[i]);
+    }
 
     return {
       yon,

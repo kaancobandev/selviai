@@ -142,7 +142,7 @@ export function CheckoutForm({ plan }: { plan: Plan }) {
 
         {/* Sipariş özeti */}
         <aside className="lg:col-span-4 lg:col-start-9">
-          <div className="border border-hair bg-paper/[0.04] p-8 lg:sticky lg:top-28">
+          <div className="border border-hair bg-kalem/[0.04] p-8 lg:sticky lg:top-28">
             <div className="flex items-baseline justify-between">
               <p className="eyebrow text-fog">Sipariş özeti</p>
               <Link href="/akademi#fiyatlandirma" className="eyebrow u-line">

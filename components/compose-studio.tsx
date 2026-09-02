@@ -282,7 +282,7 @@ export function ComposeStudio() {
   const iyilestirilebilir = Boolean(job?.resultUrl);
 
   return (
-    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
+    <div className="flex flex-1 flex-col bg-zemin px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
       {/* Başlık */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>

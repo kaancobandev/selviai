@@ -101,7 +101,7 @@ export function BrandStudio() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-14" style={brandVars}>
+    <div className="flex flex-1 flex-col bg-zemin px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-14" style={brandVars}>
       {/* Başlık + temel girdiler */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>

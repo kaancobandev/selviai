@@ -127,7 +127,30 @@ Bu kör noktanın kapanması, akademi öne çıkan kartında **koyu temada da va
 olan** bir kırığı ortaya çıkardı: fotoğraf üstü eyebrow 3,17:1. Yani hata
 açık tema çalışmasının ürünü değildi, yalnızca o güne dek görülemiyordu.
 
-**15. Fikstürün toleransı keyfi değil.** Belgelenmiş hex'lerin kendisi
+**15. Metnin yığındaki yeri DİZEYLE bulunamaz.** Değerlendirici, metnin
+`elementsFromPoint` yığınındaki yerini etiket dizesiyle arıyordu. Üç ayrı
+yoldan kırılıyor: aynı sınıfı taşıyan iki kardeş, 40 karaktere kırpılmış
+sınıf adı, ve SVG. SVG öğelerinde `className` bir DOMString değil
+`SVGAnimatedString`; `String()` ona `"[object SVGAnimatedString]"` diyor.
+Eşleşme bozulunca `findIndex` **-1** dönüyor ve TÜM yığın kullanılıyor —
+yani metnin **üstündeki** katmanlar da altına bindiriliyor. Teknik çizim
+sayfasındaki SVG `ÖN` yazısı böyle 1,00:1 raporlandı: gerçekte beyaz
+tuvalin üstünde siyahtı, ama araç ipucunun siyahıyla eşleştirilmişti.
+Çıpa artık **kimlikle** işaretleniyor (`kendiIndeks`).
+
+**16. Çıpa yığında hiç olmayabilir.** `pointer-events: none` olan öğeleri
+`elementsFromPoint` atlıyor ve pointer-events kapısı yalnız ZEMİNİ olanları
+açıyor — zeminsiz bir SVG `<text>` açılmıyor. O hâlde doğru çıpa yığındaki
+**en yakın atadır**. Ayrıca "bulunamadı" değeri (-1) budama sırasında
+`Math.max(0, …)` ile 0'a kırpılmamalı: bu, "bilmiyorum"u sessizce "en
+üstteki katman benim" yapan bir hataydı ve ilk düzeltmeyi etkisiz bıraktı.
+
+**17. Budama çağrı yerinde yapılmamalı.** Saydam sarmalayıcıları atmak
+JSON'u 120 KB'dan 65 KB'a indiriyor, ama İNDEKS KAYDIRIYOR. Elle
+yapıldığı sürece her ölçüm çağrısı `kendiIndeks`i sessizce bozma riski
+taşıyordu; budama artık çıkarıcının içinde ve indeksi kendisi düzeltiyor.
+
+**18. Fikstürün toleransı keyfi değil.** Belgelenmiş hex'lerin kendisi
 yazılı oranlardan ±0,051'e kadar sapıyor (`#3448bd` → 7,479 ama tabloda
 7,53), çünkü tablo yuvarlanmış hex'ten değil float bileşkeden hesaplanmış.
 Bu yüzden saf WCAG testi ±0,06, bileşke testi ise oran yerine **hex**

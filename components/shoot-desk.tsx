@@ -122,7 +122,7 @@ export function ShootDesk() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
+    <div className="flex flex-1 flex-col bg-zemin px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
       {/* Başlık */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
@@ -504,7 +504,7 @@ function DaylightStrip({ slots, className }: { slots: Slot[]; className?: string
           <div
             key={g.start}
             aria-hidden
-            className="absolute top-[calc(50%-4px)] h-2"
+            className="absolute top-[calc(50%-4px)] h-2 outline outline-1 outline-ash/60"
             style={{ left: pct(g.start), width: `calc(${pct(g.end)} - ${pct(g.start)})`, background: "#F2EBDD" }}
           />
         ))}

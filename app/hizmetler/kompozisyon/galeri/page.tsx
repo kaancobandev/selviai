@@ -23,7 +23,7 @@ export default async function GaleriSayfasi() {
   const toplamMB = kayitlar.reduce((t, k) => t + (k.bayt ?? 0), 0) / 1048576;
 
   return (
-    <div className="flex flex-1 flex-col bg-ink px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
+    <div className="flex flex-1 flex-col bg-zemin px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-12">
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="eyebrow text-fog">Stüdyo · Galeri</p>

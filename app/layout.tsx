@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { FooterGate } from "@/components/footer-gate";
 import { site } from "@/lib/site";
+import { TEMA_ANAHTARI, TEMA_ACIK } from "@/lib/tema";
 
 const display = Bodoni_Moda({
   subsets: ["latin", "latin-ext"],
@@ -61,13 +62,20 @@ export const viewport: Viewport = {
  * next-themes de KULLANILMIYOR: <ThemeProvider> bugün tamamen sunucu
  * bileşeni olan bu layout'un üstüne istemci sınırı zorlar.
  *
- * FAZ 2 DURUMU: bu betik henüz TERCİH OKUMUYOR, koşulsuz koyu yazıyor.
- * Böylece faz tek başına yayına çıkabiliyor ve yarım kalmış bir açık tema
- * kimseye görünmüyor. Tercih okuma Faz 5'te eklenecek; karar "her zaman
- * koyu başla" olduğu için orada da matchMedia dinleyicisi gerekmeyecek,
- * yalnız localStorage'a bakılacak.
+ * VARSAYILAN KOYU, prefers-color-scheme DEĞİL. Sitenin kimliği koyu;
+ * ziyaretçi açıkça seçmediyse koyu açılıyor. Bu yüzden matchMedia
+ * dinleyicisine de gerek yok, yalnız localStorage okunuyor.
+ *
+ * try/catch ŞART: gizli sekmede ve depolama kapalıyken `localStorage`
+ * erişimin KENDİSİ fırlatıyor. Yakalanmazsa betik ölür, `.dark` hiç
+ * yazılmaz ve site açık temayla açılır — yani en gürültülü hata biçimi
+ * en sessiz yerde patlar.
  */
-const TEMA_BETIGI = `document.documentElement.classList.add("dark")`;
+const TEMA_BETIGI = `(function(){try{
+document.documentElement.classList.toggle("dark",localStorage.getItem(${JSON.stringify(
+  TEMA_ANAHTARI,
+)})!==${JSON.stringify(TEMA_ACIK)})
+}catch(e){document.documentElement.classList.add("dark")}})()`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

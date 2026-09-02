@@ -477,7 +477,7 @@ function InkChoices({ label, value, onChange }: { label: string; value: string; 
               title={i.name}
               onClick={() => onChange(i.id)}
               className={cn(
-                "h-4 w-4 border border-kalem/15 transition-[outline-color] duration-300 outline outline-1 outline-offset-[3px]",
+                "h-4 w-4 border border-ash/40 transition-[outline-color] duration-300 outline outline-1 outline-offset-[3px]",
                 active ? "outline-kalem" : "outline-transparent hover:outline-kalem/40",
               )}
               style={{ background: i.hex }}

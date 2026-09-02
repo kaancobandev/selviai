@@ -117,7 +117,7 @@ export default function FiyatlandirmaPage() {
                   <p className="fiyat-ikincil mt-5 text-[14px] leading-6">{p.ozet}</p>
 
                   <p className="mt-7 flex items-baseline gap-2">
-                    <span className="font-display text-5xl leading-none tracking-[-0.01em] md:text-6xl">
+                    <span className="font-display text-paper text-5xl leading-none tracking-[-0.01em] md:text-6xl">
                       {p.aylik}
                     </span>
                     <span className="fiyat-ikincil text-[13px]">/ ay</span>

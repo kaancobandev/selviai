@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { TemaAnahtari } from "@/components/tema-anahtari";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -83,7 +84,12 @@ export function SiteHeader() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-7">
+          <div className="flex items-center gap-4 sm:gap-7">
+            {/* Tema anahtarı, "Stüdyoyu aç"ın SOLUNDA. Rengi yok: header'ın
+                `text-kalem` / `text-paper` durumundan currentColor ile
+                miras alıyor, yani hero üstünde beyaz, zeminli barda
+                sayfanın metin rengi oluyor. */}
+            <TemaAnahtari className="-ml-2" />
             {/* Sepet silindi: state'i, context'i, localStorage anahtarı yoktu;
                 "(0)" JSX'e gömülü sabit metindi. Ürün abonelik satıyor.
                 Giriş de silindi: form yalnız "prototip" toast'ı gösteriyor. */}

@@ -36,7 +36,7 @@ export default function AcademyPage() {
         <Reveal>
           <Link
             href="#dersler"
-            className="group relative block aspect-[16/9] overflow-hidden bg-hair md:aspect-[21/9]"
+            className="group relative block aspect-[16/9] overflow-hidden bg-ink md:aspect-[21/9]"
             aria-label={`${featuredLesson.title} — izle`}
           >
             <Image
@@ -74,7 +74,7 @@ export default function AcademyPage() {
           {lessons.map((l, i) => (
             <Reveal key={l.id} delay={(i % 3) * 80}>
               <article className="group cursor-pointer">
-                <div className="relative aspect-[16/10] overflow-hidden bg-hair">
+                <div className="relative aspect-[16/10] overflow-hidden bg-ink">
                   <Image
                     src={l.image}
                     alt=""
