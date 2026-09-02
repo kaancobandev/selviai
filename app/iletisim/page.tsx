@@ -44,9 +44,8 @@ export default function IletisimPage() {
   return (
     <div className="px-5 pb-28 pt-28 md:px-10 md:pt-40">
       <div className="mx-auto max-w-4xl">
-        <p className="eyebrow text-fog">İletişim</p>
-        <h1 className="mt-5 font-display text-6xl leading-[0.95] tracking-[-0.01em] md:text-8xl">
-          Yazın
+        <h1 className="font-display text-6xl leading-[0.95] tracking-[-0.01em] md:text-8xl">
+          İletişim
         </h1>
 
         <ul className="mt-16 border-t border-hair">
@@ -67,7 +66,7 @@ export default function IletisimPage() {
           ))}
         </ul>
 
-        <p className="eyebrow mt-16 text-fog">İstanbul</p>
+        <p className="eyebrow mt-16 text-fog">İstanbul · Londra</p>
       </div>
     </div>
   );
