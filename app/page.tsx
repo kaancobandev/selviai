@@ -41,19 +41,15 @@ const SEKTORLER = [
    w=1100: canvas'ın ihtiyacı olan en büyük kaynak genişliği ~554 CSS px ×
    dpr 2. Bileşen ham <img> kullandığı için next/image dönüşümü devrede değil.
 
-   SEÇİM GEREKÇESİ. Bölümün tezi "moda bugün, tasarımın geri kalanı sırada".
-   Sağa bir moda fotoğrafı koymak başlığın iddiasını görselle yalanlar. Depodaki
-   on hizmet görselinin çoğu bir moda disiplinine bağlı (manken, askıda kıyafet,
-   katlı tekstil); bu, iç mekân natürmortu olduğu için moda demiyor ve listedeki
-   "İç mekân" hattına bakıyor.
+   SEÇİM. Kullanıcı seçti: katlı denim yığını. Portre değil, malzeme ve doku
+   fotoğrafı — bu yüzden "manken" demiyor, kumaşın kendisini gösteriyor.
 
    Efekt açısından da uygun: nokta reveal'i görseli ~30-55px çaplı dairelerden
-   okutuyor, yani ince çizgi ve küçük detay gürültüye dönüşüyor. Bu görselde
-   geniş renk lekeleri (yeşil, ahşap, duvar) ve orta tonlar var. Aynı sebeple
-   teknik çizim görseli elendi: beyaz kağıt üstüne ince çizgi bu ölçekte
-   okunmuyor. */
+   okutuyor, yani ince çizgi ve küçük detay gürültüye dönüşüyor. Denimde geniş
+   ton lekeleri ve dokuma dokusu var, o ölçekte okunuyor. Aynı sebeple teknik
+   çizim görseli elendi: beyaz kağıt üstüne ince çizgi bu ölçekte gürültü. */
 const SEKTOR_GORSEL =
-  "https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=1100&q=80";
+  "https://images.unsplash.com/photo-1604176354204-9268737828e4?auto=format&fit=crop&w=1100&q=80";
 
 /* Rakip rakamlarının hepsi yayıncının kendi fiyat sayfasından. Photoroom,
    Claid ve ZMO bilerek yok: resmî fiyat sayfaları okunamadı ve üçüncü taraf
@@ -203,24 +199,24 @@ export default function HomePage() {
         {/* İki sütun. Yükseklikler birbirinden BAĞIMSIZ: sağdaki kutu
             aspect-ratio ile ölçülü, sol sütunun metnine bağlı değil.
             gap değerleri bileşenin bleed'inden (~33px) büyük tutuldu. */}
-        <div className="mx-auto grid max-w-5xl items-center gap-12 md:grid-cols-2 md:gap-14 lg:gap-20">
+        <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2 md:items-stretch md:gap-14 lg:gap-20">
           {/* Sol — metin. Sola yaslı, tek sütun liste. Büyük "Moda" kartı ve
               2x2 ızgara kaldırıldı: yarım genişlikte sıkışıyorlardı. Hiyerarşi
               artık punto ve etiket rengiyle kuruluyor. */}
           <Reveal>
             <p className="eyebrow text-ash">Sektörler</p>
-            <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-[2.75rem] lg:text-5xl">
-              Moda bugün. <em className="text-lila-soft">Tasarımın geri kalanı</em> sırada.
+            <h2 className="mt-5 font-display text-4xl leading-[1.05] md:text-[2.75rem] lg:text-5xl">
+              Bir çizimden <em className="text-lila-soft">gerçek bir sahneye</em>.
             </h2>
-            <p className="mt-6 max-w-[42ch] text-[15px] leading-7 text-fog">
+            <p className="mt-5 max-w-[42ch] text-[15px] leading-6 text-fog">
               Aynı motor, farklı konu. Bugün açık olan tek hat moda.
             </p>
 
-            <ul className="mt-10 border-t border-hair">
+            <ul className="mt-8 border-t border-hair">
               {SEKTORLER.map((d) => {
                 const canli = d.durum === "canlı";
                 return (
-                  <li key={d.ad} className="border-b border-hair py-5">
+                  <li key={d.ad} className="border-b border-hair py-4">
                     <div className="flex items-baseline justify-between gap-4">
                       <span
                         className={
@@ -241,7 +237,7 @@ export default function HomePage() {
                         {d.durum}
                       </span>
                     </div>
-                    <p className="mt-2 text-[15px] leading-7 text-fog">{d.not}</p>
+                    <p className="mt-1.5 text-[14px] leading-6 text-fog">{d.not}</p>
                   </li>
                 );
               })}
@@ -253,8 +249,8 @@ export default function HomePage() {
               sol sütunun metnine bağlıyor. aspect-ratio ikisini de çözüyor.
               dotColor'a GERÇEK renk veriliyor: canvas fillStyle var() çözmez.
               alt="" — görsel dekoratif, bölümün bilgisi tamamen sol sütunda. */}
-          <Reveal delay={120}>
-            <div className="relative aspect-[4/5] w-full md:aspect-[3/4] lg:aspect-square">
+          <Reveal delay={120} className="md:h-full">
+            <div className="relative aspect-[4/5] w-full md:aspect-auto md:h-full md:min-h-[460px]">
               <DotImageReveal
                 src={SEKTOR_GORSEL}
                 alt=""
