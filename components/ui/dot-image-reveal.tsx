@@ -128,9 +128,25 @@ export function DotImageReveal({
 
   const efektAcik = useEfektAcik();
   const [gorselDustu, setGorselDustu] = useState(false);
+
+  /* NOKTA IZGARASI ARTIK DOKUNMATİKTE DE VAR — ama yalnız DURAĞAN olarak.
+     Önce canvas hiç bağlanmıyordu (`efektAcik || gorselDustu`), dolayısıyla
+     mobilde düz görsel görünüyordu. Oysa ızgara ile imleç efekti AYNI ŞEY
+     DEĞİL: duruş hâlinde her hücre zaten görsele kırpılmış küçük bir daire
+     çiziyor, imleç yalnız yakındaki daireleri büyütüyor. Yani noktalı
+     görünümün dokunmatikte de olmaması için bir sebep yok; kapının gerçek
+     gerekçeleri (parmağı takip eden spot, touchcancel, sürekli rAF) tek
+     kare çizip döngüyü hiç kurmayarak zaten karşılanıyor.
+
+     `monte` ŞART: sunucuda ve ilk boyamada false kalıyor, böylece <img>
+     görünür olur. Doğrudan `true` yazsaydık JS'siz kullanıcı ve ilk kare
+     boş kutu görürdü — <img>'in opaklığı `canvasAcik`e bağlı. */
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
+
   /* Görsel düşerse <img> kırık ikon gösterir; canvas'ı açık tutup sade nokta
      ızgarasına düşüyoruz. */
-  const canvasAcik = efektAcik || gorselDustu;
+  const canvasAcik = monte || gorselDustu;
 
   useEffect(() => {
     if (!canvasAcik) return;
@@ -244,18 +260,27 @@ export function DotImageReveal({
     };
     const uyandir = () => { if (!raf && gorunur) raf = requestAnimationFrame(loop); };
 
-    fitRef.current = () => { computeFit(); uyandir(); };
+    /* Durağan yolda rAF DÖNGÜSÜ YOK, dolayısıyla `uyandir` hiçbir şey çizmez.
+       Yeniden çizim gerektiren her yer (görsel yüklendi, kutu boyutu değişti)
+       bu yüzden doğrudan tek kare çiziyor. Bu ayrım olmadan durağan ızgara
+       görsel gelmeden önceki hâlinde donup kalırdı: `draw` görsel hazır
+       değilken düz `dotColor` daireleri basıyor, yani noktalar lila lekeler
+       olarak kalır ve görsel hiç görünmezdi. */
+    const yenile = () => { if (efektAcik) uyandir(); else drawFrame(performance.now()); };
+
+    fitRef.current = () => { computeFit(); yenile(); };
 
     build();
 
     /* SAPMA — contentRect okunmuyor, build() ölçüyü kendi alıyor. */
     const ro = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(() => { build(); uyandir(); })
+      ? new ResizeObserver(() => { build(); yenile(); })
       : null;
     ro?.observe(host);
 
     /* Hareket kısıtı / dokunmatik: tek statik kare çiz, döngü ve dinleyici yok.
-       (Buraya yalnızca gorselDustu true iken düşülür.) */
+       Artık normal mobil yol da buradan geçiyor (yalnız görsel düştüğünde
+       değil): ızgara görünür, imleç efekti kurulmaz. */
     if (!efektAcik) {
       drawFrame(performance.now());
       return () => { ro?.disconnect(); fitRef.current = null; };
