@@ -1,6 +1,7 @@
 import { Hero } from "@/components/hero";
 import { Reveal } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
+import { DotImageReveal } from "@/components/ui/dot-image-reveal";
 
 /**
  * Ana sayfa — hero ve altındaki sekiz bölüm.
@@ -29,12 +30,30 @@ const HAT = [
 /* "Dikey" bir iş terimi; vitrinde kimse böyle konuşmuyor. Veri de bölüm
    de "sektör" adına geçti. */
 const SEKTORLER = [
-  { ad: "Moda", durum: "canlı", not: "Kıyafet, takı ve aksesuar. Bugün üretim yapan tek hat." },
-  { ad: "Otomotiv", durum: "sırada", not: "Teknik çizimden renderlanmış sahneye." },
-  { ad: "Yat", durum: "sırada", not: "Tekne hattı ve iç yerleşim görselleştirmesi." },
-  { ad: "Mimari", durum: "sırada", not: "Temel teknik çizim ve çizimin sahneye dönüşümü." },
-  { ad: "İç mekân", durum: "sırada", not: "Malzeme, ışık ve yerleşim denemeleri." },
+  { ad: "Moda", durum: "canlı", not: "Kıyafet, takı, aksesuar." },
+  { ad: "Otomotiv", durum: "sırada", not: "Çizimden renderlanmış sahneye." },
+  { ad: "Yat", durum: "sırada", not: "Tekne hattı ve iç yerleşim." },
+  { ad: "Mimari", durum: "sırada", not: "Teknik çizim ve sahne." },
+  { ad: "İç mekân", durum: "sırada", not: "Malzeme, ışık, yerleşim." },
 ];
+
+/* Sektörler bölümünün görseli. lib/data.ts'teki u() ile aynı biçim ama
+   w=1100: canvas'ın ihtiyacı olan en büyük kaynak genişliği ~554 CSS px ×
+   dpr 2. Bileşen ham <img> kullandığı için next/image dönüşümü devrede değil.
+
+   SEÇİM GEREKÇESİ. Bölümün tezi "moda bugün, tasarımın geri kalanı sırada".
+   Sağa bir moda fotoğrafı koymak başlığın iddiasını görselle yalanlar. Depodaki
+   on hizmet görselinin çoğu bir moda disiplinine bağlı (manken, askıda kıyafet,
+   katlı tekstil); bu, iç mekân natürmortu olduğu için moda demiyor ve listedeki
+   "İç mekân" hattına bakıyor.
+
+   Efekt açısından da uygun: nokta reveal'i görseli ~30-55px çaplı dairelerden
+   okutuyor, yani ince çizgi ve küçük detay gürültüye dönüşüyor. Bu görselde
+   geniş renk lekeleri (yeşil, ahşap, duvar) ve orta tonlar var. Aynı sebeple
+   teknik çizim görseli elendi: beyaz kağıt üstüne ince çizgi bu ölçekte
+   okunmuyor. */
+const SEKTOR_GORSEL =
+  "https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=1100&q=80";
 
 /* Rakip rakamlarının hepsi yayıncının kendi fiyat sayfasından. Photoroom,
    Claid ve ZMO bilerek yok: resmî fiyat sayfaları okunamadı ve üçüncü taraf
@@ -181,45 +200,73 @@ export default function HomePage() {
 
       {/* ── Sektörler ────────────────────────────────────────────── */}
       <section id="sektorler" className="scroll-mt-16 px-5 py-24 md:scroll-mt-20 md:px-10 md:py-32">
-        <Reveal className="mx-auto max-w-4xl">
-          <p className="eyebrow text-ash">Sektörler</p>
-          <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            Moda bugün. <em className="text-lila-soft">Tasarımın geri kalanı</em> sırada.
-          </h2>
-          <p className="mt-7 max-w-[58ch] text-[15px] leading-7 text-fog md:text-base">
-            Aynı motor, farklı alanlar. Teknik çizimi renderlanmış bir sahneye çevirmek her
-            sektörde aynı problem — değişen yalnızca konu.
-          </p>
-        </Reveal>
+        {/* İki sütun. Yükseklikler birbirinden BAĞIMSIZ: sağdaki kutu
+            aspect-ratio ile ölçülü, sol sütunun metnine bağlı değil.
+            gap değerleri bileşenin bleed'inden (~33px) büyük tutuldu. */}
+        <div className="mx-auto grid max-w-5xl items-center gap-12 md:grid-cols-2 md:gap-14 lg:gap-20">
+          {/* Sol — metin. Sola yaslı, tek sütun liste. Büyük "Moda" kartı ve
+              2x2 ızgara kaldırıldı: yarım genişlikte sıkışıyorlardı. Hiyerarşi
+              artık punto ve etiket rengiyle kuruluyor. */}
+          <Reveal>
+            <p className="eyebrow text-ash">Sektörler</p>
+            <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-[2.75rem] lg:text-5xl">
+              Moda bugün. <em className="text-lila-soft">Tasarımın geri kalanı</em> sırada.
+            </h2>
+            <p className="mt-6 max-w-[42ch] text-[15px] leading-7 text-fog">
+              Aynı motor, farklı konu. Bugün açık olan tek hat moda.
+            </p>
 
-        {/* Moda ayrı ve büyük: bugün üretim yapan TEK hat bu. Eşit yükseklikte
-            beş liste satırı olarak dizildiğinde o hiyerarşi kayboluyor ve
-            sayfa beş şeyin de hazır olduğunu ima ediyordu. */}
-        <Reveal delay={120} className="mx-auto mt-14 max-w-5xl">
-          {SEKTORLER.filter((d) => d.durum === "canlı").map((d) => (
-            <div key={d.ad} className="border border-hair bg-paper/[0.04] p-7 md:p-9">
-              <div className="flex flex-wrap items-baseline justify-between gap-4">
-                <span className="font-display text-3xl md:text-4xl">{d.ad}</span>
-                <span className="eyebrow border border-lila-soft/40 px-3 py-1.5 text-lila-soft">
-                  {d.durum}
-                </span>
-              </div>
-              <p className="mt-5 max-w-[54ch] text-[15px] leading-7 text-fog">{d.not}</p>
+            <ul className="mt-10 border-t border-hair">
+              {SEKTORLER.map((d) => {
+                const canli = d.durum === "canlı";
+                return (
+                  <li key={d.ad} className="border-b border-hair py-5">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span
+                        className={
+                          canli
+                            ? "font-display text-2xl md:text-[1.75rem]"
+                            : "font-display text-xl text-paper/90"
+                        }
+                      >
+                        {d.ad}
+                      </span>
+                      <span
+                        className={
+                          canli
+                            ? "eyebrow shrink-0 border border-lila-soft/40 px-2.5 py-1 text-lila-soft"
+                            : "eyebrow shrink-0 text-ash"
+                        }
+                      >
+                        {d.durum}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[15px] leading-7 text-fog">{d.not}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </Reveal>
+
+          {/* Sağ — ölçülü kutu. DotImageReveal host'u height:100% kullanıyor;
+              bu zincir tek sütunda kopup 0'a çöküyor, masaüstünde de yüksekliği
+              sol sütunun metnine bağlıyor. aspect-ratio ikisini de çözüyor.
+              dotColor'a GERÇEK renk veriliyor: canvas fillStyle var() çözmez.
+              alt="" — görsel dekoratif, bölümün bilgisi tamamen sol sütunda. */}
+          <Reveal delay={120}>
+            <div className="relative aspect-[4/5] w-full md:aspect-[3/4] lg:aspect-square">
+              <DotImageReveal
+                src={SEKTOR_GORSEL}
+                alt=""
+                background="transparent"
+                dots={12}
+                gap={12}
+                radius={180}
+                dotColor="rgba(191, 166, 238, 0.28)"
+              />
             </div>
-          ))}
-
-          <div className="mt-5 grid gap-px bg-hair sm:grid-cols-2">
-            {SEKTORLER.filter((d) => d.durum !== "canlı").map((d) => (
-              <div key={d.ad} className="flex flex-col bg-ink p-7">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="font-display text-2xl">{d.ad}</span>
-                  <span className="eyebrow text-ash">{d.durum}</span>
-                </div>
-                <p className="mt-3 text-[15px] leading-7 text-fog">{d.not}</p>
-              </div>
-            ))}
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
       </section>
 
       {/* ── Rakip karşılaştırması ────────────────────────────────── */}
