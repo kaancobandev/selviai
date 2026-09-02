@@ -153,6 +153,56 @@ html.dark {
   --color-vurgu-kalem: #0b0b0b;
 }
 
+/* ==================================================================
+   TEMA GEÇİŞİ — anahtarın daire açılımı (View Transitions)
+
+   Animasyonun kendisi JS'te kuruluyor (components/tema-anahtari.tsx);
+   burada yalnız tarayıcının VARSAYILAN davranışı kapatılıyor.
+
+   Varsayılan çapraz geçiş KAPATILMALI. Açık kalırsa iki animasyon üst
+   üste biner: eski kare solarken yeni kare daire içinde açılır ve ikisi
+   arasında gri bir kirlenme görünür. Daire açılımının okunması için eski
+   karenin OLDUĞU GİBİ durması, yeni karenin onun üstünde açılması gerek.
+
+   YAMA — GEÇİŞ KATMANI TIKLAMAYI YUTMAZ. `::view-transition` sözde
+   öğeleri geçiş boyunca sayfanın üstünde tam ekran duruyor. Yarım saniye
+   kısa görünüyor ama art arda tıklayan kullanıcının ikinci tıklaması
+   sessizce kayboluyor — hata gibi değil, "buton bazen çalışmıyor" gibi
+   görünür ki teşhisi çok daha zor.
+   ================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 0;
+}
+
+::view-transition-new(root) {
+  z-index: 1;
+}
+
+::view-transition,
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  pointer-events: none;
+}
+
+/* JS zaten tercihi okuyup animasyonu hiç kurmuyor; bu blok yedek.
+   Tek başına YETMEZ — WAAPI animasyonunu CSS durduramaz — ama tarayıcının
+   kendi varsayılan geçişini de kapatıyor. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* ------------------------------------------------------------------
    Base
    ------------------------------------------------------------------ */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { TEMA_ANAHTARI, TEMA_ACIK } from "@/lib/tema";
 
@@ -33,7 +33,10 @@ export function TemaAnahtari({ className }: { className?: string }) {
   const [hazir, setHazir] = useState(false);
   useEffect(() => setHazir(true), []);
 
-  const cevir = () => {
+  const dugmeRef = useRef<HTMLButtonElement>(null);
+
+  /** Temayı DOM'da çevirir ve tercihi yazar. Senkron — çağıran buna güveniyor. */
+  const uygula = () => {
     const kok = document.documentElement;
     const koyuOlacak = !kok.classList.contains("dark");
     kok.classList.toggle("dark", koyuOlacak);
@@ -45,8 +48,77 @@ export function TemaAnahtari({ className }: { className?: string }) {
     }
   };
 
+  const cevir = async () => {
+    const kok = document.documentElement;
+
+    /* YAMA 1 — AZALTILMIŞ HAREKET JS'TE KONTROL EDİLİYOR.
+       Aşağıdaki animasyon WAAPI ile (`element.animate()`) kuruluyor ve
+       `@media (prefers-reduced-motion)` bir WAAPI animasyonunu DURDURAMAZ;
+       CSS yalnız CSS animasyonlarını kapatır. Tercihi burada okumazsak
+       vestibüler duyarlılığı olan kullanıcı tam ekran bir daire açılımı
+       yer. Ayrıca API yoksa (Firefox, eski Safari) yine düz çevriliyor. */
+    const azHareket =
+      typeof matchMedia === "function" &&
+      matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* YAMA 4 — SAYFA GÖRÜNÜR DEĞİLSE ANİMASYON YOK.
+       `startViewTransition` render hattıyla ilerliyor; sayfa gizliyken
+       (arka plan sekmesi) geri çağrı SÜRESİZ erteleniyor. Yani tema hiç
+       dönmüyor ve tercih de yazılmıyor — kullanıcı geri geldiğinde tema
+       aniden değişiyor. Ölçüm sırasında tam bu yaşandı: tık kaydedildi,
+       hiçbir şey olmadı, panel görünür olunca geçiş birden tamamlandı. */
+    if (
+      azHareket ||
+      document.visibilityState !== "visible" ||
+      !("startViewTransition" in document) ||
+      !dugmeRef.current
+    ) {
+      uygula();
+      return;
+    }
+
+    /* YAMA 3 — İLK TIK. MagicUI'nin sürümü temayı bir React state'inden
+       okuyor; state ilk render'da henüz doğru değeri taşımadığı için ilk
+       tık ya hiçbir şey yapmıyor ya ters yöne dönüyordu. Burada durum
+       DOM'dan okunuyor (`classList.contains`) ve `uygula` senkron
+       çalışıyor, yani startViewTransition geri çağrısı bittiğinde DOM
+       kesinlikle yeni temada. Ek bir `flushSync` gerekmiyor çünkü React
+       state'i hiç devrede değil. */
+    const gecis = (
+      document as Document & {
+        startViewTransition: (cb: () => void) => { ready: Promise<void> };
+      }
+    ).startViewTransition(() => uygula());
+
+    try {
+      await gecis.ready;
+    } catch {
+      return; // geçiş iptal edildi (art arda tık) — animasyon kurulmasın
+    }
+
+    const { top, left, width, height } = dugmeRef.current.getBoundingClientRect();
+    const x = left + width / 2;
+    const y = top + height / 2;
+    /* Dairenin en uzak köşeye ulaşması gerekiyor, yoksa ekranın bir köşesi
+       eski temada kalır. */
+    const enUzak = Math.hypot(
+      Math.max(x, innerWidth - x),
+      Math.max(y, innerHeight - y),
+    );
+
+    kok.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${enUzak}px at ${x}px ${y}px)`] },
+      {
+        duration: 620,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        pseudoElement: "::view-transition-new(root)",
+      },
+    );
+  };
+
   return (
     <button
+      ref={dugmeRef}
       type="button"
       onClick={cevir}
       aria-label="Temayı değiştir"
