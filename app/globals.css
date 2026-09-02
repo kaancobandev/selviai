@@ -154,6 +154,172 @@ html.dark {
 }
 
 /* ==================================================================
+   AÇIK TEMA — HERO, GEÇİŞ ŞERİDİ VE FİYAT ZEMİNİ
+
+   Bu üç alan başta bilerek temadan bağımsız bırakılmıştı. Artık
+   dönüyorlar. Değerler tahmin değil, iki kuralla HESAPLANDI:
+
+   1) OPAK duraklar — EŞİT AĞIRLIK. Rengin koyu zemine karşı kontrast
+      oranı neyse, açık temada beyaza karşı aynı oranı veren, aynı hue ve
+      doygunluktaki renk seçildi. Örnek: #625d6b siyahta 3,09:1; karşılığı
+      #95909f beyazda yine 3,09:1.
+   2) YARI SAYDAM katmanlar — aynı ölçüt, renk sabit, ALFA çözüldü.
+
+   ÇARPANLAR TEK YÖNLÜ DEĞİL. En koyu renk yarıya iniyor (0,16 → 0,079),
+   en açık renk neredeyse iki katına çıkıyor (0,07 → 0,133). "Açık temada
+   opaklığı düşür" gibi toptan bir kural bu katmanları BOZAR; her katman
+   tek tek çözülmek zorunda. (Aynı sayılara iki bağımsız yoldan varıldı:
+   elle kontrast çözümü ve denetim ajanlarının hesabı — 0,08 / 0,115 /
+   0,135 dediler, çözüm 0,079 / 0,113 / 0,133 verdi.)
+
+   NEDEN RENK DEĞİL ROL ÇEVİRİSİ. Hero'nun katmanları TOPLAMSAL IŞIK
+   mantığında: koyu zemine açık renk ekliyorlar. sRGB'de beyazdan parlak
+   bir değer yok, yani beyaz zeminde üretilebilecek tek şey LEKE ve GÖLGE.
+   Bu yüzden parlaklık zirvesi koyuluk zirvesine, hale gölgeye, imleç
+   parlatması imleç karartmasına dönüyor. Açık hero, koyunun çevirisi
+   değil aynı kompozisyonun negatifi.
+
+   BEDELİ: iki set var ve elle senkron tutulmaları gerekiyor. Bu yüzden
+   hepsi TEK BLOKTA duruyor — koyu değerlerden birini değiştiren,
+   karşılığının burada olduğunu bilsin.
+   ================================================================== */
+
+/* Hero zemini: aşağıdan yükselen üç lila kütle. */
+/* Okunurluk perdesi. Rolü "SAYFA RENGİYLE ört" — koyu temada aurorayı
+   karartıp beyaz metni kurtarıyor, açık temada aynı işi beyazla yapıp
+   koyu metni kurtarıyor. Bu yüzden tek kural yetiyor: renk token'dan
+   geliyor, alfalar aynı kalıyor. Eskiden hero.tsx içinde satır içi
+   rgba(11,11,11,...) olarak yazılıydı ve tema dönünce sabit kalıyordu.
+   `color-mix` ŞART: `rgb(var(--x) / 0.62)` çalışmaz, token bir hex.  */
+.selvi-perde {
+  background: radial-gradient(
+    88% 58% at 50% 30%,
+    color-mix(in srgb, var(--color-zemin) 62%, transparent) 0%,
+    color-mix(in srgb, var(--color-zemin) 40%, transparent) 40%,
+    color-mix(in srgb, var(--color-zemin) 12%, transparent) 66%,
+    transparent 84%
+  );
+}
+:root:not(.dark) .selvi-zemin {
+  background:
+    radial-gradient(118% 66% at 16% 118%, rgb(110 81 160 / 0.317) 0%, rgb(110 81 160 / 0.127) 34%, rgb(110 81 160 / 0) 66%),
+    radial-gradient(112% 62% at 85% 120%, rgb(124 92 184 / 0.351) 0%, rgb(124 92 184 / 0.144) 32%, rgb(124 92 184 / 0) 64%),
+    radial-gradient(150% 40% at 50% 132%, rgb(191 166 238 / 0.491) 0%, rgb(191 166 238 / 0) 58%);
+}
+
+/* Kavisler: yayın parlak ucu artık yayın KOYU ucu. Hue ve doygunluk
+   korunuyor, yalnız açıklık aynalanıyor — form aynı kalsın diye. */
+:root:not(.dark) .selvi-kavis-1 {
+  background: conic-gradient(
+    from 0deg,
+    rgb(61 43 94 / 0) 58deg,
+    #9075c3 92deg,
+    #5422b3 120deg,
+    #20006a 141deg,
+    #6937c9 161deg,
+    rgb(48 34 78 / 0.036) 180deg,
+    #7080ec 198deg,
+    #004bee 218deg,
+    #003c83 233deg,
+    #406df0 252deg,
+    #9fa8e5 276deg,
+    rgb(35 45 130 / 0) 305deg
+  );
+}
+
+:root:not(.dark) .selvi-kavis-2 {
+  background: conic-gradient(
+    from 0deg,
+    rgb(110 81 160 / 0) 72deg,
+    #9d87c2 106deg,
+    #6937c9 136deg,
+    #3100a0 158deg,
+    rgb(58 42 92 / 0.041) 180deg,
+    #6175ed 200deg,
+    #0043a8 224deg,
+    #396bf1 250deg,
+    #a6aee8 274deg,
+    rgb(40 52 150 / 0) 300deg
+  );
+}
+
+/* Nokta ızgarası. İMLECİN YÖNÜ TERSİNE DÖNÜYOR: koyu temada imleç
+   noktaları PARLATIYOR, açık temada KARARTIYOR. Sınıf adı "parlak"
+   kalıyor çünkü değişen rolü değil yönü — yeniden adlandırmak
+   dot-field.tsx'teki parlakRef/ISIK zincirini de gezmek demekti ve
+   davranış aynı: "imlecin altındaki noktalar ayrışır". */
+:root:not(.dark) .selvi-izgara-taban {
+  --nokta-renk: #95909f;
+}
+
+:root:not(.dark) .selvi-izgara-parlak {
+  --nokta-renk: #20006a;
+}
+
+/* Geçiş şeridi. Hero da döndüğü için şeridin iki ucu artık aynı renkte;
+   tek renkli ızgaranın ortada kaybolduğu "ölü bant" sorunu doğmuyor.
+   (Hero koyu bırakılsaydı şerit #0b0b0b'den #ffffff'e uzanacak ve zemin
+   ~#606060'a geldiğinde noktalar 1,02:1 ile tamamen kaybolacaktı.) */
+:root:not(.dark) .selvi-gecis {
+  background:
+    radial-gradient(120% 120% at 18% 0%, rgb(66 87 230 / 0.079) 0%, rgb(66 87 230 / 0) 58%),
+    radial-gradient(115% 120% at 84% 0%, rgb(124 92 184 / 0.113) 0%, rgb(124 92 184 / 0) 56%),
+    radial-gradient(150% 90% at 50% 0%, rgb(191 166 238 / 0.133) 0%, rgb(191 166 238 / 0) 70%),
+    radial-gradient(circle, #95909f var(--nokta-r), transparent var(--nokta-r)) calc(var(--nokta-aralik) / 2) calc(var(--nokta-aralik) / 2) / var(--nokta-aralik) var(--nokta-aralik);
+}
+
+/* Fiyat zemini: kartların ARKASINDAKİ doku. Beyaz şeritler siyaha
+   dönüyor — beyaz üstünde beyaz şeridin kontrastı tam 1,000:1 olurdu,
+   yani camın bulanıklaştıracağı sinyal hiç kalmazdı. */
+:root:not(.dark) .fiyat-zemin {
+  background-image:
+    radial-gradient(circle, #95909f var(--fiyat-nokta-r), transparent var(--fiyat-nokta-r)),
+    repeating-linear-gradient(64deg, rgb(11 11 11 / 0.03) 0 26px, rgb(11 11 11 / 0) 26px 104px),
+    radial-gradient(52% 46% at 14% 20%, rgb(66 87 230 / 0.211) 0%, rgb(66 87 230 / 0.045) 48%, rgb(66 87 230 / 0) 72%),
+    radial-gradient(48% 44% at 86% 26%, rgb(124 92 184 / 0.098) 0%, rgb(124 92 184 / 0) 68%),
+    radial-gradient(54% 48% at 52% 92%, rgb(110 81 160 / 0.225) 0%, rgb(110 81 160 / 0.053) 46%, rgb(110 81 160 / 0) 72%);
+}
+
+/* Kart yüzeyi. ALFA 0,78'DE KALIYOR — cam yaşasın diye. Bunun yerine
+   duraklar koyulaştırıldı: dolgu %78 olduğu için sayfanın %22'si sızıyor
+   ve beyaz sızıntı kartı açardı. Duraklar, KOYU TEMADAKİ bileşkeyi beyaz
+   zemin üstünde yeniden üretecek şekilde çözüldü:
+     %100 lila  #563b83 -> BİREBİR aynı (8,92:1)
+     %72        #372c7d -> #38387d  (sapma 12)
+     %40        #1e2a83 -> #383883  (sapma 26)
+     %0  mavi   #132c94 -> #383894  (sapma 37, en derin mavi köşe)
+   Mavi uç birebir üretilemiyor: gereken kanal negatif çıkıyor, çünkü
+   alfa 0,78'de beyaz taban zaten 56. Tam eşitlik ancak alfa ~0,93 ile
+   mümkün, o da sızıntıyı %22'den %7'ye indirip camı öldürürdü.
+   Dördü de beyaz metinle 8,9–10,3:1. */
+/* Açık temada kart bileşiği koyudakinden bir tık açık kalıyor (kutup
+   ışıkları ve gren de çevrildiği için tam eşitlenemedi). İki 10px öğe
+   4,5 eşiğinin hemen altına düşüyordu — ölçüldü, yalnız o ikisi:
+     plan adı  #e8e0fd üzerinde 4,44:1  ->  #eee9ff ile 4,76:1
+     rozet     %12 beyaz zemin 4,36:1   ->  %8 ile 4,75:1
+   Koyu temaya dokunulmuyor; orada ikisi de zaten geçiyor. */
+:root:not(.dark) .fiyat-vurgu {
+  color: #eee9ff;
+}
+
+:root:not(.dark) .fiyat-rozet {
+  background-color: rgb(255 255 255 / 0.08);
+}
+:root:not(.dark) .fiyat-cam {
+  background-image:
+    var(--fiyat-gren),
+    radial-gradient(128% 52% at 50% -10%, rgb(56 96 240 / 0.089) 0%, rgb(56 96 240 / 0.068) 34%, rgb(56 96 240 / 0.017) 62%, rgb(56 96 240 / 0) 86%),
+    radial-gradient(128% 52% at 50% 110%, rgb(150 104 214 / 0.135) 0%, rgb(150 104 214 / 0.104) 34%, rgb(150 104 214 / 0.026) 62%, rgb(150 104 214 / 0) 86%),
+    linear-gradient(
+      152deg,
+      rgb(0 0 118 / 0.78) 0%,
+      rgb(0 0 96 / 0.78) 40%,
+      rgb(0 0 88 / 0.78) 72%,
+      rgb(38 4 96 / 0.78) 100%
+    );
+}
+
+/* ==================================================================
    TEMA GEÇİŞİ — anahtarın daire açılımı (View Transitions)
 
    Animasyonun kendisi JS'te kuruluyor (components/tema-anahtari.tsx);
@@ -1124,6 +1290,12 @@ input[type="number"] {
    3,89:1, sayfa zemininde 13,66:1. Token'ı yerel olarak yeniden bağlama
    kalıbı depoda zaten var (`.tuval` aynı şeyi yapıyor). */
 .fiyat-alan {
+  /* Gren DEĞİŞKENİ BURADA, çünkü .fiyat-zemin ile .fiyat-cam KARDEŞ;
+     birine yazılan özel değişken ötekine akmaz. .fiyat-alan ikisinin de
+     atası. Değişkenin kendisi ~700 karakterlik data URI ve açık tema
+     kuralı aynı background-image listesini yeniden yazmak zorunda —
+     iki kopya tutmak, birini güncelleyip ötekini unutmanın davetiyesi. */
+  --fiyat-gren: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cfilter%20id='g'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='3'%20stitchTiles='stitch'%20result='n'/%3E%3CfeColorMatrix%20in='n'%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200.35%200%200%200%20-0.14'/%3E%3C/filter%3E%3Crect%20width='140'%20height='140'%20filter='url(%23g)'/%3E%3C/svg%3E");
   position: relative;
   --color-odak: #ded0ff;
 }
@@ -1258,7 +1430,7 @@ input[type="number"] {
   isolation: isolate;
   background-color: transparent;
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cfilter%20id='g'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='3'%20stitchTiles='stitch'%20result='n'/%3E%3CfeColorMatrix%20in='n'%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200.35%200%200%200%20-0.14'/%3E%3C/filter%3E%3Crect%20width='140'%20height='140'%20filter='url(%23g)'/%3E%3C/svg%3E"),
+    var(--fiyat-gren),
     radial-gradient(128% 52% at 50% -10%, rgb(56 96 240 / 0.16) 0%, rgb(56 96 240 / 0.13) 34%, rgb(56 96 240 / 0.04) 62%, rgb(56 96 240 / 0) 86%),
     radial-gradient(128% 52% at 50% 110%, rgb(150 104 214 / 0.16) 0%, rgb(150 104 214 / 0.13) 34%, rgb(150 104 214 / 0.04) 62%, rgb(150 104 214 / 0) 86%),
     linear-gradient(
@@ -1369,31 +1541,6 @@ input[type="number"] {
   color: #e8e0fd;
 }
 
-/* ==================================================================
-   AÇIK TEMADA KOYU BANT — fiyat kartlarının arkası.
-
-   Kart dolgusu 0,78 alfa, yani sayfanın ~%22'si camın altından sızıyor.
-   Koyu sayfada bu sızıntı #0b0b0b; beyaz sayfada #ffffff. Sonuç ölçüldü:
-   kart bileşiği #475bb2'den #6b7ed5'e açılıyor ve beyaz metin 4,26:1'den
-   2,77:1'e düşüyordu — 48 noktanın 30'u kalıyordu.
-
-   Kartın yüzeyleri iki temada BİREBİR aynı hesaplanıyor; değişen tek şey
-   ARKALARINDAKİ sayfa. O yüzden çözüm de kartta değil arkasında: dokuya
-   opak koyu bir taban veriliyor, böylece camın gördüğü zemin temadan
-   bağımsız hâle geliyor.
-
-   YALNIZ AÇIK TEMADA yazılıyor. Koyu temada sayfa zaten #0b0b0b olduğu
-   için opak katman görsel olarak hiçbir şey değiştirmezdi, ama kuralı
-   koşulsuz yazmak yayındaki koyu siteye gereksiz risk taşırdı.
-
-   MEVCUT MASKEYE DOKUNULMUYOR. `.fiyat-zemin` zaten eliptik bir vinyet
-   maskesi taşıyor; bant onun sayesinde kenarlarda yumuşayarak bitiyor,
-   yani düz bir dikdörtgen değil. Ölçüm maske korunarak yapıldı:
-   46/48, en dar 4,26:1 — koyu temanın tam olarak aynısı.
-   ================================================================== */
-:root:not(.dark) .fiyat-zemin {
-  background-color: #0b0b0b;
-}
 
 /* Kart içi ayraç. `border-hair` (#26242c) siyah zemine göre ayarlı olduğu
    için cam yüzeyde tamamen kayboluyor. %34 beyaz, döküm bölgesinde

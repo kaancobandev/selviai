@@ -51,22 +51,16 @@ export function SiteHeader() {
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,color,border-color] duration-700 ease-[var(--ease-out-quart)]",
-          /* Renk ARTIK kosula bagli. Onceden `text-paper` kosulsuzdu; koyu
-             sitede dogruydu cunku bar ya koyu zeminliydi ya koyu hero'nun
-             ustundeydi. Acik temada ikisi ayrisiyor:
-             · solid  → bar SAYFA renginde, yani temayla doner (kalem/zemin)
-             · seffaf → bar HERO'nun ustunde. Hero kalici koyu ada ve token
-               yeniden baglamiyor, o yuzden burada MUTLAK beyaz sart. */
-          /* `koyu-ada` YALNIZ şeffaf dalda. Bar o hâldeyken hero'nun ÜSTÜNDE
-             duruyor ama hero'nun İÇİNDE değil, yani hero'nun token bloğunu
-             miras almıyor. Sonuç sessiz bir erişilebilirlik hatası: açık
-             temada `--color-odak` #0b0b0b oluyor ve nav bağlantılarının
-             klavye odağı koyu hero'nun üstünde siyah-üstüne-siyah kalıyor.
-             Zeminli dalda sınıf YOK — orada bar sayfanın rengini alıyor ve
-             token'ların temayla dönmesi doğru olan. */
+          /* Metin rengi İKİ DALDA DA `text-kalem`: hero artık temayla
+             döndüğü için bar ister zeminli ister şeffaf olsun altındaki
+             yüzey aynı temada. (Hero kalıcı koyu adayken şeffaf dal MUTLAK
+             beyaz olmak zorundaydı; hero çevrilince o zorunluluk kalktı ve
+             `koyu-ada` sınıfı da buradan kaldırıldı.) Ayrım yalnız zemin
+             ve kenarlıkta: şeffaf dal hero'nun üstüne oturmasın diye
+             zeminsiz kalıyor. */
           solid
             ? "border-hair bg-zemin/85 text-kalem backdrop-blur-md"
-            : "koyu-ada border-transparent bg-transparent text-paper",
+            : "border-transparent bg-transparent text-kalem",
         )}
       >
         <div className="flex h-16 items-center justify-between px-5 md:h-20 md:px-10">
@@ -93,26 +87,21 @@ export function SiteHeader() {
 
           <div className="flex items-center gap-4 sm:gap-7">
             {/* Tema anahtarı, "Stüdyoyu aç"ın SOLUNDA. Rengi yok: header'ın
-                `text-kalem` / `text-paper` durumundan currentColor ile
-                miras alıyor, yani hero üstünde beyaz, zeminli barda
-                sayfanın metin rengi oluyor. */}
+                `text-kalem` renginden currentColor ile miras alıyor. */}
             <TemaAnahtari className="-ml-2" />
             {/* Sepet silindi: state'i, context'i, localStorage anahtarı yoktu;
                 "(0)" JSX'e gömülü sabit metindi. Ürün abonelik satıyor.
                 Giriş de silindi: form yalnız "prototip" toast'ı gösteriyor. */}
             <Link
               href="/hizmetler/kompozisyon"
-              /* bg-kalem/text-zemin cifti hapi HER İKİ temada da sayfanin
-                 zittina boyuyor: koyuda beyaz hap-siyah yazi, acikta siyah
-                 hap-beyaz yazi. Hero'nun ustunde ise mutlak kaliyor.
-                 Uzerine gelme rengi lila-soft'tan vurgu ciftine tasindi:
-                 lila-soft (#bfa6ee) sabit ACIK bir lila, acik temada uzerine
-                 gelen beyaz yazi 1,9:1'e dusuyordu. vurgu/vurgu-kalem cifti
-                 tam bunun icin var — koyuda #bfa6ee+siyah, acikta #6e51a0+beyaz. */
-              className={cn(
-                "eyebrow hidden h-10 items-center rounded-full px-5 transition-colors duration-300 hover:bg-vurgu hover:text-vurgu-kalem sm:inline-flex",
-                solid ? "bg-kalem text-zemin" : "bg-paper text-ink",
-              )}
+              /* bg-kalem/text-zemin çifti hapı her iki temada da sayfanın
+                 zıddına boyuyor: koyuda beyaz hap-siyah yazı, açıkta siyah
+                 hap-beyaz yazı. Koşullu ayrım KALKTI — hero temayla döndüğü
+                 için şeffaf dalda da mutlak beyaz hap tutmanın sebebi yok.
+                 Üzerine gelme rengi lila-soft yerine vurgu çifti: lila-soft
+                 (#bfa6ee) sabit AÇIK bir lila ve açık temada üstündeki beyaz
+                 yazı 1,9:1'e düşüyordu. */
+              className="eyebrow hidden h-10 items-center rounded-full bg-kalem px-5 text-zemin transition-colors duration-300 hover:bg-vurgu hover:text-vurgu-kalem sm:inline-flex"
             >
               Stüdyoyu aç
             </Link>

@@ -39,7 +39,7 @@ export function Hero() {
   }
 
   return (
-    <section className="koyu-ada relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-ink text-paper">
+    <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-zemin text-kalem">
       {/* ── 2. katman: zemin yıkaması ve kavisler ─────────────────
           Kavisler hero'nun asıl hareketi: dev bir dairenin kenar bandı,
           maskeyle kesilmiş, yavaşça dönüyor. Zemin yıkaması altlarında
@@ -59,7 +59,7 @@ export function Hero() {
           burada görünmesi gerekiyor — perde hafifletildi. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(88%_58%_at_50%_30%,rgba(11,11,11,0.62)_0%,rgba(11,11,11,0.4)_40%,rgba(11,11,11,0.12)_66%,transparent_84%)]"
+        className="selvi-perde pointer-events-none absolute inset-0 -z-10"
       />
 
       {/* ── 5. katman: içerik ─────────────────────────────────────── */}
@@ -80,7 +80,7 @@ export function Hero() {
         {/* Prompt kutusu — gerçek bir giriş kapısı, sahte demo değil */}
         <form
           onSubmit={gonder}
-          className="selvi-kutu rise rise-3 mt-10 w-full max-w-2xl [@media(max-height:820px)]:mt-6 bg-ink/35 text-left backdrop-blur-xl"
+          className="selvi-kutu rise rise-3 mt-10 w-full max-w-2xl [@media(max-height:820px)]:mt-6 border border-kalem/10 bg-zemin/35 text-left shadow-[0_18px_48px_rgb(0_0_0/0.10)] backdrop-blur-xl"
         >
           <PromptAurora />
           {/* Konumlanmış kardeşler akış içeriğinden SONRA boyanır; içeriği kendi
@@ -94,7 +94,7 @@ export function Hero() {
             value={istek}
             onChange={(e) => setIstek(e.target.value)}
             placeholder="Ne tasarlamak istiyorsun?"
-            className="w-full bg-transparent text-[15px] leading-7 text-paper outline-none placeholder:text-paper/45 md:text-base"
+            className="w-full bg-transparent text-[15px] leading-7 text-kalem outline-none placeholder:text-kalem/45 md:text-base"
           />
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {ipuclari.map((ip) => (
@@ -102,7 +102,7 @@ export function Hero() {
                 key={ip}
                 type="button"
                 onClick={() => setIstek(ip)}
-                className="rounded-full border border-paper/15 px-3.5 py-1.5 text-[12px] text-paper/70 transition-colors duration-200 hover:border-paper/35 hover:text-paper"
+                className="rounded-full border border-kalem/15 px-3.5 py-1.5 text-[12px] text-kalem/70 transition-colors duration-200 hover:border-kalem/35 hover:text-kalem"
               >
                 {ip}
               </button>
@@ -110,7 +110,7 @@ export function Hero() {
             <button
               type="submit"
               aria-label="Stüdyoya git"
-              className="group ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-paper text-ink transition-colors duration-300 hover:bg-lila-soft"
+              className="group ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-kalem text-zemin transition-colors duration-300 hover:bg-vurgu hover:text-vurgu-kalem"
             >
               <Arrow className="transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover:translate-x-0.5" />
             </button>
@@ -121,12 +121,12 @@ export function Hero() {
 
       {/* ── Alt şerit ─────────────────────────────────────────────── */}
       <div className="rise rise-3 px-5 pb-9 md:px-10 md:pb-11 [@media(max-height:820px)]:pb-5">
-        <div className="flex flex-col gap-6 border-t border-paper/12 pt-6 sm:flex-row sm:items-start sm:justify-between [@media(max-height:820px)]:gap-4 [@media(max-height:820px)]:pt-4">
+        <div className="flex flex-col gap-6 border-t border-kalem/12 pt-6 sm:flex-row sm:items-start sm:justify-between [@media(max-height:820px)]:gap-4 [@media(max-height:820px)]:pt-4">
           {/* Sol taraftaki "Learn → Create → Sell" kaldırıldı: başlık artık
               aynı sözü söylüyordu. Tek kalan metni sağda tutmak için ml-auto,
               yoksa justify-between onu sola çekiyor. */}
-          <p className="max-w-[36ch] text-[15px] leading-7 text-paper/65 sm:ml-auto sm:text-right">
-            Fashion is where we start. <span className="text-paper">Design is where we go.</span>
+          <p className="max-w-[36ch] text-[15px] leading-7 text-kalem/65 sm:ml-auto sm:text-right">
+            Fashion is where we start. <span className="text-kalem">Design is where we go.</span>
           </p>
         </div>
       </div>
