@@ -17,6 +17,27 @@
   --color-lila: #6e51a0;
   --color-lila-soft: #bfa6ee;
 
+  /* ---- DOKUNULMAZ RENKLER — açık tema çalışması için yazıldı ----
+     paper / bone / ink / mist / smoke ASLA temaya göre yeniden bağlanmaz.
+     İsimleri "beyaz" ve "siyah" dediği için açık tema yaparken ilk refleks
+     bunları ters çevirmek olur; o an İKİ ŞEY birden ölür ve hiçbir otomatik
+     denetçi yakalayamaz:
+       · 5 stüdyo tuvali (flat-sketch, inspiration-board, label-studio x2,
+         brand-studio) — bunlar tema değil, FİZİKSEL BEYAZ YÜZEY taklidi:
+         kâğıt, etiket, kumaş. İçleri o beyaza güveniyor (flat-sketch
+         INK #1a1a1a, croquis stroke #1a1a1a, brand-mockups #0b0b0b).
+       · Fotoğraf üstündeki ~21 rozet (bg-bone/90 text-ink, bg-ink/85
+         text-bone gibi) — zemini sayfa değil GÖRSEL olduğu için tema
+         döndüğünde bunların dönmemesi gerekiyor.
+
+     Aynı sebeple ŞU VERİLER de temaya bağlanmaz, çünkü malzeme rengidir
+     ve dönerse ürün yalan söyler:
+       lib/labels.ts paperHex + careMaterialHex · lib/brand.ts palet + onColor
+       label-previews yaldız/gofre/ip · brand-mockups konturları
+       inspiration-board PALETTES
+
+     Temaya DÖNENLER ayrı tutuldu: aşağıdaki zemin-duyarlı grup. */
+
   /* Zemin-duyarlı üçlü. Değerleri koyu zemine göre; `.ada-acik` içinde
      yeniden bağlanıyorlar. Yeni yazılan kod `text-smoke` / `border-mist`
      KULLANMAZ — onlar açık zemine çivili. Bunun yerine `text-fog` /
@@ -691,7 +712,11 @@ textarea {
 }
 input::placeholder,
 textarea::placeholder {
-  /* --color-ash açık zemine çivili; koyuda soluk kalıyordu. */
+  /* --color-fog seçildi çünkü ZEMİN-DUYARLI: .ada-acik içinde yeniden
+     bağlanıyor, ash bağlanmıyor. (Eski yorum "ash açık zemine çivili"
+     diyordu; ölçüm tersini söylüyor — #8a8792 koyuda 5,59:1 ile geçiyor,
+     BEYAZDA 3,52:1 ile kalıyor. Yani sorun kontrast değil, adalarda
+     dönmemesiydi.) */
   color: color-mix(in srgb, var(--color-fog) 75%, transparent);
 }
 input[type="number"]::-webkit-outer-spin-button,
@@ -1242,35 +1267,38 @@ input[type="number"] {
 }
 
 /* ==================================================================
-   Altbilgi arka planı — görselin sağ %60'ı, ince peçe
+   Altbilgi arka planı — tam kadraj görsel + düze %45 peçe
 
-   İLK KURULUM NEDEN DEĞİŞTİ. Görselin tamamı kullanılıyordu ve sol ucu
-   neredeyse beyaz (L 0,93) olduğu için orayı okunur kılmak %83 karartma
-   istiyordu. Sonuç: altbilginin sol yarısı ölü siyaha gömülüyor, sağ
-   yarıda bir parıltı kalıyordu — yani görselin en canlı yeri, tam da onu
-   kurtarmak için konan peçe tarafından yok ediliyordu.
+   DİKKAT: bu blok bir kez bayatladı. Önceki metin "görselin sağ %60'ı,
+   ince %20 peçe" diyordu; o, ARTIK KULLANILMAYAN footer.webp'nin kurulumu.
+   Görsel değişti ve blok güncellenmedi. Değeri değiştiren biri burayı da
+   güncellemezse aynı hata tekrar eder.
 
-   ÇÖZÜM peçeyi artırmak değil, PARLAK BANDI KADRAJ DIŞINDA BIRAKMAK.
-   Görselin sağ %60'ı (x %40-100) kırpıldı; o pencerede en parlak piksel
-   rgb(125,102,255), L 0,211. Beyaz metin orada peçesiz 4,03:1 veriyor —
-   eşiğin hemen altı — dolayısıyla ağır peçe yerine ince bir düze peçe
-   yetiyor.
+   BUGÜNKÜ KURULUM. public/gorsel/footer2.webp (kaynak 3724x2100 / 7,5 MB
+   -> 1400x789 WebP, ~286 KB). Kırpma YOK, tam kadraj. Üstünde düze %45
+   peçe ve üst kenarda sayfaya karışma gradyanı.
 
-   ÖLÇÜLEN KARŞILAŞTIRMA (görselin ne kadarı hayatta kalıyor, yüksek iyi):
-     tam görsel + gradyan peçe %83→44 : 0,026   <- eski kurulum
-     tam görsel + düze peçe %54       : 0,056
-     sağ %75    + düze peçe %31       : 0,064
-     sağ %60    + düze peçe %20       : 0,091   <- bu
-   Yani görsel eskisine göre yaklaşık 3,5 kat daha fazla görünüyor.
+   PEÇESİZ DENENDİ VE ÖLÇÜLDÜ — istek buydu, sonuç şuydu:
+     · 14 altbilgi yazısının 12'si AA'yı kaybediyor (1,87–3,99:1).
+       Dev "Selvi AI" logosu bile 1,87:1 (eşik 3).
+     · Yazıların altındaki zemin rgb(180-200, 145-180, 230-255) — beyaz
+       metin için fazla açık.
+     · KOYU yazı da denendi: 14/14 kaldı (1,07–2,48), çünkü görselin teal
+       bölgeleri koyu ve siyah orada kayboluyor.
+   Yani bu görsel peçesiz çalışmıyor; ne beyaz ne siyah tek başına yetiyor.
 
-   PEÇE NEDEN DÜZE. Gradyan peçe altbilgiyi "bir yarısı ölü, bir yarısı
-   canlı" gösteriyordu; kusur görselin değil peçenin kendisiydi. Düze peçe
-   görselin kendi geçişini bozmuyor.
+   %45 SEÇİLDİ. Darboğaz 10px'lik slogan: 5,05:1 (eşik 4,5).
 
-   YAZI RENKLERİ. text-fog bu zeminde çalışmıyor (orta gri olduğu için
-   zemin koyulaştıkça kendi parlaklığından geçiyor). lila-soft de elendi:
-   bu pencerede bile %49 peçe istiyor, yani görseli yeniden öldürüyordu.
-   Metnin tamamı beyaz; soluk olanlar beyazın alfası.
+   BUNA RAĞMEN ÖNCEKİNDEN AYDINLIK. Eski kurulum (eski görsel + %8 peçe)
+   ortalama parlaklık 0,0079 veriyordu; bu %45 peçeyle 0,035–0,042, yani
+   4,4–5,4 kat daha parlak. Görselin kendisi 8 kat aydınlık olduğu için:
+   karanlığın kaynağı hiçbir zaman peçenin oranı değil, görselin içeriğiydi.
+
+   DOĞRULAMA: 14 metin x 4 ekran (390/768/1280/1920), sıfır kalan, en dar
+   oranlar 5,08 / 5,22 / 4,80 / 5,06.
+
+   Görsel ya da peçe değişirse bu tablo yeniden hesaplanmalı — yarı saydam
+   yüzeyleri hiçbir otomatik denetçi ölçemez.
    ================================================================== */
 .selvi-footer-zemin {
   position: absolute;

@@ -7,8 +7,12 @@ import { cn } from "@/lib/utils";
 export function Ruler({ cm, orientation, className }: { cm: number; orientation: "h" | "v"; className?: string }) {
   const ticks = Array.from({ length: Math.floor(cm * 2) + 1 }, (_, k) => k / 2);
   const horizontal = orientation === "h";
+  /* Zemin-duyarlı: kalem ve fog, .ada-acik içinde ters bağlanıyor.
+     Önceden text-ink + text-ash sabitti; iki kullanımı da (fabric-lab,
+     label-studio) koyu kromun ÜSTÜNDE ve adanın DIŞINDA olduğu için
+     çentikler siyah üstüne siyah, yani 1,00:1 ile görünmüyordu. */
   return (
-    <div aria-hidden className={cn("relative text-ink", className)}>
+    <div aria-hidden className={cn("relative text-kalem", className)}>
       {ticks.map((t) => {
         const pos = (t / cm) * 100;
         const major = Number.isInteger(t);
@@ -28,7 +32,7 @@ export function Ruler({ cm, orientation, className }: { cm: number; orientation:
             {major && t < cm && (
               <span
                 className={cn(
-                  "absolute text-[9px] leading-none tabular-nums text-ash",
+                  "absolute text-[9px] leading-none tabular-nums text-fog",
                   horizontal ? "bottom-[15px] left-[3px]" : "right-[15px] top-[3px]",
                 )}
               >
