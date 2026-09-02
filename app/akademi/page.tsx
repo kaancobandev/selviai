@@ -47,7 +47,7 @@ export default function AcademyPage() {
               sizes="100vw"
               className="photo-reveal object-cover group-hover:scale-[1.02]"
             />
-            <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/88 via-ink/28 to-transparent" />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/70 to-transparent md:from-ink/88 md:via-ink/28" />
             <PlayRing />
             <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 text-paper sm:flex-row sm:items-end sm:justify-between md:p-8">
               <div>
