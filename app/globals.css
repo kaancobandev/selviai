@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind'in `dark:` varyantı sınıf tabanlı çalışsın. Depoda bugün SIFIR
+   `dark:` kullanımı var; bu satır varyant göçü için değil, token'la ifade
+   edilemeyen tek seferlik istisnalar için kaçış kapısı olarak duruyor.
+   Disiplin: önce token yeniden-bağlama, `dark:` son çare. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ------------------------------------------------------------------
    Design tokens — monochrome atelier palette, two typefaces
    ------------------------------------------------------------------ */
@@ -71,22 +77,76 @@
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
+/* ==================================================================
+   TEMA BLOKLARI — zemin-duyarlı token'ların iki teması
+
+   NEDEN KATMANSIZ. Bu iki blok hiçbir @layer içinde değil. `@theme`'in
+   ürettiği token'lar `@layer theme` içine düşüyor; katmansız kural her
+   zaman katmanlı kuralı yener. Yani `@theme` artık "koyu varsayılan"
+   değil, YEDEK anlamına geliyor.
+
+   Bu, 435 utility çağrı yerini (text-fog 209, border-hair 70,
+   text-kalem 64, border-kalem 31, bg-kalem 28, bg-hair 24, text-zemin 5,
+   bg-zemin 4) TEK BİR .tsx dosyasına dokunmadan döndürüyor.
+
+   `@theme inline` KULLANILMADI ve KULLANILMAMALI. Tailwind belgeleri
+   "tema değişkeni var() içeriyorsa inline kullan" diyor ve dosyada
+   `--font-display: var(--font-bodoni)` bunu davet ediyor — ama inline'a
+   geçmek `text-fog`'u literal hex'e derler ve o 435 çağrı yerini HATA
+   VERMEDEN öldürür. Font için gerekirse AYRI, küçük bir inline blok
+   açılır; renk bloğuna bulaştırılmaz.
+
+   `html.dark` (0,1,1) bilerek `:root`'tan (0,1,0) yüksek yazıldı, böylece
+   blok sırası hata kaynağı olmaktan çıkıyor. Aynı özgüllükte olsalardı
+   kazananı kaynak sırası belirlerdi ve açık bloğu yanlış yere koyan biri
+   "sınıf ekleniyor ama site değişmiyor" diye toggler'da hata arardı.
+
+   .ada-acik ile ÇAKIŞMAZ: o kural adayı BAŞKA bir öğeye uyguluyor, aynı
+   öğeye değil. Özel değişkenler miras alındığı için ada kendi alt ağacında
+   kazanmaya devam ediyor.
+
+   FAZ 2 DURUMU: iki blok da BUGÜNKÜ KOYU değerleri taşıyor. Yani bu faz
+   görsel olarak hiçbir şeyi değiştirmiyor; yalnız anahtarın altyapısını
+   kuruyor ve tek başına yayına çıkabiliyor. Açık değerler Faz 5'te
+   `:root`'a yazılacak.
+   ================================================================== */
+:root {
+  color-scheme: dark;
+  --color-hair: #26242c;
+  --color-fog: #a5a2ad;
+  --color-ash: #8a8792;
+  --color-odak: #bfa6ee;
+  --color-kalem: #ffffff;
+  --color-zemin: #0b0b0b;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-hair: #26242c;
+  --color-fog: #a5a2ad;
+  --color-ash: #8a8792;
+  --color-odak: #bfa6ee;
+  --color-kalem: #ffffff;
+  --color-zemin: #0b0b0b;
+}
+
 /* ------------------------------------------------------------------
    Base
    ------------------------------------------------------------------ */
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
-  /* Tanımlanmazsa kaydırma çubuğu, <select> açılır listesi, tarih seçici ve
-     autofill dolgusu açık kromla gelir. */
-  color-scheme: dark;
-  /* Aşırı kaydırmada beyaz sıçramayı önlüyor. */
-  background: var(--color-ink);
+  /* color-scheme tema bloklarına taşındı: tanımlanmazsa kaydırma çubuğu,
+     <select> açılır listesi, tarih seçici ve autofill dolgusu yanlış
+     kromla gelir — açık temada koyu kalırlar. */
+  /* Aşırı kaydırmada zıt renk sıçramasını önlüyor. Token'a bağlandı ki
+     tema dönünce kendiliğinden dönsün. */
+  background: var(--color-zemin);
 }
 
 body {
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-zemin);
+  color: var(--color-kalem);
   font-family: var(--font-sans);
   font-feature-settings: "kern", "liga", "tnum";
   text-rendering: optimizeLegibility;
