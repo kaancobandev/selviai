@@ -345,7 +345,14 @@ export function DotImageReveal({
         src={src}
         alt={alt}
         decoding="async"
-        loading="lazy"
+        /* SAPMA — loading="lazy" KALDIRILDI. Canlıda ölçüldü: görsel kadraj
+           içindeyken (244..940 / viewport 900) bile tarayıcı tembel yüklemeyi
+           tetiklemiyordu; eager'a zorlanınca anında geliyor. Görsel gelmezse
+           canvas boş nokta ızgarası çiziyor, yani efektin tamamı düşüyor —
+           bileşenin çizim kaynağı bu düğüm. ~50 KB'lık tek istek için o
+           kırılganlığı taşımaya değmez; öncelik düşük tutuluyor ki kadraj
+           üstü içerikle yarışmasın. */
+        fetchPriority="low"
         onLoad={() => fitRef.current?.()}
         onError={() => setGorselDustu(true)}
         style={{
