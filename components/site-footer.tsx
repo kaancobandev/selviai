@@ -33,7 +33,12 @@ const sutunlar = [
   },
   {
     baslik: "İletişim",
-    baglantilar: [{ etiket: site.email, href: `mailto:${site.email}` }],
+    baglantilar: [
+      { etiket: "İletişim", href: "/iletisim" },
+      { etiket: site.email, href: `mailto:${site.email}` },
+      { etiket: "LinkedIn", href: site.linkedin, dis: true },
+      { etiket: "Instagram", href: site.instagram, dis: true },
+    ],
   },
 ];
 
@@ -62,9 +67,23 @@ export function SiteFooter() {
                 <ul className="mt-5 space-y-3">
                   {sutun.baglantilar.map((b) => (
                     <li key={b.etiket}>
-                      <Link href={b.href} className="u-line text-sm text-paper">
-                        {b.etiket}
-                      </Link>
+                      {/* Dış bağlantılar düz <a>: yeni sekmede açılıyorlar ve
+                          rel="noopener" olmadan açılan sayfa window.opener
+                          üzerinden bu sekmeye erişebiliyor. */}
+                      {"dis" in b && b.dis ? (
+                        <a
+                          href={b.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="u-line text-sm text-paper"
+                        >
+                          {b.etiket}
+                        </a>
+                      ) : (
+                        <Link href={b.href} className="u-line text-sm text-paper">
+                          {b.etiket}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

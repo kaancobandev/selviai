@@ -8,6 +8,12 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://selviai.com",
   /** İletişim adresleri — alan adıyla birlikte değişir */
   email: "info@selviai.com",
+  /* Sosyal hesaplar. Tek kaynak: hem /iletisim sayfası hem altbilgi buradan
+     besleniyor. Bu oturumda altbilgideki "Takip" sütunu çıplak
+     instagram.com / linkedin.com bağlantıları olduğu için silinmişti;
+     buradakiler gerçek hesaplar. */
+  linkedin: "https://www.linkedin.com/company/selviai/",
+  instagram: "https://www.instagram.com/selviai_/",
   tagline: "Tasarım için yapay zekâ görsel üretimi",
   description:
     "Fikirden gerçek ürüne — tasarım öğrenme, üretme ve satma süreçlerini tek platformda birleştiren yapay zekâ altyapısı.",
