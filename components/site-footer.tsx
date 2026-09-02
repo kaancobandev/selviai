@@ -39,20 +39,26 @@ const sutunlar = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-hair">
+    <footer className="relative isolate border-t border-hair">
+      {/* Arka plan görseli ve ona göre hesaplanmış gradyan peçe.
+          Değerlerin nereden geldiği globals.css'teki .selvi-footer-zemin
+          yorumunda yazılı — görselin sol tarafı beyaza yakın ve altbilginin
+          solunda devasa beyaz logo var. */}
+      <div aria-hidden className="selvi-footer-zemin" />
+
       <div className="px-5 pb-10 pt-20 md:px-10 md:pt-28">
         <div className="grid gap-14 md:grid-cols-12">
           <div className="md:col-span-5">
             <p className="font-display text-[17vw] leading-[0.85] tracking-[-0.02em] md:text-[7rem] lg:text-[8.5rem]">
               {site.name}
             </p>
-            <p className="eyebrow mt-6 text-ash">{site.tagline}</p>
+            <p className="eyebrow mt-6 text-fog">{site.tagline}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:col-span-7 md:pt-3">
             {sutunlar.map((sutun) => (
               <div key={sutun.baslik}>
-                <p className="eyebrow text-ash">{sutun.baslik}</p>
+                <p className="eyebrow text-fog">{sutun.baslik}</p>
                 <ul className="mt-5 space-y-3">
                   {sutun.baglantilar.map((b) => (
                     <li key={b.etiket}>
@@ -68,8 +74,8 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-20 flex flex-col gap-3 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <span className="eyebrow text-ash">© 2026 {site.name}. Tüm hakları saklıdır.</span>
-          <span className="eyebrow text-ash">İstanbul</span>
+          <span className="eyebrow text-fog">© 2026 {site.name}. Tüm hakları saklıdır.</span>
+          <span className="eyebrow text-fog">İstanbul</span>
         </div>
       </div>
     </footer>

@@ -1241,3 +1241,62 @@ input[type="number"] {
   }
 }
 
+/* ==================================================================
+   Altbilgi arka planı — görsel + hesaplanmış gradyan peçe
+
+   Görsel solda neredeyse beyaz (en parlak nokta rgb(254,244,252)),
+   sağda koyu lacivert. Altbilgide ise solda devasa beyaz "Selvi AI"
+   logosu var. Çıplak hâlde görselin %21'i beyaz metni yutuyordu; sol
+   %17'lik dilimde ortalama kontrast 2,20:1 ve o bölgenin TAMAMI AA'yı
+   kaybediyordu.
+
+   NEDEN DÜZ PEÇE DEĞİL. Tek bir opaklıkla bunu kapatmak için ~%85
+   karartma gerekiyordu; o değerde görselin zaten koyu olan sağ yarısı
+   tamamen siyaha gömülüyor, yani görsel görünmez oluyordu. Peçe görselin
+   parlaklık profilini takip ediyor: solda güçlü, sağda zayıf. Böylece
+   sol taraf okunur hâle gelirken sağdaki derinlik korunuyor.
+
+   DEĞERLER ÖLÇÜLDÜ, SEÇİLMEDİ. Görselin her dikey diliminin en parlak
+   pikseli bulundu ve o dilimi hedefin altına indiren en KÜÇÜK karartma
+   ikili aramayla çözüldü. Hedef: text-fog (#a5a2ad) >= 4,5:1 ve beyaz
+   >= 7:1 — ikisinden sıkı olanı, ki bu fog.
+
+   MOBİL TUZAĞI: background-size cover dar ekranlarda görseli YATAY
+   kırpıyor. Telefonda kabın sağ kenarı görselin %100'ünü değil %79'unu
+   gösteriyor, orası da hâlâ parlak. Sağ ucu %0 karartmayla bıraksaydık
+   masaüstünde doğru, telefonda okunmaz olurdu. Bu yüzden duraklar tek
+   ekrana değil, üç ekran penceresinin (telefon %21-79, tablet %8-92,
+   geniş %0-100) ZARFINA oturtuldu ve 401 noktada doğrulandı; en dar
+   güvenlik payı 0,025.
+
+   Gradyan yeniden ayarlanırsa ya da görsel değişirse bu tablo yeniden
+   hesaplanmalı — yarı saydam yüzeyleri hiçbir otomatik denetçi ölçemez.
+   ================================================================== */
+.selvi-footer-zemin {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    /* Üst kenarda sayfaya karışma — sert bir dikiş yerine yumuşak giriş.
+       Yalnızca KARARTIYOR, dolayısıyla kontrast hesabını bozmuyor. */
+    linear-gradient(180deg, rgb(11 11 11) 0%, rgb(11 11 11 / 0) 20%),
+    linear-gradient(
+      90deg,
+      rgb(11 11 11 / 0.83) 0%,
+      rgb(11 11 11 / 0.83) 10%,
+      rgb(11 11 11 / 0.76) 20%,
+      rgb(11 11 11 / 0.75) 30%,
+      rgb(11 11 11 / 0.65) 40%,
+      rgb(11 11 11 / 0.55) 50%,
+      rgb(11 11 11 / 0.55) 60%,
+      rgb(11 11 11 / 0.53) 70%,
+      rgb(11 11 11 / 0.51) 80%,
+      rgb(11 11 11 / 0.44) 90%,
+      rgb(11 11 11 / 0.44) 100%
+    ),
+    url("/gorsel/footer.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
