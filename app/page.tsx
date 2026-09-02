@@ -371,27 +371,6 @@ export default function HomePage() {
           </ul>
         </Reveal>
       </section>
-
-      {/* ── Kapanış ──────────────────────────────────────────────── */}
-      <section className="px-5 pb-32 pt-24 md:px-10 md:pb-40 md:pt-32">
-        <Reveal className="mx-auto max-w-4xl">
-          <div aria-hidden className="seam text-paper/25" />
-          <h2 className="mt-14 font-display text-4xl leading-[1.05] md:text-6xl">İki kapı.</h2>
-          <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Button href="/hizmetler/kompozisyon" variant="koyuDolgu" size="lg">
-              Stüdyoyu aç
-            </Button>
-            <Button href="mailto:info@selviai.com" variant="koyuHatli" size="lg">
-              info@selviai.com
-            </Button>
-          </div>
-          <p className="mt-10 max-w-[58ch] text-[15px] leading-7 text-fog">
-            Denemek için model, ürün ve mekân görselini hazır bulundurun. Ürün görselinde şeffaf PNG
-            yerine düz zeminli JPEG daha iyi sonuç veriyor.
-          </p>
-          <p className="eyebrow mt-6 text-ash">İstanbul</p>
-        </Reveal>
-      </section>
     </>
   );
 }
