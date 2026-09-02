@@ -62,9 +62,10 @@ export async function generateComposite(
 ): Promise<ComposeResult> {
   const apiKey = apiAnahtari(katman);
   if (!apiKey) {
-    throw new ComposeError(
-      "Sunucuda GEMINI_API_KEY tanımlı değil. Ortam değişkenini ekleyip sunucuyu yeniden başlatın.",
-    );
+    /* Ziyaretçiye ortam değişkeni adı gösterilmez; bu bir operatör sorunu ve
+       müşterinin yapabileceği bir şey yok. Ayrıntı sunucu günlüğünde. */
+    console.error("Sağlayıcı anahtarı tanımlı değil (GEMINI_API_KEY).");
+    throw new ComposeError("Üretim şu anda kullanılamıyor. Kısa süre sonra tekrar deneyin.");
   }
 
   const model = modelAdi?.trim() || composeModel();
@@ -109,7 +110,7 @@ export async function generateComposite(
       json = JSON.parse(text) as ApiResponse;
     } catch {
       throw new ComposeError(
-        `Sağlayıcı beklenmedik bir yanıt döndürdü (HTTP ${res.status}).`,
+        `Üretim tamamlanamadı (HTTP ${res.status}). Tekrar deneyin.`,
       );
     }
 
@@ -138,8 +139,8 @@ export async function generateComposite(
     // ekrandan kaldırmayı unutmuşuz.
     throw new ComposeError(
       aborted
-        ? `Model ${Math.round(timeoutMs / 1000)} saniye içinde yanıt vermedi. Tekrar deneyin.`
-        : "Sağlayıcıya ulaşılamadı. Birazdan tekrar deneyin.",
+        ? `Üretim ${Math.round(timeoutMs / 1000)} saniye içinde tamamlanmadı. Tekrar deneyin.`
+        : "Üretim şu anda yanıt vermiyor. Birazdan tekrar deneyin.",
       cause,
     );
   } finally {
@@ -163,14 +164,14 @@ export async function generateComposite(
     const blocked = json.promptFeedback?.blockReason;
     if (blocked) {
       throw new ComposeError(
-        `Model isteği güvenlik nedeniyle reddetti (${blocked}). Başka bir fotoğrafla deneyin.`,
+        `İstek güvenlik denetimine takıldı (${blocked}). Başka bir fotoğrafla deneyin.`,
       );
     }
 
     const reason = candidate?.finishReason ?? "";
     if (reason === "IMAGE_SAFETY" || reason === "SAFETY" || reason === "PROHIBITED_CONTENT") {
       throw new ComposeError(
-        "Model güvenlik filtresine takıldı. Bu genelde tanınmış bir kişiye benzeyen ya da " +
+        "İstek güvenlik denetimine takıldı. Bu genelde tanınmış bir kişiye benzeyen ya da " +
           "az giysili bir fotoğrafta olur. Farklı bir kişi fotoğrafı deneyin.",
       );
     }
@@ -225,24 +226,28 @@ async function timedFetch(label: string, url: string, headers?: Record<string, s
   }
 }
 
-/** Sağlayıcı hatalarını kullanıcının anlayacağı tek cümleye indirger. */
-function explainProviderError(status: number, detail: string, model: string): string {
+/**
+ * Sağlayıcı hatalarını kullanıcının anlayacağı tek cümleye indirger.
+ *
+ * BU METİN ZİYARETÇİYE GÖSTERİLİYOR (compose-studio.tsx, job.error). Bu
+ * yüzden içinde altyapı sağlayıcısının adı, model kimliği ya da ortam
+ * değişkeni adı GEÇMEZ. Teşhis için gereken her şey çağrı yerinde
+ * console.error ile günlüğe yazılıyor ve ComposeError'ın cause'unda duruyor.
+ *
+ * Ayrım şu: müşterinin yapabileceği bir şey varsa (bekle, tekrar dene)
+ * söylüyoruz; operatör sorunuysa tek bir nötr cümle veriyoruz — çünkü
+ * müşteri anahtarı ya da faturalandırmayı düzeltemez.
+ */
+function explainProviderError(status: number, detail: string, _model: string): string {
   const lower = detail.toLowerCase();
 
-  if (status === 401 || status === 403 || lower.includes("api key")) {
-    return "API anahtarı geçersiz ya da yetkisiz. Google AI Studio'da anahtarı kontrol edin.";
-  }
   if (status === 429 || lower.includes("quota") || lower.includes("resource_exhausted")) {
-    return "Kota doldu ya da istek hızı aşıldı. Bir dakika sonra tekrar deneyin.";
-  }
-  if (lower.includes("billing") || lower.includes("free tier")) {
-    return "Bu model faturalandırma açık bir proje gerektiriyor. Google AI Studio'da faturalandırmayı etkinleştirin.";
-  }
-  if (status === 404) {
-    return `Model bulunamadı (${model}). COMPOSE_MODEL değerini kontrol edin.`;
+    return "Şu anda yoğunluk var. Bir dakika sonra tekrar deneyin.";
   }
   if (status >= 500) {
-    return "Sağlayıcı geçici olarak yanıt veremiyor. Birazdan tekrar deneyin.";
+    return "Üretim geçici olarak yanıt vermiyor. Birazdan tekrar deneyin.";
   }
-  return `Üretim başarısız: ${detail.slice(0, 200)}`;
+  /* 401/403/anahtar, faturalandırma, 404 model ve geri kalan her şey:
+     hepsi operatör tarafı. Ham sağlayıcı metnini yansıtmıyoruz. */
+  return "Üretim şu anda kullanılamıyor. Kısa süre sonra tekrar deneyin.";
 }

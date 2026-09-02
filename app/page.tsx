@@ -21,10 +21,15 @@ const GIRDILER = [
   { etiket: "Girdi · Sahne", baslik: "Mekân", not: "Işık yönü ve renk sıcaklığı buradan okunur." },
 ];
 
+/* Vitrin sağlayıcı adı vermiyor: ziyaretçiye anlatılan şey Selvi'nin kendi
+   üretim hattı. Aşama adları hattın GERÇEK yapısını tarif ediyor (üret →
+   bağımsız denetim → yükselt); altyapı sağlayıcısı sunucu tarafında kalıyor
+   (lib/ai/). "Katman" bilerek seçildi: Selvi'nin sahip olduğu şey bu hat ve
+   denetim mantığı, temel modelin kendisi değil. */
 const HAT = [
-  { rol: "Üret", model: "Gemini 3.1 Flash Image" },
-  { rol: "Puanla", model: "Gemini 3.1 Flash Lite Image" },
-  { rol: "Yükselt", model: "Gemini 3 Pro Image" },
+  { rol: "Üret", model: "Selvi üretim katmanı" },
+  { rol: "Puanla", model: "Selvi denetim katmanı" },
+  { rol: "Yükselt", model: "Selvi yüksek kalite katmanı" },
 ];
 
 /* "Dikey" bir iş terimi; vitrinde kimse böyle konuşmuyor. Veri de bölüm

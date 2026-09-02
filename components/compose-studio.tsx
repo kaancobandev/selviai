@@ -90,6 +90,13 @@ type Picked = {
   name: string;
 };
 
+/* Arayüz ham model kimliğini göstermiyordu ama "gemini-" önekini kırpıp
+   geri kalanını basıyordu, yani sağlayıcının sürüm adı yine sızıyordu.
+   Kullanıcıya anlamlı olan tek ayrım hangi katmanda üretildiği. */
+function katmanAdi(model: string) {
+  return /pro/i.test(model) ? "Yüksek kalite katmanı" : "Üretim katmanı";
+}
+
 export function ComposeStudio() {
   const [images, setImages] = useState<Partial<Record<SlotId, Picked>>>({});
   const [crop, setCrop] = useState<Crop>("portre");
@@ -357,7 +364,7 @@ export function ComposeStudio() {
               <p className="eyebrow text-fog">Sonuç</p>
               {job?.meta && (
                 <span className="eyebrow tabular-nums text-fog">
-                  {job.meta.model.replace("gemini-", "")} · {(job.meta.ms / 1000).toFixed(1)} sn
+                  {katmanAdi(job.meta.model)} · {(job.meta.ms / 1000).toFixed(1)} sn
                   {job.meta.deneme && job.meta.deneme > 1 ? ` · ${job.meta.deneme}. deneme` : ""}
                 </span>
               )}
