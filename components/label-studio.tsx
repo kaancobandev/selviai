@@ -154,7 +154,7 @@ export function LabelStudio() {
               <Ruler orientation="h" cm={STAGE_W_CM} className="h-5" />
               <Ruler orientation="v" cm={STAGE_H_CM[type]} className="h-full w-5" />
               <div
-                className="ada-acik relative border border-mist bg-paper"
+                className="tuval relative border border-mist bg-paper"
                 style={{ width: mm(STAGE_W_CM * 10), height: mm(STAGE_H_CM[type] * 10) }}
               >
                 <div className="absolute left-0 top-0">{preview(type)}</div>
@@ -342,7 +342,7 @@ export function LabelStudio() {
                   onClick={() => setType(t.id)}
                   aria-label={`${t.name} düzenle`}
                   className={cn(
-                    "ada-acik mt-5 flex h-[190px] items-center justify-center overflow-hidden border bg-paper p-4 transition-colors duration-300 [--mm:1.6px]",
+                    "tuval mt-5 flex h-[190px] items-center justify-center overflow-hidden border bg-paper p-4 transition-colors duration-300 [--mm:1.6px]",
                     isActive ? "border-kalem" : "border-hair hover:border-kalem/40",
                   )}
                 >

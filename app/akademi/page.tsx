@@ -122,7 +122,7 @@ export default function AcademyPage() {
                 key={p.id}
                 className={cn(
                   "flex flex-col p-8 md:p-10",
-                  p.featured ? "ada-acik bg-paper text-kalem" : "bg-paper/[0.04] text-paper",
+                  p.featured ? "ters-kart bg-zemin text-kalem" : "bg-paper/[0.04] text-paper",
                 )}
               >
                 <div className="flex items-center justify-between">

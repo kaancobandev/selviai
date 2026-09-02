@@ -442,7 +442,7 @@ export function FlatSketch() {
   const pct = Math.round(vp.zoom * 100);
 
   return (
-    <div ref={wrapRef} className="ada-acik relative flex-1 select-none overflow-hidden bg-paper min-h-[calc(100svh-4rem-3.25rem)] lg:min-h-[calc(100svh-5rem)]">
+    <div ref={wrapRef} className="tuval relative flex-1 select-none overflow-hidden bg-paper min-h-[calc(100svh-4rem-3.25rem)] lg:min-h-[calc(100svh-5rem)]">
       {/* ---------------- TUVAL ---------------- */}
       <svg
         ref={svgRef}

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export function Ruler({ cm, orientation, className }: { cm: number; orientation: "h" | "v"; className?: string }) {
   const ticks = Array.from({ length: Math.floor(cm * 2) + 1 }, (_, k) => k / 2);
   const horizontal = orientation === "h";
-  /* Zemin-duyarlı: kalem ve fog, .ada-acik içinde ters bağlanıyor.
+  /* Zemin-duyarlı: kalem ve fog, .tuval içinde ters bağlanıyor.
      Önceden text-ink + text-ash sabitti; iki kullanımı da (fabric-lab,
      label-studio) koyu kromun ÜSTÜNDE ve adanın DIŞINDA olduğu için
      çentikler siyah üstüne siyah, yani 1,00:1 ile görünmüyordu. */

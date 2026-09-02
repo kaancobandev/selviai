@@ -25,7 +25,7 @@
 
   /* Vurgu çifti. BURADA OLMAK ZORUNDA: Tailwind utility'leri (text-vurgu,
      bg-vurgu, border-vurgu) yalnız @theme'deki token'lardan ÜRETİLİYOR.
-     Aşağıdaki :root / html.dark / .ada-acik blokları bu token'ların
+     Aşağıdaki :root / html.dark / .tuval blokları bu token'ların
      DEĞERİNİ değiştirir, ama sınıfın var olmasını sağlamaz.
      İlk yazımda bu atlandı ve sonuç sessiz bir görsel regresyondu: 10
      vurgu öğesi (h2 içindeki em'ler, hat sırası, "canlı" rozeti) sınıf
@@ -57,7 +57,7 @@
 
      Temaya DÖNENLER ayrı tutuldu: aşağıdaki zemin-duyarlı grup. */
 
-  /* Zemin-duyarlı üçlü. Değerleri koyu zemine göre; `.ada-acik` içinde
+  /* Zemin-duyarlı üçlü. Değerleri koyu zemine göre; `.tuval` içinde
      yeniden bağlanıyorlar. Yeni yazılan kod `text-smoke` / `border-mist`
      KULLANMAZ — onlar açık zemine çivili. Bunun yerine `text-fog` /
      `border-hair`.
@@ -114,8 +114,8 @@
    kazananı kaynak sırası belirlerdi ve açık bloğu yanlış yere koyan biri
    "sınıf ekleniyor ama site değişmiyor" diye toggler'da hata arardı.
 
-   .ada-acik ile ÇAKIŞMAZ: o kural adayı BAŞKA bir öğeye uyguluyor, aynı
-   öğeye değil. Özel değişkenler miras alındığı için ada kendi alt ağacında
+   .tuval ile ÇAKIŞMAZ: o kural tuvali BAŞKA bir öğeye uyguluyor, aynı
+   öğeye değil. Özel değişkenler miras alındığı için tuval kendi alt ağacında
    kazanmaya devam ediyor.
 
    FAZ 2 DURUMU: iki blok da BUGÜNKÜ KOYU değerleri taşıyor. Yani bu faz
@@ -186,28 +186,74 @@ body {
 /* Bu turda koyuya çevrilmeyen rotalar beyaz kalıyor. İçlerindeki mevcut
    text-ink / bg-paper / border-mist / text-smoke sınıfları aynen çalışsın
    diye zemini ve zemin-duyarlı üçlüyü burada geri bağlıyoruz. */
-.ada-acik {
-  background: var(--color-bone);
-  color: var(--color-ink);
+/* ==================================================================
+   ADA / TUVAL AYRIMI
+
+   `.ada-acik` tek bir sınıftı ama İKİ FARKLI ŞEY söylüyordu ve yorumu
+   ("bu turda koyuya çevrilmeyen rotalar beyaz kalıyor") geçici bir
+   göçmenlik işaretiydi. Altı gerçek kullanımın beşi aslında bambaşka
+   bir kavramdı, o yüzden ikiye bölündü:
+
+   `.tuval` — FİZİKSEL BEYAZ YÜZEY TAKLİDİ. Kâğıt, etiket, kumaş. Beş
+   stüdyo kullanımı: flat-sketch çizim tuvali, inspiration-board panosu,
+   label-studio etiket önizlemesi ve şablon küçük görseli, brand-studio
+   maketi. Bunlar TEMADAN BAĞIMSIZ beyaz kalır — çünkü içleri o beyaza
+   güveniyor (flat-sketch INK #1a1a1a, croquis stroke #1a1a1a,
+   brand-mockups #0b0b0b, label-previews yaldız/gofre renkleri). Açık
+   temada sayfa da beyazlayınca tuval "kaybolmaz"; Figma'da olduğu gibi
+   krom açılır, tuval beyaz kalır ve kenarlığıyla ayrışır.
+
+   `.ters-kart` — SAYFANIN TERSİ. Tek kullanıcısı akademi'nin öne çıkan
+   plan kartı. Bu bir tuval değil, vurgu aygıtı: koyu sayfada beyaz kart,
+   açık sayfada koyu kart. Yani temayla DÖNER. Bugünkü "beyaz ada = öne
+   çıkan" eşitlemesi açık temada anlamsızlaşıyordu; üç kart tek bir beyaz
+   bloğa dönüşüyordu.
+   ================================================================== */
+.tuval {
+  background: #ffffff;
+  color: #0b0b0b;
   color-scheme: light;
   --color-hair: #e6e4ea;
   --color-fog: #55525c;
   --color-odak: #0b0b0b;
   --color-kalem: #0b0b0b;
   --color-zemin: #ffffff;
-  /* ash BUGÜNE KADAR BURADA YOKTU ve bu 26 gerçek kırık demekti:
-     flat-sketch'te 18, inspiration-board'da 8 `text-ash` kullanımı beyaz
-     adanın içinde #8a8792 kalıyordu — beyazda 3,52:1, yani AA'nın altı.
-     #6a6870 ölçüldü: beyazda 5,49:1 geçiyor ve fog'un açık değerinin
-     (#55525c, 7,64:1) ALTINDA kalıyor, yani "ash = fog'dan soluk"
-     hiyerarşisi korunuyor. Koyu taraftaki 7,85 / 5,59 dengesiyle
-     neredeyse simetrik. */
   --color-ash: #6a6870;
-  /* Vurgu adada koyulaşıyor: lila-soft (#bfa6ee) beyaz zeminde 1,55:1 ile
-     okunmuyor. Üstündeki metin de tersine dönüyor. */
   --color-vurgu: #6e51a0;
   --color-vurgu-kalem: #ffffff;
 }
+
+/* Koyu sayfada ters kart AÇIK olur. */
+html.dark .ters-kart {
+  background: #ffffff;
+  color: #0b0b0b;
+  color-scheme: light;
+  --color-hair: #e6e4ea;
+  --color-fog: #55525c;
+  --color-odak: #0b0b0b;
+  --color-kalem: #0b0b0b;
+  --color-zemin: #ffffff;
+  --color-ash: #6a6870;
+  --color-vurgu: #6e51a0;
+  --color-vurgu-kalem: #ffffff;
+}
+
+/* Açık sayfada ters kart KOYU olur. Faz 4'te sayfa hep koyu olduğu için
+   bu dal henüz hiç çalışmıyor; Faz 5'te görünür hâle gelecek. */
+:root:not(.dark) .ters-kart {
+  background: #0b0b0b;
+  color: #ffffff;
+  color-scheme: dark;
+  --color-hair: #26242c;
+  --color-fog: #a5a2ad;
+  --color-odak: #bfa6ee;
+  --color-kalem: #ffffff;
+  --color-zemin: #0b0b0b;
+  --color-ash: #8a8792;
+  --color-vurgu: #bfa6ee;
+  --color-vurgu-kalem: #0b0b0b;
+}
+
 
 .font-display {
   font-optical-sizing: auto;
@@ -801,7 +847,7 @@ textarea {
 }
 input::placeholder,
 textarea::placeholder {
-  /* --color-fog seçildi çünkü ZEMİN-DUYARLI: .ada-acik içinde yeniden
+  /* --color-fog seçildi çünkü ZEMİN-DUYARLI: .tuval içinde yeniden
      bağlanıyor, ash bağlanmıyor. (Eski yorum "ash açık zemine çivili"
      diyordu; ölçüm tersini söylüyor — #8a8792 koyuda 5,59:1 ile geçiyor,
      BEYAZDA 3,52:1 ile kalıyor. Yani sorun kontrast değil, adalarda
@@ -988,7 +1034,7 @@ input[type="number"] {
    yalnız 2,64:1 kalıyor ve WCAG 1.4.11'in 3:1 eşiğini KAYBEDİYOR.
    #ded0ff aynı lila ailesinde ama ölçülmüş: kartın en açık noktasında
    3,89:1, sayfa zemininde 13,66:1. Token'ı yerel olarak yeniden bağlama
-   kalıbı depoda zaten var (`.ada-acik` aynı şeyi yapıyor). */
+   kalıbı depoda zaten var (`.tuval` aynı şeyi yapıyor). */
 .fiyat-alan {
   position: relative;
   --color-odak: #ded0ff;

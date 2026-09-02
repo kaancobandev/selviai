@@ -392,7 +392,7 @@ export function BrandStudio() {
             ] as const
           ).map(({ key, Comp, label, note }) => (
             <figure key={key}>
-              <div className="ada-acik aspect-[5/6] border border-hair bg-paper p-4">
+              <div className="tuval aspect-[5/6] border border-hair bg-paper p-4">
                 <Comp
                   wordmark={wordmark}
                   monogram={monogram}

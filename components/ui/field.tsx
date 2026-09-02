@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
    Alt çizgili form sistemi — kutu yok, yalnızca bir hairline.
    Odakta çizgi kalem rengine döner.
 
-   Zemin-BAĞIMSIZ yazıldı: kalem/zemin/hair/fog dördü `.ada-acik` içinde
+   Zemin-BAĞIMSIZ yazıldı: kalem/zemin/hair/fog dördü `.tuval` içinde
    yeniden bağlandığı için aynı alan hem koyu kromda hem beyaz adada doğru
    çalışıyor. Sabit text-ink / border-mist yazsaydık koyu sayfada alan
    siyah üstüne siyah kalırdı.

@@ -17,7 +17,7 @@ const variants: Record<Variant, string> = {
 
   /* solid ve ghost artık zemin-BAĞIMSIZ. Önceden mürekkebe çiviliydiler
      (bg-ink text-bone), yani koyu sayfada siyah üstüne siyah düğme
-     çıkıyordu. kalem/zemin `.ada-acik` içinde ters bağlandığı için beyaz
+     çıkıyordu. kalem/zemin `.tuval` içinde ters bağlandığı için beyaz
      adalardaki görünüm eskisiyle birebir aynı kalıyor; koyu tarafta ise
      çağrı yerlerine dokunmadan kendiliğinden düzeliyorlar. */
   solid: "bg-kalem text-zemin hover:bg-kalem/85",
