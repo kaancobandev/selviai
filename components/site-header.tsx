@@ -50,10 +50,15 @@ export function SiteHeader() {
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,color,border-color] duration-700 ease-[var(--ease-out-quart)]",
-          "text-paper",
+          /* Renk ARTIK kosula bagli. Onceden `text-paper` kosulsuzdu; koyu
+             sitede dogruydu cunku bar ya koyu zeminliydi ya koyu hero'nun
+             ustundeydi. Acik temada ikisi ayrisiyor:
+             · solid  → bar SAYFA renginde, yani temayla doner (kalem/zemin)
+             · seffaf → bar HERO'nun ustunde. Hero kalici koyu ada ve token
+               yeniden baglamiyor, o yuzden burada MUTLAK beyaz sart. */
           solid
-            ? "border-hair bg-ink/85 backdrop-blur-md"
-            : "border-transparent bg-transparent",
+            ? "border-hair bg-zemin/85 text-kalem backdrop-blur-md"
+            : "border-transparent bg-transparent text-paper",
         )}
       >
         <div className="flex h-16 items-center justify-between px-5 md:h-20 md:px-10">
@@ -84,7 +89,17 @@ export function SiteHeader() {
                 Giriş de silindi: form yalnız "prototip" toast'ı gösteriyor. */}
             <Link
               href="/hizmetler/kompozisyon"
-              className="eyebrow hidden h-10 items-center rounded-full bg-paper px-5 text-ink transition-colors duration-300 hover:bg-lila-soft sm:inline-flex"
+              /* bg-kalem/text-zemin cifti hapi HER İKİ temada da sayfanin
+                 zittina boyuyor: koyuda beyaz hap-siyah yazi, acikta siyah
+                 hap-beyaz yazi. Hero'nun ustunde ise mutlak kaliyor.
+                 Uzerine gelme rengi lila-soft'tan vurgu ciftine tasindi:
+                 lila-soft (#bfa6ee) sabit ACIK bir lila, acik temada uzerine
+                 gelen beyaz yazi 1,9:1'e dusuyordu. vurgu/vurgu-kalem cifti
+                 tam bunun icin var — koyuda #bfa6ee+siyah, acikta #6e51a0+beyaz. */
+              className={cn(
+                "eyebrow hidden h-10 items-center rounded-full px-5 transition-colors duration-300 hover:bg-vurgu hover:text-vurgu-kalem sm:inline-flex",
+                solid ? "bg-kalem text-zemin" : "bg-paper text-ink",
+              )}
             >
               Stüdyoyu aç
             </Link>
@@ -117,7 +132,7 @@ export function SiteHeader() {
       <div
         id="mobile-menu"
         className={cn(
-          "fixed inset-0 z-40 flex flex-col bg-ink px-5 pt-28 pb-10 text-paper transition-opacity duration-500 md:hidden",
+          "fixed inset-0 z-40 flex flex-col bg-zemin px-5 pt-28 pb-10 text-kalem transition-opacity duration-500 md:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         aria-hidden={!open}

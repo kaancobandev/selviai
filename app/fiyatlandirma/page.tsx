@@ -161,8 +161,8 @@ export default function FiyatlandirmaPage() {
           <h2 className="eyebrow text-fog">Tabloda ne var</h2>
           <dl className="mt-8 grid gap-px bg-hair sm:grid-cols-3">
             {TANIMLAR.map((t) => (
-              <div key={t.terim} className="bg-ink p-6 md:p-7">
-                <dt className="text-[15px] text-paper">{t.terim}</dt>
+              <div key={t.terim} className="bg-zemin p-6 md:p-7">
+                <dt className="text-[15px] text-kalem">{t.terim}</dt>
                 <dd className="mt-2 text-[14px] leading-6 text-fog">{t.aciklama}</dd>
               </div>
             ))}
@@ -174,10 +174,10 @@ export default function FiyatlandirmaPage() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
-            <Button href={`mailto:${site.email}`} variant="koyuDolgu">
+            <Button href={`mailto:${site.email}`} variant="solid">
               Erken erişim için yazın
             </Button>
-            <Button href="/#karsilastirma" variant="koyuHatli">
+            <Button href="/#karsilastirma" variant="ghost">
               Karşılaştırma
             </Button>
           </div>

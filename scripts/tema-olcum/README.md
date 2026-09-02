@@ -71,7 +71,51 @@ ile o pikselde gerçekten üst üste duran her şey sorulmalı.
 hiçbir şeyi rAF ile beklememeli; `getAnimations().forEach(a => a.finish())`
 ile animasyonlar bitirilip senkron okunmalı.
 
-**7. Fikstürün toleransı keyfi değil.** Belgelenmiş hex'lerin kendisi
+**7. Panel gizliyken `innerWidth`/`innerHeight` SIFIR okunur.** Belirti 6
+ile aynı sebepten ama ayrı bir yüz: kadraj denetimi (`rr.bottom >
+innerHeight`) her nokta için doğru çıkar ve 90 noktanın 90'ı "kadraj dışı"
+işaretlenir. `kosu.mjs` bunu yutmaz, çıkış kodunu bozar — ama sebep hiç
+görünmez, insan koda değil siteye bakar. Çıkarıcı artık erken ve açıkça
+duruyor. Panel görünür hâle gelsin diye ölçümden HEMEN ÖNCE aynı yığında
+bir ekran görüntüsü alın.
+
+**8. `sr-only` metni ölçülmemeli.** Görünmediği için kontrastının anlamı
+yok, ama ölçülürse rapora gerçek bir kırık gibi düşer ve görünür kırıkları
+gizler. Fiyat sayfasında `sr-only` bir `h2` ("Aylık planlar") 3,09:1 ile
+"en dar pay" olarak çıktı. `visibility`/`display` yakalamıyor: kalıp 1x1
+kutu + `clip`. `rr.width < 1` de yetmiyor, kutu tam 1px.
+
+**9. Yön SAYFAYA göre değil METNE göre.** "Açık temada en kötü piksel en
+koyudur" varsayımı yalnız metin de koyuysa doğru. Açık sayfadaki KOYU
+ADA'nın (fiyat kartı, hero) beyaz yazısı için tam tersi geçerli. Yön
+yanlış seçilince sapma İYİMSER yönde olur. Doğru ölçüt uçlar değil
+YAKINLIK: bir metin için en kötü zemin, parlaklığı ona en yakın olandır.
+
+**10. Maskeli gradyan çerçeve, `.u-line`nın akrabası.** `inset:0 +
+padding:1px + mask-composite: exclude` tarifi yalnız 1px kenarı boyar, iç
+tamamen maskelenir — ama `background-size` "auto" olduğu için kapsama
+denetimi katmanı tam alan sanır. `.fiyat-halka` böyle: neredeyse beyaz bir
+gradyan (%72 alfa) kartın ortasına bindirilip 30 ölçümü 1,2:1 gösteriyordu.
+
+**11. `data:` URI atlanmamalı; SVG'yi `createImageBitmap` çözmez.** Data
+URI ağ ve CORS gerektirmediği için örneklenmesi EN KOLAY türdür. Ama
+Chrome SVG blob'unu `createImageBitmap` ile çözmüyor
+("InvalidStateError"); `<img>` yolu çözüyor ve data URI olduğu için tuval
+kirlenmiyor.
+
+**12. Döşeme ölçütü `background-repeat` DEĞİL.** `cover` ile serilen bir
+fotoğrafın da hesaplanmış tekrar değeri "repeat"tir; hiç tekrarlamaz çünkü
+karo kutudan büyüktür. Yalnız "tekrara açık VE karo kutudan küçük"
+katmanlar döşenir. Ayrım atlanınca altbilgi fotoğrafı karo sanıldı, metnin
+altı yerine tüm fotoğraf tarandı ve en dar pay 4,69'dan 4,32'ye kaydı.
+
+**13. Raster örneklerken ALFA korunmalı.** Fotoğraflar opak olduğu için
+alfayı 1'e sabitlemek uzun süre fark ettirmedi. Alfalı dokularda ise ciddi
+yanlış: fiyat kartlarının SVG greni %2-3 opaklıkta beyaz zerrelerden
+oluşuyor, alfa atılınca her zerre KATI BEYAZ sanılıp kart bembeyaz
+görünüyordu.
+
+**14. Fikstürün toleransı keyfi değil.** Belgelenmiş hex'lerin kendisi
 yazılı oranlardan ±0,051'e kadar sapıyor (`#3448bd` → 7,479 ama tabloda
 7,53), çünkü tablo yuvarlanmış hex'ten değil float bileşkeden hesaplanmış.
 Bu yüzden saf WCAG testi ±0,06, bileşke testi ise oran yerine **hex**

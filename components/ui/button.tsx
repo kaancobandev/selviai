@@ -11,7 +11,11 @@ const base =
   "ease-[var(--ease-out-expo)] disabled:opacity-40 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
-  /* Koyu zemin için lila vurgulu iki varyant — ana sayfa bunları çağırıyor. */
+  /* SABİT koyu yüzeyler için — temayla DÖNMEZ. Tek meşru kullanım yeri
+     fiyat kartlarının mavi-lila gradyanı: o yüzey temadan bağımsız koyu,
+     dolayısıyla üstündeki düğme de mutlak beyaz kalmalı. Sayfanın kendi
+     zemininde KULLANILMAZ — açık temada beyaz üstüne beyaz düğme çıkar.
+     Oradaki doğru karşılıkları solid ve ghost. */
   koyuDolgu: "bg-paper text-ink hover:bg-lila-soft",
   koyuHatli: "border border-paper/25 text-paper hover:border-paper hover:bg-paper hover:text-ink",
 
@@ -20,7 +24,11 @@ const variants: Record<Variant, string> = {
      çıkıyordu. kalem/zemin `.tuval` içinde ters bağlandığı için beyaz
      adalardaki görünüm eskisiyle birebir aynı kalıyor; koyu tarafta ise
      çağrı yerlerine dokunmadan kendiliğinden düzeliyorlar. */
-  solid: "bg-kalem text-zemin hover:bg-kalem/85",
+  /* Üzerine gelme rengi vurgu çiftine bağlı: koyuDolgu'nun bugünkü lila
+     davranışını koyu tarafta birebir koruyor (vurgu koyuda #bfa6ee), açık
+     tarafta ise mor+beyaz oluyor. Eski `bg-kalem/85` iki tarafta da
+     yalnızca soluk bir gri veriyordu. */
+  solid: "bg-kalem text-zemin hover:bg-vurgu hover:text-vurgu-kalem",
   ghost: "border border-kalem/25 text-kalem hover:border-kalem hover:bg-kalem hover:text-zemin",
 
   /* Fotoğraf üstü — her iki zeminde de beyaz kalmalı. */

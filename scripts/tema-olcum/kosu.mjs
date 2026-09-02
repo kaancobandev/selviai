@@ -44,6 +44,7 @@ for (const n of g.noktalar) {
   let bileske = g.sayfaZemini ? g.sayfaZemini.slice(0, 3) : [11, 11, 11];
   const cozulemeyenler = [];
   let doygunlukUygulandi = null;
+  let sinirVar = false;
 
   for (const k of altYigin) {
     /* backdrop-filter ALTTAKİ her şeye uygulanır, katmanın kendisine değil. */
@@ -59,6 +60,10 @@ for (const n of g.noktalar) {
            uzerinde degil. Atlanir — cozulemedi DEGIL, bilerek yok sayiliyor. */
         if (kat.tur === "kapsamiyor") continue;
         if (kat.tur === "cozulemedi") { cozulemeyenler.push(k.etiket + " :: " + kat.ifade); continue; }
+        /* sinir: gradyan noktada çözülemedi, en kötü durak kullanıldı.
+           Oran bir ÖLÇÜM değil ÜST SINIR — geçerse gerçekten geçiyor,
+           kalırsa elle bakmak gerekebilir. */
+        if (kat.sinir) sinirVar = true;
         if (kat.renk && kat.renk[3] > 0) bileske = uzerine(kat.renk, bileske);
       }
     }
@@ -74,6 +79,7 @@ for (const n of g.noktalar) {
     oran: oran === null ? null : +oran.toFixed(2),
     zemin: hex(bileske),
     doygunlukUygulandi,
+    sinirVar,
     cozulemeyenler,
     durum: cozulemeyenler.length ? "COZULEMEDI" : oran === null ? "RENK_YOK" : oran >= esik ? "GECTI" : "KALDI",
   });
@@ -93,7 +99,9 @@ for (const s of sirali) {
   const isaret = s.durum === "GECTI" ? "  " : s.durum === "KALDI" ? "!!" : "??";
   console.log(
     `${isaret} ${String(s.oran).padStart(6)}:1 (esik ${s.esik})  ${String(s.px).padStart(5)}px  ${s.zemin}  ` +
-      s.metin.slice(0, 32) + (s.cozulemeyenler.length ? `   <- COZULEMEDI: ${s.cozulemeyenler[0].slice(0, 46)}` : ""),
+      s.metin.slice(0, 32) +
+      (s.sinirVar ? "  [sinir]" : "") +
+      (s.cozulemeyenler.length ? `   <- COZULEMEDI: ${s.cozulemeyenler[0].slice(0, 46)}` : ""),
   );
 }
 for (const s of sonuclar.filter((x) => x.durum === "KADRAJ_DISI")) {
@@ -104,6 +112,13 @@ console.log(
   `\n  toplam ${sonuclar.length} · gecti ${say("GECTI")} · KALDI ${say("KALDI")}` +
     ` · COZULEMEDI ${say("COZULEMEDI") + say("RENK_YOK")} · kadraj disi ${say("KADRAJ_DISI")}`,
 );
+const sinirSayisi = sonuclar.filter((s) => s.sinirVar).length;
+if (sinirSayisi) {
+  console.log(
+    `  [sinir] ${sinirSayisi} nokta: gradyan noktada çözülemedi, en kötü` +
+      ` durak tam kapsamla bindirildi. Geçenler GERÇEKTEN geçiyor.`,
+  );
+}
 const enDar = sirali.find((s) => s.durum === "GECTI" || s.durum === "KALDI");
 if (enDar) console.log(`  en dar pay: ${enDar.oran}:1 (esik ${enDar.esik}) — "${enDar.metin.slice(0, 40)}"`);
 

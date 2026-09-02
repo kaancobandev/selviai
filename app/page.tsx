@@ -134,7 +134,7 @@ export default function HomePage() {
         <Reveal className="mx-auto max-w-5xl">
           <div className="grid gap-px bg-hair sm:grid-cols-3">
             {GIRDILER.map((g, i) => (
-              <div key={g.etiket} className="flex flex-col bg-ink p-7 md:p-8">
+              <div key={g.etiket} className="flex flex-col bg-zemin p-7 md:p-8">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="eyebrow text-ash">{g.etiket}</span>
                   <span className="eyebrow tabular-nums text-vurgu">
@@ -150,7 +150,7 @@ export default function HomePage() {
 
         <Reveal delay={120} className="mx-auto mt-14 max-w-5xl">
           <div>
-            <Button href="/hizmetler/kompozisyon" variant="koyuDolgu">
+            <Button href="/hizmetler/kompozisyon" variant="solid">
               Stüdyoyu aç
             </Button>
           </div>
@@ -177,7 +177,7 @@ export default function HomePage() {
         <Reveal delay={120} className="mx-auto mt-14 max-w-5xl">
           <ol className="grid gap-px overflow-hidden bg-hair sm:grid-cols-3">
             {HAT.map((h, i) => (
-              <li key={h.rol} className="flex flex-col gap-2 bg-ink p-7">
+              <li key={h.rol} className="flex flex-col gap-2 bg-zemin p-7">
                 <span className="eyebrow text-vurgu">{String(i + 1).padStart(2, "0")}</span>
                 <span className="font-display text-2xl">{h.rol}</span>
                 <span className="text-[13px] leading-6 text-fog">{h.model}</span>
@@ -215,7 +215,7 @@ export default function HomePage() {
                         className={
                           canli
                             ? "font-display text-2xl md:text-[1.75rem]"
-                            : "font-display text-xl text-paper/90"
+                            : "font-display text-xl text-kalem/90"
                         }
                       >
                         {d.ad}
@@ -282,7 +282,7 @@ export default function HomePage() {
                       key={r.ad}
                       className={
                         "py-4 pr-6 font-display text-xl font-normal " +
-                        (r.bizMi ? "text-vurgu" : "text-paper")
+                        (r.bizMi ? "text-vurgu" : "text-kalem")
                       }
                     >
                       {r.ad}
@@ -299,7 +299,7 @@ export default function HomePage() {
                     {RAKIPLER.map((r) => (
                       <td
                         key={r.ad}
-                        className={"py-4 pr-6 align-top " + (r.bizMi ? "text-paper" : "text-fog")}
+                        className={"py-4 pr-6 align-top " + (r.bizMi ? "text-kalem" : "text-fog")}
                       >
                         {r[alan]}
                       </td>
@@ -326,22 +326,22 @@ export default function HomePage() {
 
         <Reveal delay={120} className="mx-auto mt-12 max-w-4xl">
           <dl className="grid gap-px overflow-hidden bg-hair sm:grid-cols-2">
-            <div className="bg-ink p-8">
+            <div className="bg-zemin p-8">
               <dt className="eyebrow text-ash">Stüdyo çekimi</dt>
               <dd className="mt-5 space-y-3 text-[15px] leading-7 text-fog">
                 <span className="block">
-                  <span className="font-display text-3xl text-paper">₺499–999</span>
+                  <span className="font-display text-3xl text-kalem">₺499–999</span>
                   <span className="block">ürün başına</span>
                 </span>
                 <span className="block">Asgari sipariş 15–40 ürün — ilk fatura ₺16.500–32.500</span>
                 <span className="block">Teslim 3 iş günü</span>
               </dd>
             </div>
-            <div className="bg-ink p-8">
+            <div className="bg-zemin p-8">
               <dt className="eyebrow text-vurgu">Selvi</dt>
               <dd className="mt-5 space-y-3 text-[15px] leading-7 text-fog">
                 <span className="block">
-                  <span className="font-display text-3xl text-paper">₺14–20</span>
+                  <span className="font-display text-3xl text-kalem">₺14–20</span>
                   <span className="block">kalite kapılı kare</span>
                 </span>
                 <span className="block">Asgari sipariş yok — ₺699/ay</span>
@@ -364,7 +364,7 @@ export default function HomePage() {
         <Reveal delay={120} className="mx-auto mt-12 max-w-4xl">
           <ul className="grid gap-x-10 sm:grid-cols-2">
             {KIMLER.map((k) => (
-              <li key={k} className="border-t border-hair py-4 text-[15px] leading-7 text-paper/85">
+              <li key={k} className="border-t border-hair py-4 text-[15px] leading-7 text-kalem/85">
                 {k}
               </li>
             ))}

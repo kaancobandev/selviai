@@ -118,21 +118,27 @@
    öğeye değil. Özel değişkenler miras alındığı için tuval kendi alt ağacında
    kazanmaya devam ediyor.
 
-   FAZ 2 DURUMU: iki blok da BUGÜNKÜ KOYU değerleri taşıyor. Yani bu faz
-   görsel olarak hiçbir şeyi değiştirmiyor; yalnız anahtarın altyapısını
-   kuruyor ve tek başına yayına çıkabiliyor. Açık değerler Faz 5'te
-   `:root`'a yazılacak.
+   FAZ 5 DURUMU: `:root` artık AÇIK değerleri taşıyor, `html.dark` koyuyu.
+   Site hâlâ koyu görünüyor çünkü layout.tsx koşulsuz `.dark` yazıyor —
+   yani bu adım TEK BAŞINA görünmez ve güvenle yayına çıkabilir. Açık taraf
+   artık ÖLÇÜLEBİLİR: konsolda `documentElement.classList.remove("dark")`
+   yeterli. Tercih okuma ve anahtar bundan sonra geliyor.
    ================================================================== */
 :root {
-  color-scheme: dark;
-  --color-hair: #26242c;
-  --color-fog: #a5a2ad;
-  --color-ash: #8a8792;
-  --color-odak: #bfa6ee;
-  --color-kalem: #ffffff;
-  --color-zemin: #0b0b0b;
-  --color-vurgu: #bfa6ee;
-  --color-vurgu-kalem: #0b0b0b;
+  color-scheme: light;
+  /* Değerler Faz 3'te `.ada-acik` üzerinde ÖLÇÜLDÜ, burada tahmin yok:
+     ash #8a8792 beyazda 3,52:1 ile kalıyordu, #6a6870 5,21:1 veriyor;
+     fog #55525c 7,46:1; hair #e6e4ea ayırıcı olarak 1,18:1 (metin değil,
+     3:1 eşiği aranmaz — WCAG 1.4.11 yalnız ANLAM taşıyan sınırları
+     kapsar, bunlar dekoratif ayraç). */
+  --color-hair: #e6e4ea;
+  --color-fog: #55525c;
+  --color-ash: #6a6870;
+  --color-odak: #0b0b0b;
+  --color-kalem: #0b0b0b;
+  --color-zemin: #ffffff;
+  --color-vurgu: #6e51a0;
+  --color-vurgu-kalem: #ffffff;
 }
 
 html.dark {
