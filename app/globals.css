@@ -23,6 +23,19 @@
   --color-lila: #6e51a0;
   --color-lila-soft: #bfa6ee;
 
+  /* Vurgu çifti. BURADA OLMAK ZORUNDA: Tailwind utility'leri (text-vurgu,
+     bg-vurgu, border-vurgu) yalnız @theme'deki token'lardan ÜRETİLİYOR.
+     Aşağıdaki :root / html.dark / .ada-acik blokları bu token'ların
+     DEĞERİNİ değiştirir, ama sınıfın var olmasını sağlamaz.
+     İlk yazımda bu atlandı ve sonuç sessiz bir görsel regresyondu: 10
+     vurgu öğesi (h2 içindeki em'ler, hat sırası, "canlı" rozeti) sınıf
+     hiç üretilmediği için gövdeden BEYAZ miras aldı. Ölçümle yakalandı.
+
+     vurgu-kalem = vurgunun ÜSTÜNDEKİ metin. Vurgu bir dolgu olarak
+     kullanıldığında (hover fill) yazının rengi de dönmek zorunda. */
+  --color-vurgu: #bfa6ee;
+  --color-vurgu-kalem: #0b0b0b;
+
   /* ---- DOKUNULMAZ RENKLER — açık tema çalışması için yazıldı ----
      paper / bone / ink / mist / smoke ASLA temaya göre yeniden bağlanmaz.
      İsimleri "beyaz" ve "siyah" dediği için açık tema yaparken ilk refleks
@@ -118,6 +131,8 @@
   --color-odak: #bfa6ee;
   --color-kalem: #ffffff;
   --color-zemin: #0b0b0b;
+  --color-vurgu: #bfa6ee;
+  --color-vurgu-kalem: #0b0b0b;
 }
 
 html.dark {
@@ -128,6 +143,8 @@ html.dark {
   --color-odak: #bfa6ee;
   --color-kalem: #ffffff;
   --color-zemin: #0b0b0b;
+  --color-vurgu: #bfa6ee;
+  --color-vurgu-kalem: #0b0b0b;
 }
 
 /* ------------------------------------------------------------------
@@ -178,6 +195,18 @@ body {
   --color-odak: #0b0b0b;
   --color-kalem: #0b0b0b;
   --color-zemin: #ffffff;
+  /* ash BUGÜNE KADAR BURADA YOKTU ve bu 26 gerçek kırık demekti:
+     flat-sketch'te 18, inspiration-board'da 8 `text-ash` kullanımı beyaz
+     adanın içinde #8a8792 kalıyordu — beyazda 3,52:1, yani AA'nın altı.
+     #6a6870 ölçüldü: beyazda 5,49:1 geçiyor ve fog'un açık değerinin
+     (#55525c, 7,64:1) ALTINDA kalıyor, yani "ash = fog'dan soluk"
+     hiyerarşisi korunuyor. Koyu taraftaki 7,85 / 5,59 dengesiyle
+     neredeyse simetrik. */
+  --color-ash: #6a6870;
+  /* Vurgu adada koyulaşıyor: lila-soft (#bfa6ee) beyaz zeminde 1,55:1 ile
+     okunmuyor. Üstündeki metin de tersine dönüyor. */
+  --color-vurgu: #6e51a0;
+  --color-vurgu-kalem: #ffffff;
 }
 
 .font-display {

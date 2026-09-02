@@ -137,7 +137,7 @@ export default function HomePage() {
               <div key={g.etiket} className="flex flex-col bg-ink p-7 md:p-8">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="eyebrow text-ash">{g.etiket}</span>
-                  <span className="eyebrow tabular-nums text-lila-soft">
+                  <span className="eyebrow tabular-nums text-vurgu">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
@@ -165,7 +165,7 @@ export default function HomePage() {
         <Reveal className="mx-auto max-w-4xl">
           <p className="eyebrow text-ash">Kalite kapısı</p>
           <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            Kare size gelmeden önce <em className="text-lila-soft">ikinci bir model</em> onu
+            Kare size gelmeden önce <em className="text-vurgu">ikinci bir model</em> onu
             puanlıyor.
           </h2>
           <p className="mt-7 max-w-[58ch] text-[15px] leading-7 text-fog md:text-base">
@@ -178,7 +178,7 @@ export default function HomePage() {
           <ol className="grid gap-px overflow-hidden bg-hair sm:grid-cols-3">
             {HAT.map((h, i) => (
               <li key={h.rol} className="flex flex-col gap-2 bg-ink p-7">
-                <span className="eyebrow text-lila-soft">{String(i + 1).padStart(2, "0")}</span>
+                <span className="eyebrow text-vurgu">{String(i + 1).padStart(2, "0")}</span>
                 <span className="font-display text-2xl">{h.rol}</span>
                 <span className="text-[13px] leading-6 text-fog">{h.model}</span>
               </li>
@@ -199,7 +199,7 @@ export default function HomePage() {
           <Reveal>
             <p className="eyebrow text-ash">Sektörler</p>
             <h2 className="mt-5 font-display text-4xl leading-[1.05] md:text-[2.75rem] lg:text-5xl">
-              Bir çizimden <em className="text-lila-soft">gerçek bir sahneye</em>.
+              Bir çizimden <em className="text-vurgu">gerçek bir sahneye</em>.
             </h2>
             <p className="mt-5 max-w-[42ch] text-[15px] leading-6 text-fog">
               Aynı motor, farklı konu. Bugün açık olan tek hat moda.
@@ -223,7 +223,7 @@ export default function HomePage() {
                       <span
                         className={
                           canli
-                            ? "eyebrow shrink-0 border border-lila-soft/40 px-2.5 py-1 text-lila-soft"
+                            ? "eyebrow shrink-0 border border-vurgu/40 px-2.5 py-1 text-vurgu"
                             : "eyebrow shrink-0 text-ash"
                         }
                       >
@@ -266,7 +266,7 @@ export default function HomePage() {
         <Reveal className="mx-auto max-w-4xl">
           <p className="eyebrow text-ash">Karşılaştırma</p>
           <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            <em className="text-lila-soft">Ayrıştığımız yer</em> başka.
+            <em className="text-vurgu">Ayrıştığımız yer</em> başka.
           </h2>
         </Reveal>
 
@@ -282,7 +282,7 @@ export default function HomePage() {
                       key={r.ad}
                       className={
                         "py-4 pr-6 font-display text-xl font-normal " +
-                        (r.bizMi ? "text-lila-soft" : "text-paper")
+                        (r.bizMi ? "text-vurgu" : "text-paper")
                       }
                     >
                       {r.ad}
@@ -320,7 +320,7 @@ export default function HomePage() {
         <Reveal className="mx-auto max-w-4xl">
           <p className="eyebrow text-ash">Neden</p>
           <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            Bir ürün görseli için <em className="text-lila-soft">bugün</em> ödediğiniz para.
+            Bir ürün görseli için <em className="text-vurgu">bugün</em> ödediğiniz para.
           </h2>
         </Reveal>
 
@@ -338,7 +338,7 @@ export default function HomePage() {
               </dd>
             </div>
             <div className="bg-ink p-8">
-              <dt className="eyebrow text-lila-soft">Selvi</dt>
+              <dt className="eyebrow text-vurgu">Selvi</dt>
               <dd className="mt-5 space-y-3 text-[15px] leading-7 text-fog">
                 <span className="block">
                   <span className="font-display text-3xl text-paper">₺14–20</span>
@@ -357,7 +357,7 @@ export default function HomePage() {
         <Reveal className="mx-auto max-w-4xl">
           <p className="eyebrow text-ash">Kimin için</p>
           <h2 className="mt-6 font-display text-4xl leading-[1.05] md:text-5xl">
-            Görsel üretmek zorunda olan, <em className="text-lila-soft">stüdyo tutamayan</em> herkes.
+            Görsel üretmek zorunda olan, <em className="text-vurgu">stüdyo tutamayan</em> herkes.
           </h2>
         </Reveal>
 
