@@ -185,18 +185,6 @@ export default function HomePage() {
             ))}
           </ol>
         </Reveal>
-
-        <Reveal delay={180} className="mx-auto mt-10 max-w-4xl">
-          {/* Bu iki satır bilerek burada: kapının bedeli ve sınırı söylenmezse
-              vitrin, ürünün yapabildiğinden fazlasını vaat eder. */}
-          <p className="text-[15px] leading-7 text-fog">
-            Kapı bedava değil: kapılı üretim tipik olarak 12 saniyeden yaklaşık 20 saniyeye çıkıyor.
-            Yükseltmenin maliyeti bizde kalıyor — müşteriye ek kredi yazılmıyor.
-          </p>
-          <p className="mt-4 text-[15px] leading-7 text-paper/80">
-            Karşılaştırdığımız oyuncuların hiçbirinde otomatik kalite kapısı yok.
-          </p>
-        </Reveal>
       </section>
 
       {/* ── Sektörler ────────────────────────────────────────────── */}
@@ -361,12 +349,6 @@ export default function HomePage() {
               </dd>
             </div>
           </dl>
-          <p className="mt-8 text-[13px] leading-6 text-ash">
-            Giyimde iptal-iade oranı %21,6, sektörlerin en yükseği (Ticaret Bakanlığı). İadelerin
-            %11&apos;i görselle uyuşmazlıktan (Coresight Research, 190 marka). Türkiye&apos;deki
-            634.611 e-ticaret işletmesinin %75&apos;i şahıs işletmesi (ETBİS 2025). Stüdyo fiyatları
-            studyofotopark.com, fotometrik360.com ve armut.com yayınlanmış listelerinden.
-          </p>
         </Reveal>
       </section>
 
@@ -387,9 +369,6 @@ export default function HomePage() {
               </li>
             ))}
           </ul>
-          <p className="mt-8 text-[13px] leading-6 text-ash">
-            Hepsiburada&apos;da tek başına 102.000 aktif satıcı var (2025 yıl sonu SEC bildirimi).
-          </p>
         </Reveal>
       </section>
 
