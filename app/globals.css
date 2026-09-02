@@ -1280,9 +1280,13 @@ input[type="number"] {
   background-image:
     /* Üst kenarda sayfaya karışma — sert dikiş yerine yumuşak giriş. */
     linear-gradient(180deg, rgb(11 11 11) 0%, rgb(11 11 11 / 0) 20%),
-    /* İnce düze peçe: en parlak noktayı beyaz metnin eşiğinin üstüne
-       taşıyor, görselin geri kalanına neredeyse dokunmuyor. */
-    linear-gradient(rgb(11 11 11 / 0.2), rgb(11 11 11 / 0.2)),
+    /* İnce düze peçe. Değeri tahminle değil, gerçek yazı konumları
+       taranarak bulundu: darboğaz masaüstündeki 10px'lik slogan, çünkü
+       altbilgi orada en kısa ve görselin parlak kısmından daha çoğu
+       görünüyor. %8 o satırı 5,02:1'e çıkarıyor (eşik 4,5) ve görselin
+       geri kalanına neredeyse dokunmuyor. Önce %20 yazılmıştı; ölçünce
+       o kadarının gereksiz olduğu görüldü. */
+    linear-gradient(rgb(11 11 11 / 0.08), rgb(11 11 11 / 0.08)),
     url("/gorsel/footer.webp");
   background-size: cover;
   background-position: center;
