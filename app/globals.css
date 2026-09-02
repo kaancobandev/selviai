@@ -1280,14 +1280,14 @@ input[type="number"] {
   background-image:
     /* Üst kenarda sayfaya karışma — sert dikiş yerine yumuşak giriş. */
     linear-gradient(180deg, rgb(11 11 11) 0%, rgb(11 11 11 / 0) 20%),
-    /* İnce düze peçe. Değeri tahminle değil, gerçek yazı konumları
-       taranarak bulundu: darboğaz masaüstündeki 10px'lik slogan, çünkü
-       altbilgi orada en kısa ve görselin parlak kısmından daha çoğu
-       görünüyor. %8 o satırı 5,02:1'e çıkarıyor (eşik 4,5) ve görselin
-       geri kalanına neredeyse dokunmuyor. Önce %20 yazılmıştı; ölçünce
-       o kadarının gereksiz olduğu görüldü. */
-    linear-gradient(rgb(11 11 11 / 0.08), rgb(11 11 11 / 0.08)),
-    url("/gorsel/footer.webp");
+    /* Peçe %45. Peçesiz denendi ve ÖLÇÜLDÜ: 14 altbilgi yazısının 12'si
+       AA'yı kaybediyordu (1,87–3,99:1); dev logo bile 1,87. Yazıların
+       altındaki zemin rgb(180-200, 145-180, 230-255) — beyaz için fazla
+       açık. Koyu yazı da denendi, o da 14/14 kaldı çünkü görselin teal
+       bölgeleri koyu; siyah orada kayboluyor.
+       %45'te darboğaz (10px slogan) 5,05:1 veriyor, eşik 4,5. */
+    linear-gradient(rgb(11 11 11 / 0.45), rgb(11 11 11 / 0.45)),
+    url("/gorsel/footer2.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
