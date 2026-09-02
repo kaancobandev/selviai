@@ -1277,7 +1277,40 @@ input[type="number"] {
    kalıyordu. #e2d8fb aynı lila ailesinde ama ölçülmüş: plan adının
    oturduğu bölgede 5,54:1, kartın en kötü noktasında bile 4,13:1. */
 .fiyat-vurgu {
-  color: #e2d8fb;
+  /* #e2d8fb'den açıldı. Eski değer kartın MERKEZİNDE geçiyordu ama kenar
+     kartlarında (Normal, Enterprise) kalıyordu: kart altındaki mavi hale
+     yatay olarak değiştiği için üç kartın zemini aynı değil —
+     #4a5ebc / #495cb1 / #475bb2. Ölçülen oranlar sırasıyla 4,27 · 4,48 ·
+     4,53; ilk ikisi 4,5 eşiğinin ALTINDA. #e8e0fd üçünü de 4,56 · 4,79 ·
+     4,85'e çıkarıyor ve gözle ayırt edilmeyecek kadar yakın bir lila.
+     Bu kırık AÇIK TEMANIN ÜRÜNÜ DEĞİL, koyu temada da vardı. */
+  color: #e8e0fd;
+}
+
+/* ==================================================================
+   AÇIK TEMADA KOYU BANT — fiyat kartlarının arkası.
+
+   Kart dolgusu 0,78 alfa, yani sayfanın ~%22'si camın altından sızıyor.
+   Koyu sayfada bu sızıntı #0b0b0b; beyaz sayfada #ffffff. Sonuç ölçüldü:
+   kart bileşiği #475bb2'den #6b7ed5'e açılıyor ve beyaz metin 4,26:1'den
+   2,77:1'e düşüyordu — 48 noktanın 30'u kalıyordu.
+
+   Kartın yüzeyleri iki temada BİREBİR aynı hesaplanıyor; değişen tek şey
+   ARKALARINDAKİ sayfa. O yüzden çözüm de kartta değil arkasında: dokuya
+   opak koyu bir taban veriliyor, böylece camın gördüğü zemin temadan
+   bağımsız hâle geliyor.
+
+   YALNIZ AÇIK TEMADA yazılıyor. Koyu temada sayfa zaten #0b0b0b olduğu
+   için opak katman görsel olarak hiçbir şey değiştirmezdi, ama kuralı
+   koşulsuz yazmak yayındaki koyu siteye gereksiz risk taşırdı.
+
+   MEVCUT MASKEYE DOKUNULMUYOR. `.fiyat-zemin` zaten eliptik bir vinyet
+   maskesi taşıyor; bant onun sayesinde kenarlarda yumuşayarak bitiyor,
+   yani düz bir dikdörtgen değil. Ölçüm maske korunarak yapıldı:
+   46/48, en dar 4,26:1 — koyu temanın tam olarak aynısı.
+   ================================================================== */
+:root:not(.dark) .fiyat-zemin {
+  background-color: #0b0b0b;
 }
 
 /* Kart içi ayraç. `border-hair` (#26242c) siyah zemine göre ayarlı olduğu

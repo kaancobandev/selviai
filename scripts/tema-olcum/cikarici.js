@@ -79,7 +79,7 @@
      Hem linear hem radial buraya geliyor; ayrı yazmak iki kopya bakım
      demekti. `L` yalnız px cinsinden durakları orana çevirmek için:
      linear'da gradyan çizgisi boyu, radial'da yatay yarıçap. */
-  const duraktaRenk = (parcalar, bas, t, L) => {
+  const duraktaRenk = (parcalar, bas, t, L, tekrarli) => {
     const duraklar = [];
     for (let i = bas; i < parcalar.length; i++) {
       const p = parcalar[i].trim();
@@ -94,6 +94,14 @@
     if (duraklar[duraklar.length - 1].konum === null) duraklar[duraklar.length - 1].konum = 1;
     for (let i = 1; i < duraklar.length - 1; i++) {
       if (duraklar[i].konum === null) duraklar[i].konum = i / (duraklar.length - 1);
+    }
+    /* repeating-*: duraklar BİR PERİYODU tanımlıyor, desen sonsuza kadar
+       tekrarlıyor. Konum periyoda göre sarılmazsa son durak sonrasındaki
+       her nokta "son rengi" sanılır — 64° şeritlerde bu, %3'lük beyaz
+       şeridi TÜM alana yayıp kartı olduğundan açık gösteriyordu. */
+    if (tekrarli) {
+      const periyot = duraklar[duraklar.length - 1].konum - duraklar[0].konum;
+      if (periyot > 0) t = duraklar[0].konum + (((t - duraklar[0].konum) % periyot) + periyot) % periyot;
     }
     if (t <= duraklar[0].konum) return duraklar[0].renk;
     if (t >= duraklar[duraklar.length - 1].konum) return duraklar[duraklar.length - 1].renk;
@@ -121,9 +129,10 @@
      kutunun en-boyuna bağlı "sihirli köşe" açısını kullanır:
      atan2(W, H) — kare kutuda 45° verir, doğrusu budur. */
   const gradyanNoktada = (ifade, oranX, oranY, W, H) => {
-    const m = ifade.match(/^linear-gradient\((.*)\)$/s);
+    const m = ifade.match(/^(repeating-)?linear-gradient\((.*)\)$/s);
     if (!m) return null;
-    const parcalar = katmanlaraBol(m[1]);
+    const tekrarli = Boolean(m[1]);
+    const parcalar = katmanlaraBol(m[2]);
     let bas = 0, aci = 180;
     const ilk = (parcalar[0] || "").trim();
     const kose = (Math.atan2(W, H) * 180) / Math.PI;
@@ -149,7 +158,7 @@
     if (!L) return null;
     const t = 0.5 + ((oranX - 0.5) * W * sn - (oranY - 0.5) * H * cs2) / L;
 
-    return duraktaRenk(parcalar, bas, t, L);
+    return duraktaRenk(parcalar, bas, t, L, tekrarli);
   };
 
   /* radial-gradient'i ÖLÇÜM NOKTASINDA çözer.
@@ -170,15 +179,30 @@
     const ilk = (parcalar[0] || "").trim();
     const bicim =
       /^(?:circle\s+|ellipse\s+)?(-?[\d.]+(?:%|px))\s+(-?[\d.]+(?:%|px))\s+at\s+(-?[\d.]+(?:%|px))\s+(-?[\d.]+(?:%|px))$/;
-    const gm = ilk.match(bicim);
-    if (!gm) return null;
     const cev = (v, tam) => (v.endsWith("%") ? (parseFloat(v) / 100) * tam : parseFloat(v));
-    const rx = cev(gm[1], W), ry = cev(gm[2], H);
-    const cx = cev(gm[3], W), cy = cev(gm[4], H);
+    const gm = ilk.match(bicim);
+    let rx, ry, cx, cy, bas;
+    if (gm) {
+      bas = 1;
+      rx = cev(gm[1], W); ry = cev(gm[2], H);
+      cx = cev(gm[3], W); cy = cev(gm[4], H);
+    } else if (ilk === "circle" || !/^(circle|ellipse|closest|farthest|at\s)/.test(ilk)) {
+      /* VARSAYILAN BİÇİM: yarıçap da konum da yazılmamış. CSS'e göre şekil
+         `farthest-corner`, merkez kutunun ortası. Nokta ızgarası tam bu
+         biçimde; KARO İÇİNDE çözülünce örneklenen nokta neredeyse her zaman
+         dairenin DIŞINDA kalıyor, yani dokunun gerçek katkısı sıfıra yakın —
+         sınırın bindirdiği gibi tam kapsam değil. */
+      bas = ilk === "circle" ? 1 : 0;
+      cx = W / 2;
+      cy = H / 2;
+      rx = ry = Math.hypot(W / 2, H / 2);
+    } else {
+      return null; // closest-side / farthest-side gibi anahtar sözcükler: sınıra düşsün
+    }
     if (!rx || !ry) return null;
     /* Elips içinde normalize uzaklık: 0 merkez, 1 kenar. */
     const dx = (oranX * W - cx) / rx, dy = (oranY * H - cy) / ry;
-    return duraktaRenk(parcalar, 1, Math.sqrt(dx * dx + dy * dy), rx);
+    return duraktaRenk(parcalar, bas, Math.sqrt(dx * dx + dy * dy), rx);
   };
 
   /* NOKTADA çözülemeyen gradyanlar için EN KÖTÜ DURUM SINIRI.
@@ -527,6 +551,39 @@
           const boyutlar = katmanlaraBol(st.backgroundSize || "auto");
           const konumlar = katmanlaraBol(st.backgroundPosition || "0% 0%");
           const tekrarlar = katmanlaraBol(st.backgroundRepeat || "repeat");
+
+          /* KARO GEOMETRİSİ — döşenen desenler KARO İÇİNDE çözülür.
+             `background-size` öğeden küçükse gradyan öğeye değil KAROYA
+             göre boyanıyor; öğe oranıyla çözmek bambaşka bir noktayı
+             örnekler. Bu ayrım olmadan üç ölçüm gevşek "en kötü durum
+             sınırı"na düşüyordu: fiyat sayfasının nokta ızgarası ve 64°
+             şeritleri, bir de etiket sayfasının damask dokusu — sonuncusu
+             beyaz metni 1,00:1 gösteriyordu.
+             Nokta ızgarasında karo 11,5px ve daire yarıçapı 1px; yani
+             örneklenen nokta neredeyse her zaman DAİRENİN DIŞINDA, dokunun
+             gerçek katkısı sıfıra yakın. Sınır ise onu tam kapsamla
+             bindiriyordu. */
+          const uzunluk = (ifade, tam) => {
+            const v = String(ifade).trim();
+            if (v.endsWith("%")) return (parseFloat(v) / 100) * tam;
+            if (v.endsWith("px")) return parseFloat(v);
+            return null; // auto / cover / contain
+          };
+          const karoOlcusu = (i) => {
+            const boyut = (boyutlar[i % boyutlar.length] || "auto").trim();
+            if (/cover|contain|auto/.test(boyut)) return null;
+            const p = boyut.split(/\s+/);
+            const g = uzunluk(p[0], kr.width);
+            const y = p.length > 1 ? uzunluk(p[1], kr.height) : g;
+            if (!g || !y) return null;
+            if (g >= kr.width - 0.5 && y >= kr.height - 0.5) return null; // döşenmiyor
+            const konum = (konumlar[i % konumlar.length] || "0% 0%").trim().split(/\s+/);
+            const ox = uzunluk(konum[0], kr.width - g) ?? 0;
+            const oy = konum.length > 1 ? (uzunluk(konum[1], kr.height - y) ?? 0) : 0;
+            const yerelX = (((mx - kr.left - ox) % g) + g) % g;
+            const yerelY = (((my - kr.top - oy) % y) + y) % y;
+            return { g, y, oranX: yerelX / g, oranY: yerelY / y };
+          };
           const kapsiyorMu = (i) => {
             const boyut = (boyutlar[i % boyutlar.length] || "auto").trim();
             const tekrar = (tekrarlar[i % tekrarlar.length] || "repeat").trim();
@@ -575,9 +632,15 @@
             if (/^url\(/.test(k)) {
               return rasterdenOrnek(ras);
             }
+            /* Döşenen katmanlarda gradyan KAROYA göre çözülüyor. */
+            const karo = karoOlcusu(i);
+            const gX = karo ? karo.oranX : oranX;
+            const gY = karo ? karo.oranY : oranY;
+            const gG = karo ? karo.g : kr.width;
+            const gY2 = karo ? karo.y : kr.height;
             const gr =
-              gradyanNoktada(k, oranX, oranY, kr.width, kr.height) ||
-              radyalNoktada(k, oranX, oranY, kr.width, kr.height);
+              gradyanNoktada(k, gX, gY, gG, gY2) ||
+              radyalNoktada(k, gX, gY, gG, gY2);
             if (gr) return { tur: "gradyan", renk: gr };
             /* Noktada çözülemedi — en kötü durum sınırına düş. `sinir: true`
                raporda görünür kalsın diye taşınıyor: sayı bir ÖLÇÜM değil,
