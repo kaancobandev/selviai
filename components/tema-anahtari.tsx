@@ -77,6 +77,35 @@ export function TemaAnahtari({ className }: { className?: string }) {
       return;
     }
 
+    /* YAMA 5 — BUTONUN YERİ GEÇİŞTEN **ÖNCE** OKUNUYOR.
+       Önce `await gecis.ready` sonrasında okunuyordu. Geçiş etkinken kök
+       öğe `view-transition-name: root` alıyor ve bazı mobil derlemelerde
+       gerçek içerik o an düzenlenmiş sayılmıyor; `getBoundingClientRect()`
+       sıfır dönüyor. Sonuç `circle(0px at 0px 0px)` — yani daire ekranın
+       SOL ÜST köşesinden açılıyor ve merkez yanlış olduğu için hareket
+       okunmuyor, tema "birden değişmiş" gibi görünüyor. Masaüstünde
+       görünmüyordu çünkü orada düzen geçiş boyunca yerinde kalıyor.
+       Ölçümü geçişten önce almanın hiçbir maliyeti yok. */
+    const kutu = dugmeRef.current.getBoundingClientRect();
+    /* Kutu yine de bozuksa merkez tahmin edilmiyor, sağ üste sabitleniyor:
+       düğme orada duruyor ve yanlış bir merkezden açılan daire, hiç
+       animasyon olmamasından daha kötü görünüyor. */
+    const gecerli = kutu.width > 0 && kutu.height > 0;
+    const gorunumG = document.documentElement.clientWidth || innerWidth;
+    const gorunumY = document.documentElement.clientHeight || innerHeight;
+    const x = gecerli ? kutu.left + kutu.width / 2 : gorunumG - 40;
+    const y = gecerli ? kutu.top + kutu.height / 2 : 32;
+
+    /* YÜZDEYLE, PİKSELLE DEĞİL.
+       `::view-transition-new(root)` sözde öğesi görsel görünüme değil
+       **anlık görüntü kapsayıcısına** göre konumlanıyor. Mobilde adres
+       çubuğu gizlenip göründükçe bu ikisi ayrışıyor, yani piksel
+       koordinatları kayıyor. Yüzdeler sözde öğenin KENDİ kutusuna göre
+       çözüldüğü için bu farktan etkilenmiyor. Yarıçap da yüzde: %150
+       kutunun köşegenini garantiyle aşıyor, dolayısıyla artık
+       innerWidth/innerHeight hesabına hiç gerek yok. */
+    const xy = `${((x / gorunumG) * 100).toFixed(2)}% ${((y / gorunumY) * 100).toFixed(2)}%`;
+
     /* YAMA 3 — İLK TIK. MagicUI'nin sürümü temayı bir React state'inden
        okuyor; state ilk render'da henüz doğru değeri taşımadığı için ilk
        tık ya hiçbir şey yapmıyor ya ters yöne dönüyordu. Burada durum
@@ -96,18 +125,8 @@ export function TemaAnahtari({ className }: { className?: string }) {
       return; // geçiş iptal edildi (art arda tık) — animasyon kurulmasın
     }
 
-    const { top, left, width, height } = dugmeRef.current.getBoundingClientRect();
-    const x = left + width / 2;
-    const y = top + height / 2;
-    /* Dairenin en uzak köşeye ulaşması gerekiyor, yoksa ekranın bir köşesi
-       eski temada kalır. */
-    const enUzak = Math.hypot(
-      Math.max(x, innerWidth - x),
-      Math.max(y, innerHeight - y),
-    );
-
     kok.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${enUzak}px at ${x}px ${y}px)`] },
+      { clipPath: [`circle(0% at ${xy})`, `circle(150% at ${xy})`] },
       {
         duration: 620,
         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
