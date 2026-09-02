@@ -47,11 +47,11 @@ export default function AcademyPage() {
               sizes="100vw"
               className="photo-reveal object-cover group-hover:scale-[1.02]"
             />
-            <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/88 via-ink/28 to-transparent" />
             <PlayRing />
             <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 text-paper sm:flex-row sm:items-end sm:justify-between md:p-8">
               <div>
-                <p className="eyebrow text-paper/70">
+                <p className="eyebrow text-paper/90">
                   {featuredLesson.access} · {featuredLesson.level}
                 </p>
                 <p className="mt-3 font-display text-2xl leading-tight md:text-4xl">
@@ -122,7 +122,7 @@ export default function AcademyPage() {
                 key={p.id}
                 className={cn(
                   "flex flex-col p-8 md:p-10",
-                  p.featured ? "ters-kart bg-zemin text-kalem" : "bg-paper/[0.04] text-paper",
+                  p.featured ? "ters-kart bg-zemin text-kalem" : "bg-kalem/[0.04] text-kalem",
                 )}
               >
                 <div className="flex items-center justify-between">

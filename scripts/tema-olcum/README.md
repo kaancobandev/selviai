@@ -115,7 +115,19 @@ yanlış: fiyat kartlarının SVG greni %2-3 opaklıkta beyaz zerrelerden
 oluşuyor, alfa atılınca her zerre KATI BEYAZ sanılıp kart bembeyaz
 görünüyordu.
 
-**14. Fikstürün toleransı keyfi değil.** Belgelenmiş hex'lerin kendisi
+**14. `<img>` de bir katmandır.** Uzun süre yalnız CSS `background-image`
+taranıyordu; `<img>` (ve onu basan `next/image`) yığına hiç renk katmıyordu
+ve değerlendirici fotoğrafın İÇİNDEN geçip altındaki yer tutucuyu ölçüyordu.
+Depoda ~21 fotoğraf üstü rozet var, hepsi bu yoldan ölçülüyordu. Yerleşimi
+`object-fit` belirler, `background-size` değil. Tembel görseller ölçümden
+önce eager'a çekilip `decode()` bekleniyor, yoksa rapor ölçümü değil
+zamanlamayı yansıtır.
+
+Bu kör noktanın kapanması, akademi öne çıkan kartında **koyu temada da var
+olan** bir kırığı ortaya çıkardı: fotoğraf üstü eyebrow 3,17:1. Yani hata
+açık tema çalışmasının ürünü değildi, yalnızca o güne dek görülemiyordu.
+
+**15. Fikstürün toleransı keyfi değil.** Belgelenmiş hex'lerin kendisi
 yazılı oranlardan ±0,051'e kadar sapıyor (`#3448bd` → 7,479 ama tabloda
 7,53), çünkü tablo yuvarlanmış hex'ten değil float bileşkeden hesaplanmış.
 Bu yüzden saf WCAG testi ±0,06, bileşke testi ise oran yerine **hex**

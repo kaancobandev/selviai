@@ -232,23 +232,59 @@
     const kokEl = document.querySelector(kok);
     if (!kokEl) return { hata: "kök bulunamadı: " + kok };
 
+    /* GÖRSELLERİ ÖNCE YÜKLET. `loading="lazy"` olanlar ölçüm anında henüz
+       inmemiş olabiliyor; o hâlde `<img>` katmanı "yuklenmedi" diye
+       çözülemez sayılır ve rapor ölçümden çok zamanlamayı yansıtır.
+       Hepsi eager'a çekilip decode bekleniyor — hata yutuluyor, çünkü
+       yüklenemeyen görsel zaten aşağıda açıkça işaretleniyor. */
+    const gorseller = [...document.querySelectorAll("img")];
+    for (const im of gorseller) im.loading = "eager";
+    await Promise.all(
+      gorseller.map((im) =>
+        im.complete && im.naturalWidth
+          ? null
+          : im.decode().catch(() => {}),
+      ),
+    );
+
     /* Raster arka planları önceden çöz — GERÇEKTEN örneklenebilen tek şey. */
     const rasterler = new Map();
     for (const el of document.querySelectorAll("*")) {
-      const bi = getComputedStyle(el).backgroundImage;
-      const m = bi && bi.match(/url\((['"]?)(.*?)\1\)/);
-      /* `data:` ARTIK ATLANMIYOR. Eskiden atlanıyordu ve sonuç sessiz
-         değil ama kör bir tıkanmaydı: fiyat kartlarının SVG gren dokusu
-         (`.fiyat-cam`) çözülemez sayılıp kartın üstündeki 34 ölçümün
-         hepsini ÇÖZÜLEMEDİ yapıyordu. Oysa data: URI ağ ve CORS
-         gerektirmediği için örneklenmesi EN KOLAY olan tür. */
-      if (!m) continue;
+      /* <img> DE ÖRNEKLENİYOR — eskiden hiç görülmüyordu.
+         Yalnız CSS `background-image` taranıyordu; `<img>` (ve onu basan
+         next/image) hiçbir zaman yığına renk katmıyordu. Sonuç sessiz ve
+         yönü İYİMSER değil ama YANLIŞ: değerlendirici fotoğrafın İÇİNDEN
+         geçip altındaki yer tutucuyu ölçüyordu. Akademi ders karolarında
+         tam bu oldu — beyaz rozetler, fotoğraf yerine `bg-hair` yer
+         tutucusuyla eşleştirildi. Depoda ~21 fotoğraf üstü rozet var,
+         hepsi bu yoldan ölçülüyor. */
+      const imgMu = el.tagName === "IMG";
+      let kaynak = null;
+      if (imgMu) {
+        kaynak = el.currentSrc || el.getAttribute("src") || null;
+      } else {
+        const bi = getComputedStyle(el).backgroundImage;
+        const m0 = bi && bi.match(/url\((['"]?)(.*?)\1\)/);
+        /* `data:` ARTIK ATLANMIYOR. Eskiden atlanıyordu ve sonuç sessiz
+           değil ama kör bir tıkanmaydı: fiyat kartlarının SVG gren dokusu
+           (`.fiyat-cam`) çözülemez sayılıp kartın üstündeki 34 ölçümün
+           hepsini ÇÖZÜLEMEDİ yapıyordu. Oysa data: URI ağ ve CORS
+           gerektirmediği için örneklenmesi EN KOLAY olan tür. */
+        kaynak = m0 ? m0[2] : null;
+      }
+      if (!kaynak) continue;
       const r0 = el.getBoundingClientRect();
       if (r0.width < 8 || r0.height < 8) continue;
+      /* Henüz yüklenmemiş görsel ölçülmez: naturalWidth 0 iken çizim
+         sessizce boş kalır ve şeffaf sanılır. Açıkça hata yazılıyor. */
+      if (imgMu && (!el.complete || !el.naturalWidth)) {
+        rasterler.set(el, { hata: "img henuz yuklenmedi", el });
+        continue;
+      }
       try {
         let bmp;
         try {
-          bmp = await createImageBitmap(await (await fetch(m[2])).blob());
+          bmp = await createImageBitmap(await (await fetch(kaynak)).blob());
         } catch (e1) {
           /* SVG YEDEĞİ. createImageBitmap, Chrome'da SVG blob'unu
              çözmüyor: "InvalidStateError: The source image could not be
@@ -260,7 +296,7 @@
             const im = new Image();
             im.onload = () => coz2(im);
             im.onerror = () => at(new Error("img: " + String(e1).slice(0, 40)));
-            im.src = m[2];
+            im.src = kaynak;
           });
         }
         const bg = bmp.naturalWidth || bmp.width;
@@ -286,7 +322,25 @@
         const boy = (st0.backgroundSize || "auto").trim();
         const kapsayan = /cover|contain/.test(boy);
         const karoKucuk = bg < r0.width - 0.5 || by < r0.height - 0.5;
-        if (tekrarAcik && !kapsayan && karoKucuk) {
+        if (imgMu) {
+          /* <img> yerleşimini `object-fit` belirler, `background-size`
+             değil. Depoda hepsi `object-cover` ama diğer değerler de
+             doğru çiziliyor; yanlış ölçek metnin altındaki YANLIŞ bölgeyi
+             örneklemek demek olurdu. `object-position` varsayılan
+             (%50 %50) kabul ediliyor — depoda hiçbir yerde değiştirilmiyor. */
+          const uyum = (st0.objectFit || "fill").trim();
+          let sc;
+          if (uyum === "contain" || uyum === "scale-down") sc = Math.min(cv.width / bg, cv.height / by);
+          else if (uyum === "none") sc = 1;
+          else if (uyum === "fill") sc = null;
+          else sc = Math.max(cv.width / bg, cv.height / by); // cover
+          if (sc === null) cx.drawImage(bmp, 0, 0, cv.width, cv.height);
+          else cx.drawImage(bmp, (cv.width - bg * sc) / 2, (cv.height - by * sc) / 2, bg * sc, by * sc);
+          rasterler.set(el, {
+            veri: cx.getImageData(0, 0, cv.width, cv.height).data,
+            g: cv.width, y: cv.height, el, imgMu: true,
+          });
+        } else if (tekrarAcik && !kapsayan && karoKucuk) {
           /* Karoyu bir kez, doğal boyutunda çiz ve TÜM karoyu örnekle.
              Faz bilinmediği için karodaki en kötü piksel geçerli bir üst
              sınırdır: metnin altına o pikselden daha kötüsü düşemez. */
@@ -376,6 +430,42 @@
       const enKotuFark = (L) =>
         metinL === null ? (yon === "acik" ? L : -L) : Math.abs(L - metinL);
 
+      /* Bir rasterden, metnin kutusuna denk gelen EN KÖTÜ pikseli seçer.
+         Hem CSS `background-image` katmanları hem `<img>` öğeleri buraya
+         geliyor; ayrı yazmak iki kopya bakım demekti. */
+      const rasterdenOrnek = (ras) => {
+        if (!ras || !ras.veri) {
+          return { tur: "cozulemedi", ifade: ras && ras.hata ? ras.hata : "raster yok" };
+        }
+        const kr2 = ras.el.getBoundingClientRect(); // kaydırma sonrası taze
+        /* tumKaro: tekrarlayan doku, faz bilinmiyor — karonun tamamı
+           taranıyor (üst sınır). Aksi hâlde yalnız metnin kutusuna denk
+           gelen bölge. */
+        const x0 = ras.tumKaro ? 0 : Math.max(0, Math.round(rr.left - kr2.left));
+        const x1 = ras.tumKaro ? ras.g : Math.min(ras.g, Math.round(rr.right - kr2.left));
+        const y0 = ras.tumKaro ? 0 : Math.max(0, Math.round(rr.top - kr2.top));
+        const y1 = ras.tumKaro ? ras.y : Math.min(ras.y, Math.round(rr.bottom - kr2.top));
+        /* ALFA KORUNUYOR. Önce zorla 1 yazılıyordu; fotoğraf katmanları
+           için doğru (opaklar) ama ALFALI dokular için ciddi yanlış: fiyat
+           kartlarının SVG greni %2-3 opaklıkta beyaz zerrelerden oluşuyor
+           ve alfa atılınca her zerre KATI BEYAZ sanılıp kartı bembeyaz
+           gösteriyor, 30 nokta 1,00:1'e düşüyordu.
+
+           En kötü aday seçilirken de alfa hesaba katılıyor: bir pikselin
+           zarar verme gücü, hem metne yakınlığı hem de ne kadar opak
+           olduğuyla orantılı. Saydam bir zerre metni gizleyemez. */
+        let en = null, enPuan = -Infinity;
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+          const i = (y * ras.g + x) * 4;
+          const p = [ras.veri[i], ras.veri[i + 1], ras.veri[i + 2]];
+          const a = ras.veri[i + 3] / 255;
+          if (a <= 0) continue;
+          const puan = a * (1 - Math.min(1, enKotuFark(lum(p))));
+          if (puan > enPuan) { enPuan = puan; en = [p[0], p[1], p[2], +a.toFixed(4)]; }
+        }
+        return en ? { tur: "raster", renk: en } : { tur: "cozulemedi", ifade: "ornek yok" };
+      };
+
       /* Yığın: DOM zinciri YÜRÜNMEZ. Ölçülecek metnin arka planı çoğu zaman
          KARDEŞ katmanda; ataları yürüyen bir denetçi onları göremez. */
       const yigin = document.elementsFromPoint(mx, my).map((n) => {
@@ -454,36 +544,7 @@
             if (halkaIcinde) return { tur: "kapsamiyor", ifade: "halka ici (mask-composite: exclude)" };
             if (!kapsiyorMu(i)) return { tur: "kapsamiyor", ifade: k.slice(0, 40) };
             if (/^url\(/.test(k)) {
-              if (!ras || !ras.veri) return { tur: "cozulemedi", ifade: ras && ras.hata ? ras.hata : "raster yok" };
-              const kr2 = ras.el.getBoundingClientRect(); // kaydırma sonrası taze
-              /* tumKaro: tekrarlayan doku, faz bilinmiyor — karonun
-                 tamamı taranıyor (üst sınır). Aksi hâlde yalnız metnin
-                 kutusuna denk gelen bölge. */
-              const x0 = ras.tumKaro ? 0 : Math.max(0, Math.round(rr.left - kr2.left));
-              const x1 = ras.tumKaro ? ras.g : Math.min(ras.g, Math.round(rr.right - kr2.left));
-              const y0 = ras.tumKaro ? 0 : Math.max(0, Math.round(rr.top - kr2.top));
-              const y1 = ras.tumKaro ? ras.y : Math.min(ras.y, Math.round(rr.bottom - kr2.top));
-              /* ALFA KORUNUYOR. Önce zorla 1 yazılıyordu; fotoğraf
-                 katmanları için doğru (opaklar) ama ALFALI dokular için
-                 ciddi yanlış: fiyat kartlarının SVG greni %2-3 opaklıkta
-                 beyaz zerrelerden oluşuyor ve alfa atılınca her zerre KATI
-                 BEYAZ sanılıp kartı bembeyaz gösteriyor, 30 nokta 1,00:1'e
-                 düşüyordu.
-
-                 En kötü aday seçilirken de alfa hesaba katılıyor: bir
-                 pikselin zarar verme gücü, hem metne yakınlığı hem de ne
-                 kadar opak olduğuyla orantılı. Saydam bir zerre metni
-                 gizleyemez. */
-              let en = null, enPuan = -Infinity;
-              for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-                const i = (y * ras.g + x) * 4;
-                const p = [ras.veri[i], ras.veri[i + 1], ras.veri[i + 2]];
-                const a = ras.veri[i + 3] / 255;
-                if (a <= 0) continue;
-                const puan = a * (1 - Math.min(1, enKotuFark(lum(p))));
-                if (puan > enPuan) { enPuan = puan; en = [p[0], p[1], p[2], +a.toFixed(4)]; }
-              }
-              return en ? { tur: "raster", renk: en } : { tur: "cozulemedi", ifade: "ornek yok" };
+              return rasterdenOrnek(ras);
             }
             const gr =
               gradyanNoktada(k, oranX, oranY, kr.width, kr.height) ||
@@ -496,6 +557,12 @@
             if (sr) return { tur: "gradyan", renk: sr, sinir: true, ifade: k.slice(0, 60) };
             return { tur: "cozulemedi", ifade: k.slice(0, 60) };
           });
+        } else if (n.tagName === "IMG") {
+          /* `<img>`in kendisi bir KATMAN. `background-image`i olmadığı için
+             yukarıdaki dal onu hiç görmüyordu ve yığında saydam bir kutu
+             gibi duruyordu; değerlendirici de fotoğrafın içinden geçip
+             altındaki yer tutucuyu ölçüyordu. */
+          kayit.katmanlar = [rasterdenOrnek(rasterler.get(n))];
         }
         return kayit;
       });
