@@ -26,7 +26,15 @@ otomatik erişilebilirlik denetçileri bunları göremiyor.
 |---|---|---|
 | `renk.mjs` | Node | saf matematik: WCAG parlaklık, kontrast, alfa bileşke, `saturate`, gradyan |
 | `dogrula.mjs` | Node | regresyon fikstürü — yazılı koyu sayıları yeniden üretir |
-| `cikarici.js` | tarayıcı | ölçüm noktalarının gerçek GİRDİlerini toplar (henüz yazılmadı) |
+| `cikarici.js` | tarayıcı | ölçüm noktalarının gerçek GİRDİlerini toplar |
+| `kosu.mjs` | Node | yığını alttan üste bileştirir, eşiğe göre rapor eder |
+
+`cikarici.js` bugün şunları noktada çözüyor: `linear-gradient` (her açı,
+`repeating-` dahil), `radial-gradient` (açık yarıçap + `at`, bir de
+varsayılan `circle`), döşenen katmanlar (karo içi koordinat), `<img>` ve
+CSS raster katmanları (alfa korunarak, `object-fit`e göre). Çözemediği
+biçimler tahmin edilmiyor: en kötü durum SINIRINA düşüyor ve rapora
+`[sinir]` diye yazılıyor — geçenler gerçekten geçiyor demektir.
 
 ### Neden bileşke Node tarafında hesaplanıyor
 
@@ -179,6 +187,28 @@ npm run olcum:kosu scripts/tema-olcum/girdi/koyu-1280-footer.json
 
 # 4) public/tema-cikarici.js'i SİL — yayına gitmemeli
 ```
+
+**Ölçümden hemen önce ekran görüntüsü alın.** Panel gizliyken
+`innerWidth`/`innerHeight` sıfır okunuyor (tuzak 7) ve çıkarıcı açıkça
+duruyor. Ekran görüntüsü paneli görünür kılıyor.
+
+### Çıktıyı elle taşımak zorunda değilsiniz
+
+3. adım tek bir bölüm için 120 KB'a çıkabiliyor ve konsoldan elle taşımak
+hem yavaş hem hataya açık. Açık tema çalışmasında bunun yerine geçici bir
+dev rotası kullanıldı: `app/api/olcum-yaz/route.ts`, `POST` ile gelen
+JSON'u `scripts/tema-olcum/girdi/` altına yazıyordu.
+
+```js
+await fetch('/api/olcum-yaz?ad=acik-1280-anasayfa.json',
+            { method: 'POST', body: JSON.stringify(r) })
+```
+
+Depoda BIRAKILMADI, çünkü diske yazan bir rota — üretimde 404 döndürse ve
+dosya adını beyaz listeyle sınırlasa bile — kalıcı tutulacak bir şey değil.
+Gerekirse yeniden yazmak kırk satır; yazarken iki koruma şart:
+`process.env.NODE_ENV === "production"` kontrolü ve `^[a-z0-9-]+\.json$`
+dosya adı denetimi (`path.join` tek başına `../../.env`'i engellemez).
 
 ### Bilinen sapma
 
