@@ -1,0 +1,70 @@
+{"yon":"koyu","kok":"footer","url":"/","viewport":{"g":1280,"y":900,"dpr":1},"sayfaZemini":[11,11,11,1],"rasterSayisi":1,"pointerEventsAcilan":12,"noktalar":[
+{"metin":"Selvi AI","etiket":"P.wordmark","renk":[255,255,255,1],"px":136,"kalinlik":"400","yigin":[
+  {"etiket":"P.wordmark","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[155,163,240,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Tasarım için yapay zekâ görsel üretimi","etiket":"P.tagline","renk":[255,255,255,0.902],"px":10,"kalinlik":"500","yigin":[
+  {"etiket":"P.tagline","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[193,152,250,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Ürün","etiket":"P.eyebrow1","renk":[255,255,255,0.902],"px":10,"kalinlik":"500","yigin":[
+  {"etiket":"P.eyebrow1","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[210,157,247,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Ne yapıyor","etiket":"A.link1","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link1","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[177,147,244,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Kalite kapısı","etiket":"A.link2","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link2","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[187,148,247,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Sektörler","etiket":"A.link3","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link3","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[157,140,230,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Fiyatlandırma","etiket":"A.link4","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link4","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[165,144,235,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Stüdyo","etiket":"P.eyebrow2","renk":[255,255,255,0.902],"px":10,"kalinlik":"500","yigin":[
+  {"etiket":"P.eyebrow2","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[188,161,255,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Kompozisyon","etiket":"A.link5","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link5","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[159,162,240,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Galeri","etiket":"A.link6","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link6","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[178,151,245,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"İletişim","etiket":"P.eyebrow3","renk":[255,255,255,0.902],"px":10,"kalinlik":"500","yigin":[
+  {"etiket":"P.eyebrow3","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[56,119,136,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"İletişim (bağlantı)","etiket":"A.link7","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link7","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[63,129,145,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"info@selviai.com","etiket":"A.link8","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link8","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[65,126,146,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"LinkedIn","etiket":"A.link9","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link9","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[72,131,147,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"Instagram","etiket":"A.link10","renk":[255,255,255,1],"px":14,"kalinlik":"400","yigin":[
+  {"etiket":"A.link10","zemin":[0,0,0,0],"katmanlar":[{"tur":"kapsamiyor","ifade":"u-line alt cizgisi"}]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[66,125,144,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"© 2026 Selvi AI. Tüm hakları saklıdır.","etiket":"SPAN.telif","renk":[255,255,255,0.902],"px":10,"kalinlik":"500","yigin":[
+  {"etiket":"SPAN.telif","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[211,169,250,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]},
+{"metin":"İstanbul","etiket":"SPAN.sehir","renk":[255,255,255,0.902],"px":10,"kalinlik":"500","yigin":[
+  {"etiket":"SPAN.sehir","zemin":[0,0,0,0]},
+  {"etiket":"DIV.selvi-footer-zemin","zemin":[0,0,0,0],"katmanlar":[{"tur":"gradyan","renk":[0,0,0,0]},{"tur":"gradyan","renk":[11,11,11,0.451]},{"tur":"raster","renk":[60,99,97,1]}]},
+  {"etiket":"BODY","zemin":[11,11,11,1]}]}
+]}

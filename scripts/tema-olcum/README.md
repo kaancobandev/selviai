@@ -84,3 +84,33 @@ yuvarlama kaynağını üst üste bindirir.
 `devDependencies`'e **açıkça** eklendi. Aksi hâlde `npm ci --omit=optional`
 ile ya da prebuilt binary'si olmayan bir platformda sessizce kırılır ve
 `next` sürümü değişince habersiz gider.
+
+## Canlı boru hattı (Faz 1b)
+
+```bash
+# 1) Çıkarıcıyı geçici olarak servis et
+cp scripts/tema-olcum/cikarici.js public/tema-cikarici.js
+
+# 2) Tarayıcıda
+#    const src = await (await fetch('/tema-cikarici.js')).text(); (0,eval)(src);
+#    JSON.stringify(await __temaCikar({ kok: 'footer', yon: 'koyu' }))
+
+# 3) Çıktıyı girdi/ altına kaydet, sonra
+npm run olcum:kosu scripts/tema-olcum/girdi/koyu-1280-footer.json
+
+# 4) public/tema-cikarici.js'i SİL — yayına gitmemeli
+```
+
+### Bilinen sapma
+
+Altbilgi 1280'de en dar **4,69:1** ölçülüyor; `globals.css`'te yazılı değer
+**4,80:1**. Fark 0,11 ve bu boru hattı **daha muhafazakâr** tarafta.
+
+Sebep: özgün ölçüm katman yığınının tamamını tuvale çizip **bileşke 8-bit
+pikseli** örneklemişti. Bu boru hattı rasterin uç pikselini alıp peçeyi
+**float** olarak üstüne biniyor — yuvarlama bir kez değil sıfır kez oluyor.
+Ayrıca o ölçümden sonra altbilgiye üç bağlantı eklendi, yani ölçülen küme
+de birebir aynı değil.
+
+Sapmanın yönü güvenli: boru hattı gerçekte geçen bir yüzeyi "kaldı"
+gösterebilir, tersini göstermez.
