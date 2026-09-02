@@ -52,17 +52,17 @@ export function SiteFooter() {
             <p className="font-display text-[17vw] leading-[0.85] tracking-[-0.02em] md:text-[7rem] lg:text-[8.5rem]">
               {site.name}
             </p>
-            <p className="eyebrow mt-6 text-fog">{site.tagline}</p>
+            <p className="eyebrow mt-6 text-paper/85">{site.tagline}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:col-span-7 md:pt-3">
             {sutunlar.map((sutun) => (
               <div key={sutun.baslik}>
-                <p className="eyebrow text-fog">{sutun.baslik}</p>
+                <p className="eyebrow text-paper/85">{sutun.baslik}</p>
                 <ul className="mt-5 space-y-3">
                   {sutun.baglantilar.map((b) => (
                     <li key={b.etiket}>
-                      <Link href={b.href} className="u-line text-sm text-paper/85">
+                      <Link href={b.href} className="u-line text-sm text-paper">
                         {b.etiket}
                       </Link>
                     </li>
@@ -74,8 +74,8 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-20 flex flex-col gap-3 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <span className="eyebrow text-fog">© 2026 {site.name}. Tüm hakları saklıdır.</span>
-          <span className="eyebrow text-fog">İstanbul</span>
+          <span className="eyebrow text-paper/85">© 2026 {site.name}. Tüm hakları saklıdır.</span>
+          <span className="eyebrow text-paper/85">İstanbul</span>
         </div>
       </div>
     </footer>
