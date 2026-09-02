@@ -39,7 +39,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-ink text-paper">
+    <section className="koyu-ada relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-ink text-paper">
       {/* ── 2. katman: zemin yıkaması ve kavisler ─────────────────
           Kavisler hero'nun asıl hareketi: dev bir dairenin kenar bandı,
           maskeyle kesilmiş, yavaşça dönüyor. Zemin yıkaması altlarında

@@ -44,7 +44,7 @@ const sutunlar = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative isolate border-t border-paper/15">
+    <footer className="koyu-ada relative isolate border-t border-paper/15">
       {/* Arka plan görseli ve ona göre hesaplanmış gradyan peçe.
           Değerlerin nereden geldiği globals.css'teki .selvi-footer-zemin
           yorumunda yazılı — görselin sol tarafı beyaza yakın ve altbilginin

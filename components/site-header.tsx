@@ -57,9 +57,16 @@ export function SiteHeader() {
              · solid  → bar SAYFA renginde, yani temayla doner (kalem/zemin)
              · seffaf → bar HERO'nun ustunde. Hero kalici koyu ada ve token
                yeniden baglamiyor, o yuzden burada MUTLAK beyaz sart. */
+          /* `koyu-ada` YALNIZ şeffaf dalda. Bar o hâldeyken hero'nun ÜSTÜNDE
+             duruyor ama hero'nun İÇİNDE değil, yani hero'nun token bloğunu
+             miras almıyor. Sonuç sessiz bir erişilebilirlik hatası: açık
+             temada `--color-odak` #0b0b0b oluyor ve nav bağlantılarının
+             klavye odağı koyu hero'nun üstünde siyah-üstüne-siyah kalıyor.
+             Zeminli dalda sınıf YOK — orada bar sayfanın rengini alıyor ve
+             token'ların temayla dönmesi doğru olan. */
           solid
             ? "border-hair bg-zemin/85 text-kalem backdrop-blur-md"
-            : "border-transparent bg-transparent text-paper",
+            : "koyu-ada border-transparent bg-transparent text-paper",
         )}
       >
         <div className="flex h-16 items-center justify-between px-5 md:h-20 md:px-10">

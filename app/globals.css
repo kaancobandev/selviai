@@ -265,6 +265,38 @@ body {
    çıkan" eşitlemesi açık temada anlamsızlaşıyordu; üç kart tek bir beyaz
    bloğa dönüşüyordu.
    ================================================================== */
+/* ==================================================================
+   KOYU ADA — kalıcı olarak koyu kalan yüzeyler.
+
+   `.tuval`ın aynadaki karşılığı. Sayfa açık temaya dönse de koyu kalan
+   iki yüzey var: hero (kalıcı koyu ada, KIRMIZI ÇİZGİ) ve altbilginin
+   fotoğraf bandı. İkisi de zeminlerini mutlak sınıflarla boyuyor, ama
+   TOKEN'LARI yeniden bağlamıyorlardı — ve buradan sessiz bir hata çıktı.
+
+   `:focus-visible` kuralı `outline: 1px solid var(--color-odak)`. Açık
+   temada odak #0b0b0b oluyor; bu yüzeylerin zemini de #0b0b0b. Yani
+   klavyeyle gezen kullanıcı için odak halkası TAMAMEN GÖRÜNMEZ (1,00:1):
+   hero'da arama kutusu, dört çip ve gönder düğmesi; altbilgide on
+   bağlantı. Fareyle yapılan hiçbir görsel kontrol bunu yakalamaz — ölçüm
+   de yakalamamıştı, çünkü ölçüm duruş hâlini tarıyor, odak hâlini değil.
+
+   Çözüm token'ları yeniden bağlamak: yüzey koyu kaldığı sürece içindeki
+   her tema-duyarlı değer de koyu tarafta kalmalı. Böylece bugün fark
+   edilmeyen başka bir kullanım (bir `border-hair`, bir `text-fog`) ileride
+   eklendiğinde de kendiliğinden doğru olur.
+   ================================================================== */
+.koyu-ada {
+  color-scheme: dark;
+  --color-hair: #26242c;
+  --color-fog: #a5a2ad;
+  --color-ash: #8a8792;
+  --color-odak: #bfa6ee;
+  --color-kalem: #ffffff;
+  --color-zemin: #0b0b0b;
+  --color-vurgu: #bfa6ee;
+  --color-vurgu-kalem: #0b0b0b;
+}
+
 .tuval {
   background: #ffffff;
   color: #0b0b0b;
