@@ -320,6 +320,67 @@ html.dark {
 }
 
 /* ==================================================================
+   LOOKBOOK BASKISI
+
+   Dışa aktarma BAĞIMLILIK EKLEMEDEN yapılıyor: tarayıcının kendi
+   "PDF olarak kaydet"i. jspdf/html2canvas eklemek hem paket boyutu
+   hem de ikinci bir dizgi motoru demekti — aynı sayfayı iki kez
+   tarif etmek, birinde düzeltilen hatanın ötekinde yaşaması.
+
+   Ekrandaki oran ile kâğıdın oranı BİREBİR aynı (A4 yatay, 1,414):
+   kullanıcı ekranda ne diziyorsa PDF'te onu görmeli.
+
+   Baskı ağacı ekranda `display:none`, ekran ağacı baskıda. İkisi ayrı
+   çünkü ekranda tek sayfa düzenleniyor, baskıda hepsi arka arkaya
+   diziliyor.
+   ================================================================== */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+  /* Sayfanın geri kalanı basılmıyor: başlık, yan menü, araç çubukları. */
+  body > *:not(.lookbook-baski-kok) {
+    display: none !important;
+  }
+  .lookbook-baski-kok {
+    display: block !important;
+    position: static !important;
+  }
+  .lookbook-sayfa {
+    /* Yüzde YOK: yazdırmada yüzde yüksekliğin dayanağı belirsiz.
+       Milimetre, @page ile aynı birimde konuşuyor. */
+    width: 297mm;
+    height: 210mm;
+    break-after: page;
+    overflow: hidden;
+    position: relative;
+  }
+  .lookbook-sayfa:last-child {
+    break-after: auto;
+  }
+  /* Tarayıcılar arka plan ve görselleri baskıda varsayılan olarak
+     kısıyor; lookbook tamamen görselden ibaret, kısılırsa boş çıkar. */
+  .lookbook-baski-kok * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Ekranda baskı ağacı görünmüyor ama DOM'da duruyor: yazdırma anında
+   üretilemez, görsellerin çoktan yüklenmiş olması gerekiyor. */
+/* `cqw` birimleri KAPSAYICI istiyor. Bağlanmazsa ölçü görünüm
+   genişliğine düşer ve sayfa dizgisi ekran boyutuna göre kayar —
+   oysa lookbook'un tamamı sayfanın KENDİ genişliğine göre
+   ölçeklenmeli ki önizleme ile kâğıt birebir aynı olsun. */
+.lookbook-tuval,
+.lookbook-sayfa {
+  container-type: inline-size;
+}
+.lookbook-baski-kok {
+  display: none;
+}
+/* ==================================================================
    TEMA GEÇİŞİ — anahtarın daire açılımı (View Transitions)
 
    Animasyonun kendisi JS'te kuruluyor (components/tema-anahtari.tsx);

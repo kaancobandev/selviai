@@ -10,7 +10,15 @@ import { site } from "@/lib/site";
 type Params = Promise<{ slug: string }>;
 
 /** Kendi çalışma alanı olan hizmetler — bu rota onları işlemez */
-const WORKSPACES = new Set(["inspiration", "kumas-secimi", "branding", "etiket-tasarimi", "shooting", "teknik-cizim"]);
+const WORKSPACES = new Set([
+  "inspiration",
+  "kumas-secimi",
+  "branding",
+  "etiket-tasarimi",
+  "shooting",
+  "teknik-cizim",
+  "lookbook",
+]);
 
 /** Statik export: yalnızca bilinen slug'lar üretilir */
 export const dynamicParams = false;
