@@ -26,7 +26,12 @@ export const ACIK_IS_TAVANI_MS = 2 * 60 * 1000;
  * Adresin nasıl seçildiği ve neden ortam değişkenine güvenilmediği
  * `tabanAdres` başında.
  */
-export async function arkaPlandaBaslat(jobId: string, request: Request): Promise<boolean> {
+export type BaslatmaSonucu = { ok: true } | { ok: false; sebep: string };
+
+export async function arkaPlandaBaslat(
+  jobId: string,
+  request: Request,
+): Promise<BaslatmaSonucu> {
   const base = tabanAdres(request);
 
   /* Hedef, TETİKLEMEDEN ÖNCE yazılıyor. Sonrasında yazmak, arka plan
@@ -49,13 +54,37 @@ export async function arkaPlandaBaslat(jobId: string, request: Request): Promise
     });
     if (res.status !== 202 && !res.ok) {
       console.error("arkaPlandaBaslat: beklenmedik yanıt", res.status, base);
-      return false;
+      return { ok: false, sebep: sebebiCevir(res.status, base) };
     }
-    return true;
+    return { ok: true };
   } catch (error) {
     console.error("arkaPlandaBaslat başarısız:", base, error);
-    return false;
+    return { ok: false, sebep: `Arka plan fonksiyonuna (${new URL(base).host}) ulaşılamadı.` };
   }
+}
+
+/**
+ * Başarısızlığın SEBEBİNİ söyler, "başlatılamadı" demekle yetinmez.
+ *
+ * 401/403 özellikle ayrılıyor çünkü bir tur bu yüzden kaybedildi: dal
+ * dağıtımı Netlify parola korumasının arkasındaydı ve sunucudan sunucuya
+ * yapılan bu çağrının kimliği yok. Belirti yalnız "Üretim işi
+ * başlatılamadı" idi ve korumadan hiç söz etmiyordu; tarayıcı
+ * geçebildiği için sorunun orada olduğu akla gelmiyor.
+ */
+function sebebiCevir(durum: number, base: string): string {
+  const konak = new URL(base).host;
+  if (durum === 401 || durum === 403) {
+    return (
+      `Arka plan fonksiyonu ${konak} adresinde erişime kapalı (${durum}). ` +
+      "Dağıtım parola korumasının arkasındaysa sunucu kendi fonksiyonunu çağıramaz; " +
+      "o dağıtımın ziyaretçi erişimini açın."
+    );
+  }
+  if (durum === 404) {
+    return `Arka plan fonksiyonu ${konak} adresinde bulunamadı (404). Dağıtım eksik olabilir.`;
+  }
+  return `Arka plan fonksiyonu ${konak} adresinde ${durum} döndü.`;
 }
 
 /* ------------------------------------------------------------------

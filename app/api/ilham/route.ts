@@ -105,18 +105,18 @@ export async function POST(request: Request) {
   // döndükten sonra çalışan iş donuyor.
   if (process.env.NODE_ENV === "development") {
     void runJob(job.id);
-  } else if (!(await arkaPlandaBaslat(job.id, request))) {
-    await putJob({
-      ...job,
-      status: "failed",
-      completedAt: new Date().toISOString(),
-      step: "baslatilamadi",
-      error: "Üretim işi başlatılamadı.",
-    });
-    return NextResponse.json(
-      { error: "Üretim işi başlatılamadı. Birazdan tekrar deneyin." },
-      { status: 502 },
-    );
+  } else {
+    const baslatma = await arkaPlandaBaslat(job.id, request);
+    if (!baslatma.ok) {
+      await putJob({
+        ...job,
+        status: "failed",
+        completedAt: new Date().toISOString(),
+        step: "baslatilamadi",
+        error: baslatma.sebep,
+      });
+      return NextResponse.json({ error: baslatma.sebep }, { status: 502 });
+    }
   }
 
   return NextResponse.json({ jobId: job.id }, { status: 202 });

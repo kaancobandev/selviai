@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     void runJob(job.id);
   } else {
     const triggered = await arkaPlandaBaslat(job.id, request);
-    if (!triggered) {
+    if (!triggered.ok) {
       // İş hiç başlamayacak: yüklenen girdileri burada temizle, yoksa
       // yüz fotoğrafları depoda öksüz kalır ve kotayı yer.
       await girdileriSil(girdiYollari(composeRequest));
@@ -100,13 +100,10 @@ export async function POST(request: Request) {
         status: "failed",
         completedAt: new Date().toISOString(),
         step: "baslatilamadi",
-        error: "Üretim işi başlatılamadı.",
+        error: triggered.sebep,
         request: undefined,
       });
-      return NextResponse.json(
-        { error: "Üretim işi başlatılamadı. Birazdan tekrar deneyin." },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: triggered.sebep }, { status: 502 });
     }
   }
 
