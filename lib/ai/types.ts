@@ -226,6 +226,16 @@ export type Job = {
   /** Anonim tarayıcı oturumu; galeriyi kapsamlamak için taşınır. */
   sessionId?: string;
   /**
+   * Arka plan çağrısının GÖNDERİLDİĞİ konak.
+   *
+   * Teşhis içindir ve bedeli ödenerek öğrenildi: `main` dalının işleri
+   * production'ın eski koduna gidiyordu ve hata mesajı bambaşka bir
+   * şeyi ("girdi görselleri yok") işaret ettiği için iki tur kaybedildi.
+   * Kayıt bunu kendisi söylerse, benzeri bir yanlış yönlenme tek
+   * bakışta görülür.
+   */
+  hedef?: string;
+  /**
    * Hangi Google projesinde üretilecek. Bugün her üretim anonim ve
    * ücretsiz; kredi geldiğinde ödeyen işler "odeyen" olarak işaretlenecek.
    */
@@ -308,6 +318,7 @@ export function toJobView(job: Job): JobView {
     resultDataUrl: job.resultDataUrl,
     resultUrl: job.imagePath ? `/api/kare/${job.id}` : undefined,
     mod: job.mod,
+    hedef: job.hedef,
     /* Kareler sıraya göre adreslenıyor: kovadaki yol istemciye HİÇ
        gitmiyor, çünkü kova özel ve yetki kontrolü tek yerde kalmalı. */
     kareler: job.kareler?.map((k, i) => ({

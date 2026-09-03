@@ -1,4 +1,4 @@
-import { getJob, sonIsiOku } from "./jobs";
+import { getJob, patchJob, sonIsiOku } from "./jobs";
 import { imzala, INVOKE_HEADER } from "./invoke";
 
 /* ------------------------------------------------------------------
@@ -28,6 +28,13 @@ export const ACIK_IS_TAVANI_MS = 2 * 60 * 1000;
  */
 export async function arkaPlandaBaslat(jobId: string, request: Request): Promise<boolean> {
   const base = tabanAdres(request);
+
+  /* Hedef, TETİKLEMEDEN ÖNCE yazılıyor. Sonrasında yazmak, arka plan
+     fonksiyonunun "processing" yazmasıyla yarışırdı: Blobs'ta
+     karşılaştır-ve-değiştir yok, oku-yaz arasına giren yazma kaybolur.
+     Burada henüz eşzamanlı yazan yok. */
+  await patchJob(jobId, { hedef: new URL(base).host }).catch(() => {});
+
   try {
     // Arka plan fonksiyonu herkese açık bir adres; imzasız çağrıyı
     // kabul etmiyor. Bkz. lib/ai/invoke.ts.
