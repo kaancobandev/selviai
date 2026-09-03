@@ -20,32 +20,14 @@ export const ACIK_IS_TAVANI_MS = 2 * 60 * 1000;
  * Sunucusuz ortamda yanıt döndükten sonra çalışan iş donduruluyor, yani
  * üretim mutlaka buradan geçmeli.
  *
- * TABAN ADRES: ÖNCE DAĞITIMA ÖZEL OLAN.
- *
- * Burada `process.env.URL` ilk sıradaydı ve DAL DAĞITIMLARINI BOZUYORDU.
- * Netlify'da `URL` her zaman SİTENİN ANA ADRESİ — dal dağıtımında bile
- * production'ı gösteriyor. Sonuç: `main` dalının ucu işi yaratıyor,
- * sonra arka plan çağrısını production'a (yani `release` dalının
- * koduna) gönderiyordu. İş kaydı depoyu paylaştığı için karşı taraf
- * kaydı okuyabiliyor ama kendi eski koduyla çalıştırıyordu.
- *
- * Belirti tam olarak şuydu: main'de ilham akışı "üretiliyor" diyor,
- * dört kare hiç gelmiyor ve altta "İş kaydında girdi görselleri yok."
- * yazıyordu — çünkü release'in `runJob`'ında `mod === "ilham"` dalı
- * hiç yok, iş kompozisyon sanılıp girdi görseli aranıyordu.
- *
- * `DEPLOY_PRIME_URL` dağıtıma özeldir: dal dağıtımında dalın adresi,
- * production dağıtımında production adresi. Yani her dağıtım KENDİ
- * fonksiyonunu çağırır. İsteğin kendi kaynağı da doğru olurdu ama
- * Netlify'ın kendi adresi tercih ediliyor: özel alan adı bir vekilin
- * (Cloudflare) arkasındaysa çağrı gereksizce oradan geçer.
+ * ÇAĞRI, İSTEĞİN GELDİĞİ DAĞITIMA GİTMELİ. Aksi hâlde `main` dalının
+ * işini production'ın (release'in) eski kodu çalıştırır ve iş, o kodun
+ * tanımadığı bir modda olduğu için anlamsız bir hatayla düşer.
+ * Adresin nasıl seçildiği ve neden ortam değişkenine güvenilmediği
+ * `tabanAdres` başında.
  */
 export async function arkaPlandaBaslat(jobId: string, request: Request): Promise<boolean> {
-  const base =
-    process.env.DEPLOY_PRIME_URL ??
-    process.env.URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    new URL(request.url).origin;
+  const base = tabanAdres(request);
   try {
     // Arka plan fonksiyonu herkese açık bir adres; imzasız çağrıyı
     // kabul etmiyor. Bkz. lib/ai/invoke.ts.
@@ -67,6 +49,78 @@ export async function arkaPlandaBaslat(jobId: string, request: Request): Promise
     console.error("arkaPlandaBaslat başarısız:", base, error);
     return false;
   }
+}
+
+/* ------------------------------------------------------------------
+   TABAN ADRES — İSTEĞİN GELDİĞİ YER, ORTAM DEĞİŞKENİ DEĞİL.
+
+   İki tur bu yüzden kaybedildi, ikisi de aynı kökten:
+
+   1. `process.env.URL` ilk sıradaydı. Netlify'da `URL` her zaman sitenin
+      ANA adresi — dal dağıtımında bile production'ı gösteriyor. Yani
+      main'in ucu işi yaratıyor, çalıştırmayı production'a (release'in
+      eski koduna) gönderiyordu.
+   2. `DEPLOY_PRIME_URL` öne alındı ama sorun sürdü. Sebep bu dosyanın
+      kendi geçmişinde yazılı: NETLIFY DERLEME DEĞİŞKENLERİ NEXT.JS
+      ÇALIŞMA ZAMANINDA TANIMLI OLMAYABİLİYOR — `process.env.NETLIFY` ile
+      birebir aynı tuzağa daha önce düşülmüştü. Tanımsızsa kod yine
+      `URL`'e, yani production'a düşüyor.
+
+   Bu yüzden artık İSTEĞİN KENDİSİ esas alınıyor: tarayıcı hangi adrese
+   geldiyse arka plan fonksiyonu da orada. Hiçbir ortam değişkenine
+   bağlı değil, dolayısıyla hangisinin tanımlı olduğunu bilmeye gerek yok.
+
+   HOST BAŞLIĞI DOĞRULANIYOR. Başlık istemci tarafından yazılabilir ve
+   buraya imzalı bir iş tetikleyicisi gönderiyoruz; doğrulanmazsa
+   saldırgan kendi sunucusuna iş kimliği + imza sızdırabilirdi. Bu
+   yüzden yalnız TANIDIĞIMIZ konaklar kabul ediliyor: ortam
+   değişkenlerindeki adresler, `*.netlify.app` ve yerel geliştirme.
+   Tanınmayan konakta ortam değişkenine geri dönülüyor.
+   ------------------------------------------------------------------ */
+function tabanAdres(request: Request): string {
+  const yedek =
+    process.env.DEPLOY_PRIME_URL ??
+    process.env.URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    new URL(request.url).origin;
+
+  const konak =
+    request.headers.get("x-forwarded-host")?.split(",")[0].trim() ||
+    request.headers.get("host")?.trim();
+  if (!konak) return yedek;
+
+  if (!tanidikKonak(konak)) {
+    console.warn("tabanAdres: tanınmayan konak, ortam değişkenine dönülüyor:", konak);
+    return yedek;
+  }
+
+  const sema =
+    request.headers.get("x-forwarded-proto")?.split(",")[0].trim() ||
+    (konak.startsWith("localhost") || konak.startsWith("127.0.0.1") ? "http" : "https");
+  return `${sema}://${konak}`;
+}
+
+function tanidikKonak(konak: string): boolean {
+  const ad = konak.toLowerCase().split(":")[0];
+  if (ad === "localhost" || ad === "127.0.0.1") return true;
+  // Dal dağıtımları ve dağıtım önizlemeleri hep bu alan adı altında.
+  if (ad === "netlify.app" || ad.endsWith(".netlify.app")) return true;
+
+  for (const aday of [
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+  ]) {
+    if (!aday) continue;
+    try {
+      const bilinen = new URL(aday).hostname.toLowerCase();
+      // Özel alan adı ve www'lu hâli aynı siteyi gösteriyor.
+      if (ad === bilinen || ad === `www.${bilinen}` || `www.${ad}` === bilinen) return true;
+    } catch {
+      // Bozuk değer — yok say.
+    }
+  }
+  return false;
 }
 
 /**
