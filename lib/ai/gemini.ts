@@ -1,6 +1,6 @@
 import { apiAnahtari, type Katman } from "./anahtar";
 import { buildPrompt } from "./prompt";
-import type { ComposeRequest } from "./types";
+import type { ComposeRequest, ImageInput } from "./types";
 
 /* ------------------------------------------------------------------
    Sağlayıcı katmanı — Google Generative Language REST API'sine doğrudan
@@ -48,19 +48,37 @@ type ApiResponse = {
   error?: { code?: number; status?: string; message?: string };
 };
 
-/**
- * @param modelAdi Zincirdeki modeli çağıran taraf seçer (bkz. run.ts);
- *   verilmezse ortam değişkenindeki birincil model kullanılır.
- * @param katman Hangi Google projesinin anahtarı kullanılacak. Ücretsiz
- *   deneme ayrı projede çalışır; hız sınırı ve harcama tavanı proje
- *   bazlı olduğu için bu ayrım ödeyen müşteriyi korur (bkz. anahtar.ts).
- */
-export async function generateComposite(
-  req: ComposeRequest,
-  modelAdi?: string,
-  katman?: Katman,
-): Promise<ComposeResult> {
-  const apiKey = apiAnahtari(katman);
+/* ------------------------------------------------------------------
+   ORTAK ÇAĞRI KATMANI
+
+   `generateComposite` (görselden görsele) ile `generateFromText`
+   (metinden görsele) YALNIZ istek gövdesinin `parts` dizisinde
+   ayrışıyor. Zaman aşımı, ağ hatası eşlemesi, sağlayıcı hata kodları,
+   güvenlik/RECITATION dalları ve boş yanıt teşhisi ikisinde de birebir
+   aynı — ve bu ~90 satır pahalı öğrenilmiş bilgi. İki kopya tutmak,
+   birinde düzeltilen bir hatanın ötekinde yaşamaya devam etmesi
+   demekti; o yüzden makine tek, gövde parametre.
+
+   Kullanıcıya gösterilen iki mesaj MODA GÖRE değişiyor: kompozisyonda
+   "başka bir kişi fotoğrafı deneyin" doğru, metinden üretimde ortada
+   fotoğraf olmadığı için anlamsız. Bu yüzden çağıran taraf veriyor.
+   ------------------------------------------------------------------ */
+type CagriIstegi = {
+  /** `contents[0].parts` — tek fark burası. */
+  parts: unknown[];
+  aspect: string;
+  modelAdi?: string;
+  katman?: Katman;
+  /** Güvenlik denetimine takılınca kullanıcıya ne denecek. */
+  guvenlikMesaji: string;
+  /** Model hiç görsel üretmeyince ne denecek. */
+  bosMesaji: string;
+  /** Sunucu günlüğü etiketi. */
+  etiket: string;
+};
+
+async function modeliCagir(istek: CagriIstegi): Promise<ComposeResult> {
+  const apiKey = apiAnahtari(istek.katman);
   if (!apiKey) {
     /* Ziyaretçiye ortam değişkeni adı gösterilmez; bu bir operatör sorunu ve
        müşterinin yapabileceği bir şey yok. Ayrıntı sunucu günlüğünde. */
@@ -68,25 +86,15 @@ export async function generateComposite(
     throw new ComposeError("Üretim şu anda kullanılamıyor. Kısa süre sonra tekrar deneyin.");
   }
 
-  const model = modelAdi?.trim() || composeModel();
+  const model = istek.modelAdi?.trim() || composeModel();
   const imageSize = process.env.COMPOSE_IMAGE_SIZE?.trim() || DEFAULT_SIZE;
   const timeoutMs = Number(process.env.COMPOSE_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
 
   const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: buildPrompt(req) },
-          { inline_data: { mime_type: req.person.mimeType, data: req.person.data } },
-          { inline_data: { mime_type: req.product.mimeType, data: req.product.data } },
-          { inline_data: { mime_type: req.scene.mimeType, data: req.scene.data } },
-        ],
-      },
-    ],
+    contents: [{ role: "user", parts: istek.parts }],
     generationConfig: {
       responseModalities: ["IMAGE"],
-      imageConfig: { aspectRatio: req.aspect, imageSize },
+      imageConfig: { aspectRatio: istek.aspect, imageSize },
     },
   };
 
@@ -170,10 +178,7 @@ export async function generateComposite(
 
     const reason = candidate?.finishReason ?? "";
     if (reason === "IMAGE_SAFETY" || reason === "SAFETY" || reason === "PROHIBITED_CONTENT") {
-      throw new ComposeError(
-        "İstek güvenlik denetimine takıldı. Bu genelde tanınmış bir kişiye benzeyen ya da " +
-          "az giysili bir fotoğrafta olur. Farklı bir kişi fotoğrafı deneyin.",
-      );
+      throw new ComposeError(istek.guvenlikMesaji);
     }
     if (reason === "RECITATION") {
       throw new ComposeError(
@@ -185,12 +190,17 @@ export async function generateComposite(
     throw new ComposeError(
       text
         ? `Model görsel yerine metin döndürdü: ${text.slice(0, 180)}`
-        : `Model bu istekte görsel üretmedi${reason ? ` (${reason})` : ""}. Tekrar deneyin.`,
+        : `${istek.bosMesaji}${reason ? ` (${reason})` : ""}`,
     );
   }
 
   const ms = Date.now() - started;
-  console.log("Kompozisyon üretildi:", { model, ms, aktarimMs: sentMs, boyutKB: Math.round(image.data.length / 1024) });
+  console.log(`${istek.etiket} üretildi:`, {
+    model,
+    ms,
+    aktarimMs: sentMs,
+    boyutKB: Math.round(image.data.length / 1024),
+  });
 
   return {
     mimeType: image.mimeType ?? "image/png",
@@ -198,6 +208,78 @@ export async function generateComposite(
     model,
     ms,
   };
+}
+
+/**
+ * Görselden görsele — kişi + ürün + sahne tek kareye. Davranış değişmedi.
+ *
+ * @param modelAdi Zincirdeki modeli çağıran taraf seçer (bkz. run.ts);
+ *   verilmezse ortam değişkenindeki birincil model kullanılır.
+ * @param katman Hangi Google projesinin anahtarı kullanılacak. Ücretsiz
+ *   deneme ayrı projede çalışır; hız sınırı ve harcama tavanı proje
+ *   bazlı olduğu için bu ayrım ödeyen müşteriyi korur (bkz. anahtar.ts).
+ */
+export async function generateComposite(
+  req: ComposeRequest,
+  modelAdi?: string,
+  katman?: Katman,
+): Promise<ComposeResult> {
+  return modeliCagir({
+    parts: [
+      { text: buildPrompt(req) },
+      { inline_data: { mime_type: req.person.mimeType, data: req.person.data } },
+      { inline_data: { mime_type: req.product.mimeType, data: req.product.data } },
+      { inline_data: { mime_type: req.scene.mimeType, data: req.scene.data } },
+    ],
+    aspect: req.aspect,
+    modelAdi,
+    katman,
+    guvenlikMesaji:
+      "İstek güvenlik denetimine takıldı. Bu genelde tanınmış bir kişiye benzeyen ya da " +
+      "az giysili bir fotoğrafta olur. Farklı bir kişi fotoğrafı deneyin.",
+    bosMesaji: "Model bu istekte görsel üretmedi. Tekrar deneyin.",
+    etiket: "Kompozisyon",
+  });
+}
+
+/**
+ * METİNDEN GÖRSELE — girdi görseli yok.
+ *
+ * Taşıma katmanı bunu zaten destekliyordu: metin `parts` dizisinin ilk
+ * öğesiydi ve `responseModalities: ["IMAGE"]` ile en-boy ayarı yerindeydi.
+ * Eksik olan tek şey görselleri ZORUNLU kılan gövdeydi.
+ *
+ * İsteğe bağlı `referans`: seçilen ilham karesinden moodboard/kumaş/branding
+ * türetirken kullanılıyor — o zaman istek "metinden" değil "tek referanstan"
+ * oluyor ama makine aynı.
+ */
+export async function generateFromText(
+  prompt: string,
+  aspect: string,
+  secenek?: { modelAdi?: string; katman?: Katman; referans?: ImageInput },
+): Promise<ComposeResult> {
+  const parts: unknown[] = [{ text: prompt }];
+  if (secenek?.referans) {
+    parts.push({
+      inline_data: {
+        mime_type: secenek.referans.mimeType,
+        data: secenek.referans.data,
+      },
+    });
+  }
+  return modeliCagir({
+    parts,
+    aspect,
+    modelAdi: secenek?.modelAdi,
+    katman: secenek?.katman,
+    /* Kompozisyondaki "başka bir kişi fotoğrafı deneyin" burada anlamsız:
+       ortada fotoğraf yok, kullanıcının elindeki tek kaldıraç metni. */
+    guvenlikMesaji:
+      "İstek güvenlik denetimine takıldı. Tanınmış kişi adı, marka adı ya da " +
+      "müstehcen tarif içeren istekler engellenebiliyor. İsteği yeniden yazıp deneyin.",
+    bosMesaji: "Model bu istekten görsel üretmedi. İsteği biraz daha açık yazıp tekrar deneyin.",
+    etiket: "İlham karesi",
+  });
 }
 
 /**

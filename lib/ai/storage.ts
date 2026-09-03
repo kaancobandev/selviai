@@ -124,6 +124,45 @@ export async function depola(k: Kompozisyon): Promise<string | null> {
   }
 }
 
+/**
+ * YALNIZ DOSYA yükler — kompozisyon satırı YAZMAZ.
+ *
+ * İlham kareleri için. `depola` hem dosyayı hem `compositions` satırını
+ * yazıyor ve o satır galeriyi besliyor; ilham kareleri oraya yazılsaydı
+ * iki sorun çıkardı: (1) galeri, kompozisyonlarla ilham karelerini aynı
+ * listede karıştırırdı, (2) satırdaki crop/placement/lighting sütunları
+ * ilham için anlamsız — doldurmak yanıltıcı veri, boş bırakmak ise elle
+ * çalıştırılacak bir şema göçü demek.
+ *
+ * Bu yüzden ilham kareleri kovada durur, yolları iş kaydında taşınır ve
+ * `/api/kare/<isId>?k=<sira>` ile servis edilir. Şema değişmiyor.
+ */
+export async function dosyaYukle(
+  yol: string,
+  mimeType: string,
+  base64: string,
+): Promise<boolean> {
+  if (!depoAcikMi()) return false;
+  const bayt = Buffer.from(base64, "base64");
+  try {
+    const yukleme = await fetch(`${taban()}/storage/v1/object/${BUCKET}/${yol}`, {
+      method: "POST",
+      headers: basliklar({ "content-type": mimeType, "x-upsert": "true" }),
+      body: new Uint8Array(bayt),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!yukleme.ok) {
+      console.error("Kare yüklenemedi:", yukleme.status, (await yukleme.text()).slice(0, 200));
+      return false;
+    }
+    console.log("Kare depolandı:", { yol, kb: Math.round(bayt.length / 1024) });
+    return true;
+  } catch (error) {
+    console.error("Kare yükleme hatası:", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
 /** Kareyi depodan okur. Kova özeldir; okuma yalnızca sunucudan yapılır. */
 export async function indir(yol: string): Promise<{ bayt: Buffer; mime: string } | null> {
   if (!depoAcikMi()) return null;

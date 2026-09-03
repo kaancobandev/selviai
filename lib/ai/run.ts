@@ -1,10 +1,11 @@
 import { VARSAYILAN_KATMAN, type Katman } from "./anahtar";
-import { ComposeError, generateComposite, composeModel } from "./gemini";
+import { ComposeError, generateComposite, generateFromText, composeModel } from "./gemini";
 import { agirlikliPuan, judgeComposite, qualityGateEnabled } from "./judge";
 import { getJob, patchJob } from "./jobs";
 import { cozGirdiler, girdiYollari } from "./resolve";
-import { depoAcikMi, depola, girdileriSil } from "./storage";
-import type { Attempt, ComposeRequest } from "./types";
+import { depoAcikMi, depola, dosyaYukle, girdileriSil, indir } from "./storage";
+import { ILHAM_EKSENLERI, type Attempt, type ComposeRequest, type Job, type JobKare } from "./types";
+import { buildIlhamPrompt, buildTuretilmisPrompt } from "./prompt";
 
 /* ------------------------------------------------------------------
    Bir işi baştan sona çalıştırır. İki yerden çağrılır:
@@ -52,6 +53,21 @@ export async function runJob(id: string): Promise<void> {
     console.error(`runJob: iş bulunamadı (${id})`);
     return;
   }
+  /* Tekrar-oynatma kalkanı BURAYA taşındı: eskiden `!job.request`
+     kontrolünden sonraydı, ama ilham işlerinde `request` hiç olmuyor ve
+     kontrol onları "girdi yok" diye reddediyordu. Kalkanın iki dalda da
+     geçerli olması gerekiyor, o yüzden ayrımdan önce. */
+  if (job.status === "completed" || job.status === "processing") return;
+
+  /* İLHAM / TÜRETİLMİŞ DAL — üç görselli kompozisyondan tamamen ayrı:
+     girdi çözme yok (görsel yok), kalite kapısı yok (karşılaştırılacak
+     referans yok, hakemin rubriği "kare 4'ü kare 1-3'e karşı" puanlıyor)
+     ve kazanan seçimi yok — dördü de kullanıcıya gidiyor. */
+  if (job.mod === "ilham" || job.mod === "turetilmis") {
+    await ilhamKosusu(job);
+    return;
+  }
+
   if (!job.request) {
     await patchJob(id, {
       status: "failed",
@@ -61,7 +77,6 @@ export async function runJob(id: string): Promise<void> {
     });
     return;
   }
-  if (job.status === "completed" || job.status === "processing") return;
 
   // Girdiyi belleğe al, kayıttan çıkar: bundan sonraki yazmalar küçük.
   const istek = job.request;
@@ -231,4 +246,144 @@ function enIyisi(adaylar: Aday[]): Aday | null {
   if (gecen) return gecen;
   const puan = (a: Aday) => a.attempt.puan ?? Number.POSITIVE_INFINITY;
   return adaylar.reduce((en, a) => (puan(a) > puan(en) ? a : en));
+}
+
+/* ==================================================================
+   İLHAM / TÜRETİLMİŞ KOŞUSU
+
+   Kompozisyon akışından üç yerde ayrılıyor:
+
+   1. KALİTE KAPISI YOK. Hakemin rubriği üretilen kareyi ÜÇ REFERANSA
+      karşı puanlıyor (ürün sadakati, kimlik koruma). Metinden üretimde
+      karşılaştırılacak referans yok; kapıyı çalıştırmak anlamsız bir
+      puan üretirdi.
+   2. KAZANAN SEÇİMİ YOK. Kompozisyonda dört aday üretilip biri seçilir,
+      ötekiler ÇÖPE gider. Burada dördü de kullanıcıya gidiyor — seçim
+      kullanıcının.
+   3. MODEL ZİNCİRİ YOK. Yükseltme "kapıdan geçemedi" durumuna bağlı;
+      kapı olmayınca tetiği de yok.
+
+   KISMİ BAŞARI KASITLI. Dört çağrının biri düşerse kalan üçü yine
+   gösteriliyor. `Promise.all` ilk hatada hepsini düşürürdü; kullanıcı
+   açısından üç kare sıfır kareden iyi ve ikinci bir tur ücretli.
+   ================================================================== */
+async function ilhamKosusu(job: Job): Promise<void> {
+  const id = job.id;
+  const katman: Katman = job.katman ?? VARSAYILAN_KATMAN;
+
+  type Gorev = {
+    eksen: JobKare["eksen"];
+    prompt: string;
+    aspect: string;
+    referans?: { mimeType: string; data: string };
+  };
+  let gorevler: Gorev[];
+
+  if (job.mod === "ilham") {
+    const g = job.ilham;
+    if (!g) return void (await basarisiz(id, "istek-yok", "İş kaydında istek metni yok."));
+    gorevler = ILHAM_EKSENLERI.map((eksen) => ({
+      eksen,
+      prompt: buildIlhamPrompt(g.metin, g.kategori, eksen),
+      aspect: g.aspect,
+    }));
+  } else {
+    const t = job.turetilmis;
+    if (!t) return void (await basarisiz(id, "istek-yok", "İş kaydında türetme isteği yok."));
+    /* Referans kareyi kovadan indirip baytlarını modele veriyoruz.
+       İstemciden tekrar yüklemesini istemek hem yavaş hem gereksiz:
+       kare zaten bizde. */
+    const dosya = await indir(t.kaynakYol);
+    if (!dosya) {
+      return void (await basarisiz(id, "kaynak-okunamadi", "Seçilen kare okunamadı. Tekrar deneyin."));
+    }
+    /* Referans BİR KEZ indirilip üç göreve de veriliyor — moodboard,
+       kumaş ve branding aynı kareden türüyor. */
+    const referans = { mimeType: dosya.mime, data: dosya.bayt.toString("base64") };
+    gorevler = t.turler.map((tur) => ({
+      eksen: tur,
+      prompt: buildTuretilmisPrompt(tur, t.metin),
+      aspect: t.aspect,
+      referans,
+    }));
+  }
+
+  await patchJob(id, { status: "processing", step: "model-cagriliyor" });
+  const basladi = Date.now();
+  const kalp = setInterval(() => {
+    const sn = Math.round((Date.now() - basladi) / 1000);
+    void patchJob(id, { step: `model-cagriliyor · ${sn} sn` }).catch(() => {});
+  }, HEARTBEAT_MS);
+
+  let sonuclar: PromiseSettledResult<Awaited<ReturnType<typeof generateFromText>>>[];
+  try {
+    sonuclar = await Promise.allSettled(
+      gorevler.map((g) =>
+        generateFromText(g.prompt, g.aspect, { katman, referans: g.referans }),
+      ),
+    );
+  } finally {
+    clearInterval(kalp);
+  }
+
+  const kareler: JobKare[] = [];
+  let ilkHata: unknown = null;
+
+  for (let i = 0; i < sonuclar.length; i += 1) {
+    const s = sonuclar[i];
+    if (s.status === "rejected") {
+      ilkHata ??= s.reason;
+      console.error(`ilhamKosusu: kare ${i} üretilemedi (${id}):`, s.reason);
+      continue;
+    }
+    const kare = s.value;
+    const eksen = gorevler[i].eksen;
+
+    let imagePath: string | undefined;
+    if (depoAcikMi()) {
+      const uzanti = kare.mimeType === "image/png" ? "png" : kare.mimeType === "image/webp" ? "webp" : "jpg";
+      const yol = `${id}/${eksen}.${uzanti}`;
+      if (await dosyaYukle(yol, kare.mimeType, kare.data)) imagePath = yol;
+    }
+    kareler.push({
+      eksen,
+      imagePath,
+      /* Depo kapalıysa ya da yükleme düştüyse kare yine gösterilir —
+         yalnız kalıcı olmaz. Kompozisyon akışındaki aynı yedek. */
+      dataUrl: imagePath ? undefined : `data:${kare.mimeType};base64,${kare.data}`,
+      model: kare.model,
+      ms: kare.ms,
+    });
+  }
+
+  if (!kareler.length) {
+    const mesaj =
+      ilkHata instanceof ComposeError
+        ? ilkHata.userMessage
+        : `Beklenmeyen hata: ${ilkHata instanceof Error ? ilkHata.message : String(ilkHata)}`;
+    return void (await basarisiz(id, "hata", mesaj));
+  }
+
+  await patchJob(id, {
+    status: "completed",
+    completedAt: new Date().toISOString(),
+    step: "bitti",
+    kareler,
+    meta: {
+      model: kareler[0].model,
+      ms: Date.now() - basladi,
+      /* Kapı çalışmadı; `null` "denenmedi" demek, `false` "kaldı" demek
+         olurdu ve ikisi karışmamalı. */
+      kabul: null,
+    },
+  });
+}
+
+async function basarisiz(id: string, step: string, error: string): Promise<void> {
+  await patchJob(id, {
+    status: "failed",
+    completedAt: new Date().toISOString(),
+    step,
+    error,
+  });
 }

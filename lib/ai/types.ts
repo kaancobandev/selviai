@@ -66,6 +66,71 @@ export type ComposeInput = ComposeParams & {
   scene: ImageSource;
 };
 
+/* ------------------------------------------------------------------
+   İLHAM AKIŞI
+
+   Bu sabitler prompt.ts'te değil BURADA duruyor: prompt.ts zaten
+   types.ts'ten tip alıyor, tersi de olsaydı döngüsel bağımlılık
+   çıkardı. types dosyası yaprak kalmalı.
+   ------------------------------------------------------------------ */
+
+/** Dört ilham karesinin her biri farklı bir eksenden yaklaşıyor. */
+export const ILHAM_EKSENLERI = ["siluet", "malzeme", "renk", "baglam"] as const;
+export type IlhamEkseni = (typeof ILHAM_EKSENLERI)[number];
+
+/** Bugün yalnız "moda"; otomotiv ve yat sonra eklenecek. */
+export const ILHAM_KATEGORILERI = ["moda"] as const;
+export type IlhamKategori = (typeof ILHAM_KATEGORILERI)[number];
+
+/** Seçilen kareden türetilenler. */
+export const TURETILMIS_TURLER = ["moodboard", "kumas", "branding"] as const;
+export type TuretilmisTur = (typeof TURETILMIS_TURLER)[number];
+
+/**
+ * İş modu. Eskiden tek mod vardı ve kayıtta hiç yazmıyordu; alan
+ * İSTEĞE BAĞLI çünkü yayındaki eski iş kayıtlarında yok — okunurken
+ * boşsa "kompozisyon" sayılıyor.
+ */
+export type IsModu = "kompozisyon" | "ilham" | "turetilmis";
+
+/** Metinden dört kare üretimi — girdi görseli yok. */
+export type IlhamInput = {
+  metin: string;
+  kategori: IlhamKategori;
+  aspect: Aspect;
+};
+
+/**
+ * Seçilen kareden türetilenler — TEK İŞ, ÇOK ÇIKTI.
+ *
+ * Üçünü ayrı iş yapmak doğal görünüyordu ama oturum kilidine çarpıyor:
+ * `/api/compose` aynı oturumda süren iş varken 429 dönüyor, yani ikinci
+ * ve üçüncü türetme reddedilirdi. Tek işte üç kare üretmek hem kilidi
+ * hem üç ayrı yoklama döngüsünü ortadan kaldırıyor.
+ */
+export type TuretilmisInput = {
+  turler: TuretilmisTur[];
+  metin: string;
+  /** Referans karenin kovadaki yolu — model buna bakarak türetiyor. */
+  kaynakYol: string;
+  aspect: Aspect;
+};
+
+/**
+ * Çok çıktılı işlerin tek bir karesi. Kompozisyon işleri tek kare
+ * ürettiği için `imagePath` alanını kullanmaya devam ediyor; ilham
+ * işlerinde onun yerine bu dizi doluyor.
+ */
+export type JobKare = {
+  /** Hangi eksenden/türden geldiği — arayüz bunu etiket olarak gösteriyor. */
+  eksen: IlhamEkseni | TuretilmisTur;
+  /** Kovadaki yol. Depo kapalıysa boş kalır ve dataUrl dolar. */
+  imagePath?: string;
+  dataUrl?: string;
+  model: string;
+  ms: number;
+};
+
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export type Job = {
@@ -95,6 +160,12 @@ export type Job = {
    */
   katman?: "ucretsiz" | "odeyen";
   meta?: JobMeta;
+  /** Boşsa "kompozisyon" — yayındaki eski kayıtlarda bu alan yok. */
+  mod?: IsModu;
+  ilham?: IlhamInput;
+  turetilmis?: TuretilmisInput;
+  /** Çok çıktılı işlerde kareler; kompozisyonda boş kalır. */
+  kareler?: JobKare[];
 };
 
 /** Tek bir üretim denemesinin özeti. */
@@ -126,8 +197,22 @@ export type JobMeta = {
  * Görsel, kalıcı depodaysa kendi ucumuzdan servis edilir: kova özeldir,
  * imzalı URL'in süresi dolmaz, yetki kontrolü tek yerde kalır.
  */
-export type JobView = Omit<Job, "request" | "imagePath" | "meta"> & {
+/** İstemciye dönen tek kare — kovadaki yol DEĞİL, kendi ucumuz. */
+export type JobKareView = {
+  eksen: IlhamEkseni | TuretilmisTur;
+  /** `/api/kare/<isId>?k=<sira>` — kova özel, yol dışarı verilmiyor. */
+  url?: string;
+  dataUrl?: string;
+};
+
+export type JobView = Omit<
+  Job,
+  "request" | "imagePath" | "meta" | "kareler" | "ilham" | "turetilmis"
+> & {
   resultUrl?: string;
+  kareler?: JobKareView[];
+  /** Arayüz istekleri geri gösterebilsin diye yalnız METİN taşınıyor. */
+  istek?: string;
   /**
    * Arayüzün ihtiyaç duyduğu kadarı. `denemeler` KASTEN dışarıda:
    * her deneme hakemin kişi ve kıyafet hakkındaki değerlendirmesini
@@ -147,6 +232,15 @@ export function toJobView(job: Job): JobView {
     updatedAt: job.updatedAt,
     resultDataUrl: job.resultDataUrl,
     resultUrl: job.imagePath ? `/api/kare/${job.id}` : undefined,
+    mod: job.mod,
+    /* Kareler sıraya göre adreslenıyor: kovadaki yol istemciye HİÇ
+       gitmiyor, çünkü kova özel ve yetki kontrolü tek yerde kalmalı. */
+    kareler: job.kareler?.map((k, i) => ({
+      eksen: k.eksen,
+      url: k.imagePath ? `/api/kare/${job.id}?k=${i}` : undefined,
+      dataUrl: k.dataUrl,
+    })),
+    istek: job.ilham?.metin ?? job.turetilmis?.metin,
     meta: job.meta && {
       model: job.meta.model,
       ms: job.meta.ms,

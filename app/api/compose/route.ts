@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getJob, putJob, sonIsiOku, sonIsiYaz } from "@/lib/ai/jobs";
+import { putJob, sonIsiYaz } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
-import { imzala, INVOKE_HEADER } from "@/lib/ai/invoke";
+import { acikIsiBul, arkaPlandaBaslat } from "@/lib/ai/kuyruk";
 import { girdiYollari } from "@/lib/ai/resolve";
 import { girdileriSil } from "@/lib/ai/storage";
 import { depoOneki, oturumAlVeyaOlustur } from "@/lib/ai/session";
@@ -21,8 +21,6 @@ export const maxDuration = 60;
 
 /** Toplam gövde sınırı — istemci görselleri 1280 px'e küçültüp gönderir. */
 const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
-/** Bu süreyi aşan "süren" iş takılmış sayılır ve yeni iş engellenmez. */
-const ACIK_IS_TAVANI_MS = 2 * 60 * 1000;
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export async function POST(request: Request) {
@@ -92,7 +90,7 @@ export async function POST(request: Request) {
   if (process.env.NODE_ENV === "development") {
     void runJob(job.id);
   } else {
-    const triggered = await triggerBackground(job.id, request);
+    const triggered = await arkaPlandaBaslat(job.id, request);
     if (!triggered) {
       // İş hiç başlamayacak: yüklenen girdileri burada temizle, yoksa
       // yüz fotoğrafları depoda öksüz kalır ve kotayı yer.
@@ -113,56 +111,6 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ jobId: job.id }, { status: 202 });
-}
-
-async function triggerBackground(jobId: string, request: Request): Promise<boolean> {
-  // Ortam değişkenlerine güvenmiyoruz: taban adres isteğin kendisinden
-  // türetilir, sağlayıcı ne verirse versin çalışır.
-  const base =
-    process.env.URL ??
-    process.env.DEPLOY_PRIME_URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    new URL(request.url).origin;
-  try {
-    // Arka plan fonksiyonu herkese açık bir adres; imzasız çağrıyı
-    // kabul etmiyor. Bkz. lib/ai/invoke.ts.
-    const imza = imzala(jobId);
-    const res = await fetch(`${base}/.netlify/functions/compose-background`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(imza ? { [INVOKE_HEADER]: imza } : {}),
-      },
-      body: JSON.stringify({ jobId }),
-    });
-    if (res.status !== 202 && !res.ok) {
-      console.error("triggerBackground: beklenmedik yanıt", res.status, base);
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.error("triggerBackground başarısız:", base, error);
-    return false;
-  }
-}
-
-/**
- * Oturumun süren işi var mı. İş kayıtları kimlikle saklandığı için
- * oturum başına son iş ayrı bir anahtarda tutulur — Faz 4'te iş kaydı
- * Postgres'e taşınınca bu tek sorguya dönüşecek.
- */
-async function acikIsiBul(sessionId: string): Promise<string | null> {
-  const sonId = await sonIsiOku(sessionId);
-  if (!sonId) return null;
-  const is = await getJob(sonId);
-  if (!is) return null;
-  if (is.status !== "queued" && is.status !== "processing") return null;
-
-  // Bekçi eşiğini aşmış bir iş sürüyor sayılmaz; yoksa takılan tek bir
-  // iş kullanıcıyı süresiz kilitler.
-  const son = Date.parse(is.updatedAt ?? is.createdAt);
-  if (Number.isFinite(son) && Date.now() - son > ACIK_IS_TAVANI_MS) return null;
-  return sonId;
 }
 
 function bad(message: string) {
