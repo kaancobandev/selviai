@@ -18,13 +18,32 @@ export const ACIK_IS_TAVANI_MS = 2 * 60 * 1000;
  * Üretimi arka plan fonksiyonuna devreder.
  *
  * Sunucusuz ortamda yanıt döndükten sonra çalışan iş donduruluyor, yani
- * üretim mutlaka buradan geçmeli. Taban adres ortam değişkenine değil
- * İSTEĞİN KENDİSİNE dayanıyor: sağlayıcı ne verirse versin çalışır.
+ * üretim mutlaka buradan geçmeli.
+ *
+ * TABAN ADRES: ÖNCE DAĞITIMA ÖZEL OLAN.
+ *
+ * Burada `process.env.URL` ilk sıradaydı ve DAL DAĞITIMLARINI BOZUYORDU.
+ * Netlify'da `URL` her zaman SİTENİN ANA ADRESİ — dal dağıtımında bile
+ * production'ı gösteriyor. Sonuç: `main` dalının ucu işi yaratıyor,
+ * sonra arka plan çağrısını production'a (yani `release` dalının
+ * koduna) gönderiyordu. İş kaydı depoyu paylaştığı için karşı taraf
+ * kaydı okuyabiliyor ama kendi eski koduyla çalıştırıyordu.
+ *
+ * Belirti tam olarak şuydu: main'de ilham akışı "üretiliyor" diyor,
+ * dört kare hiç gelmiyor ve altta "İş kaydında girdi görselleri yok."
+ * yazıyordu — çünkü release'in `runJob`'ında `mod === "ilham"` dalı
+ * hiç yok, iş kompozisyon sanılıp girdi görseli aranıyordu.
+ *
+ * `DEPLOY_PRIME_URL` dağıtıma özeldir: dal dağıtımında dalın adresi,
+ * production dağıtımında production adresi. Yani her dağıtım KENDİ
+ * fonksiyonunu çağırır. İsteğin kendi kaynağı da doğru olurdu ama
+ * Netlify'ın kendi adresi tercih ediliyor: özel alan adı bir vekilin
+ * (Cloudflare) arkasındaysa çağrı gereksizce oradan geçer.
  */
 export async function arkaPlandaBaslat(jobId: string, request: Request): Promise<boolean> {
   const base =
-    process.env.URL ??
     process.env.DEPLOY_PRIME_URL ??
+    process.env.URL ??
     process.env.NEXT_PUBLIC_SITE_URL ??
     new URL(request.url).origin;
   try {

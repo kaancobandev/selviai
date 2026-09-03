@@ -85,6 +85,26 @@ export async function runJob(id: string): Promise<void> {
     return;
   }
 
+  /* TANIMADIĞIMIZ MOD, KOMPOZİSYON SAYILMAMALI.
+     Buraya `mod` dolu ama bu sürümün bilmediği bir değerle düşmek
+     SÜRÜM FARKI demektir: işi yaratan dağıtım ile çalıştıran dağıtım
+     aynı kodda değil. Eskiden böyle bir iş sessizce kompozisyon
+     dalına düşüyor ve "girdi görselleri yok" diyordu — teşhisi
+     saatler alan, tamamen yanıltıcı bir mesaj. Bu tam olarak yaşandı:
+     `main` dalının işi production'ın eski fonksiyonuna gidiyordu
+     (bkz. lib/ai/kuyruk.ts). Sebebi düzeltildi; bu kalkan, benzeri
+     bir fark tekrar olursa doğru şeyi söylesin diye duruyor. */
+  if (job.mod && job.mod !== "kompozisyon") {
+    console.error(`runJob: bu sürüm "${job.mod}" modunu tanımıyor (${id})`);
+    await patchJob(id, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      step: "bilinmeyen-mod",
+      error: "Bu üretim türü sunucunun çalışan sürümü tarafından tanınmıyor.",
+    });
+    return;
+  }
+
   if (!job.request) {
     await patchJob(id, {
       status: "failed",
