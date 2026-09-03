@@ -339,9 +339,44 @@ html.dark {
     size: A4 landscape;
     margin: 0;
   }
-  /* Sayfanın geri kalanı basılmıyor: başlık, yan menü, araç çubukları. */
-  body > *:not(.lookbook-baski-kok) {
+  /* Sayfanın geri kalanı basılmıyor: başlık, yan menü, araç çubukları.
+
+     BU KURAL ÖNCE `body > *:not(.lookbook-baski-kok)` İDİ VE HER ÜÇ
+     STÜDYONUN ÇIKTISINI DA BOŞ SAYFA YAPIYORDU. Sebep: baskı kökü
+     body'nin çocuğu DEĞİL. `app/layout.tsx` gövdeyi
+     `<body><SiteHeader/><main>{children}</main>` diye kuruyor, kök ise
+     main'in beş kat içinde. Kural main'i gizliyordu ve `display:none`
+     olan bir atanın altındaki çocuk `display:block !important` ile
+     geri getirilemez.
+
+     ÖLÇÜLDÜ (canlı sayfada, kurallar ekranda taklit edilerek):
+     main → display:none, baskı kökü → 0×0. Yani "PDF olarak dışa aktar"
+     düğmesi lookbook, moodboard ve kolajda boş A4 basıyordu.
+
+     YENİ KURAL YUVALANMADAN BAĞIMSIZ: kökün ATALARI ve İÇİ dışında her
+     şey gizleniyor. Ataların kimliği önemli değil, kaç kat olduğu da.
+     Aynı ölçümle doğrulandı: main 1265×794, sayfa 1123×794 (=297×210mm)
+     ve konum 0,0.
+
+     Portal (kökü `document.body`e taşımak) da çözerdi ama üç bileşende
+     ayrı ayrı montaj durumu + hidrasyon uyumsuzluğu riski demekti;
+     burada tek dosyada bitiyor. */
+  body *:not(:has(.lookbook-baski-kok)):not(.lookbook-baski-kok):not(.lookbook-baski-kok *) {
     display: none !important;
+  }
+  /* Ata zinciri sadeleşiyor: ekran düzeni (flex, dolgu, en-boy sınırı)
+     kâğıda taşınmamalı. */
+  body *:has(.lookbook-baski-kok) {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: visible !important;
   }
   .lookbook-baski-kok {
     display: block !important;

@@ -445,8 +445,21 @@ async function kulturKosusu(job: Job): Promise<void> {
 
   await patchJob(id, { status: "processing", step: "araniyor" });
 
+  /* İLK SONUÇ TRY'IN DIŞINDA TUTULUYOR — bu bir tasarım kararı.
+     İlk yazımda `let sonuc` try'ın içindeydi: ikinci çağrı düşerse
+     kapan `catch`e atlıyor, TAMAMLANMIŞ ve parası ödenmiş ilk analiz
+     kapsam dışında kalıyor ve iş "failed" işaretleniyordu. Kullanıcı
+     elinde duran bir metin varken hiçbir şey görmüyordu.
+
+     Bu yanlıştı çünkü tekrarın amacı yalnız KAYNAK ARTIRMAK; kaynaksız
+     sonuç kabul edilebilir bir çıktı ve arayüzde bunun için özel bir
+     anlatım zaten var ("Bu yanıt için kaynak dönmedi..."). Dolayısıyla
+     düşen bir tekrar, ilk sonucu yok etmek yerine ona geri dönmeli. */
+  let ilk: Awaited<ReturnType<typeof metinUret>> | null = null;
+
   try {
-    let sonuc = await metinUret(buildKulturPrompt(brief));
+    ilk = await metinUret(buildKulturPrompt(brief));
+    let sonuc = ilk;
 
     /* TEK SEFERLİK YENİDEN DENEME — yalnız hiç kaynak dönmediğinde.
        Arama modelin KULLANABİLECEĞİ bir araç, garanti değil: ölçümde
@@ -461,11 +474,21 @@ async function kulturKosusu(job: Job): Promise<void> {
     if (!sonuc.kaynaklar.length) {
       console.warn("Kültür analizi kaynaksız döndü, bir kez yeniden deneniyor.");
       await patchJob(id, { step: "yeniden-araniyor" });
-      sonuc = await metinUret(
-        buildKulturPrompt(brief) +
-          "\n\nÖNEMLİ: Önceki denemende arama yapmadın ve yanıt kaynaksız kaldı. " +
-          "Bu sefer MUTLAKA arama yap ve yalnız doğrulayabildiğin çıpaları yaz.",
-      );
+      try {
+        sonuc = await metinUret(
+          buildKulturPrompt(brief) +
+            "\n\nÖNEMLİ: Önceki denemende arama yapmadın ve yanıt kaynaksız kaldı. " +
+            "Bu sefer MUTLAKA arama yap ve yalnız doğrulayabildiğin çıpaları yaz.",
+        );
+      } catch (tekrarHatasi) {
+        /* Tekrar düştü — elimizdeki kaynaksız analiz yine de iyi bir
+           sonuç. Kullanıcıyı boş döndürmektense onu veriyoruz. */
+        console.warn(
+          "Kültür analizi tekrarı düştü, ilk sonuç kullanılıyor:",
+          tekrarHatasi instanceof Error ? tekrarHatasi.message : tekrarHatasi,
+        );
+        sonuc = ilk;
+      }
     }
 
     await patchJob(id, {
@@ -478,7 +501,7 @@ async function kulturKosusu(job: Job): Promise<void> {
         sorgular: sonuc.aramaSorgulari,
         model: sonuc.model,
       },
-      meta: { model: sonuc.model, ms: sonuc.ms, kabul: null, deneme: 1 },
+      meta: { model: sonuc.model, ms: sonuc.ms, kabul: null, deneme: sonuc === ilk ? 1 : 2 },
     });
   } catch (error) {
     const mesaj =

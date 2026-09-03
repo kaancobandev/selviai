@@ -180,19 +180,31 @@ export function KolajStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     }
   }
 
-  /* Dönen kareleri saydamlaştırıp parçalara yerleştirir. */
-  const kareleriUygula = useCallback(async (kareler: { eksen: string; url?: string }[]) => {
+  /* Dönen kareleri saydamlaştırıp parçalara yerleştirir.
+
+     `dataUrl` YEDEĞİ OKUNMAK ZORUNDA. Koşucu kareyi kovaya yükleyemezse
+     (5xx, 30 sn zaman aşımı, dolu kova) `imagePath` boş kalıyor ve
+     baytlar `dataUrl` olarak iş kaydına yazılıyor — kare üretilmiş ve
+     parası ödenmiş demektir. İlk yazımda yalnız `url` okunuyordu ve o
+     kareler sessizce atılıyordu: kullanıcı "3 parça kesildi" görüyor,
+     dördüncüsü sebepsiz kesilmemiş kalıyordu. Kardeş tüketici
+     `ilham-akisi.tsx` zaten `url ?? dataUrl` yapıyor; ayrılan tek yer
+     burasıydı. `macentayiAc` data URL'i sorunsuz açıyor (tuval
+     kirlenmiyor). */
+  const kareleriUygula = useCallback(
+    async (kareler: { eksen: string; url?: string; dataUrl?: string }[]) => {
     let basarili = 0;
     for (const kare of kareler) {
       const yuva = Number(kare.eksen.split("-")[1]) - 1;
       const istek = yuvalar.current[yuva];
-      if (!istek || !kare.url) continue;
+      const kaynak = kare.url ?? kare.dataUrl;
+      if (!istek || !kaynak) continue;
 
-      const saydam = await macentayiAc(kare.url);
+      const saydam = await macentayiAc(kaynak);
       if (!saydam) {
         /* Anahtar açılamadıysa parça kesilmemiş kalıyor: macentalı
            kareyi tuvale koymak, hiç kesmemekten çok daha kötü. */
-        console.error("kesim: macenta açılamadı", kare.url);
+        console.error("kesim: macenta açılamadı", kare.eksen);
         continue;
       }
       bloblar.current.push(saydam);
@@ -209,7 +221,9 @@ export function KolajStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         ? `${basarili} parça kesildi.`
         : "Parçalar kesilemedi. Tekrar deneyin.",
     );
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isId) return;
