@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { fabrics, type Fabric } from "@/lib/fabrics";
 import { cn, formatTRY } from "@/lib/utils";
+import { TohumReferans, referanslar } from "@/components/tohum-referans";
+import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Arrow, Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Toast } from "@/components/ui/toast";
@@ -25,7 +27,7 @@ const SCALE_H_CM = 7.5;
  * Üstte yatay kaydırılan makro doku kütüphanesi; altta seçili kumaşın cetvelli
  * büyük görseli (tıkla: yakınlaştır) ve metraj / fiziksel özellik paneli.
  */
-export function FabricLab() {
+export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const initial = fabrics[1];
   const [activeId, setActiveId] = useState(initial.id);
   const active = fabrics.find((f) => f.id === activeId) ?? fabrics[0];
@@ -73,6 +75,10 @@ export function FabricLab() {
 
   return (
     <div className="flex flex-1 flex-col">
+      <TohumReferans
+        baslik="Ana sayfada ürettiğiniz kumaş çalışması"
+        gorseller={referanslar(tohum, "kumas", "Kumaş")}
+      />
       {/* Başlık */}
       <header className="flex flex-col gap-5 px-6 pt-8 md:flex-row md:items-end md:justify-between md:px-10 md:pt-10">
         <div>

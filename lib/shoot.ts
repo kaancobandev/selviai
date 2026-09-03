@@ -128,7 +128,21 @@ export const moods: { id: MoodId; label: string; kelvin: string; note: string; w
 ];
 
 export type TearTag = "Mekân" | "Işık" | "Poz" | "Saç" | "Renk" | "Gardırop" | "Yeni";
-export type Tearsheet = { id: string; image: string; caption: string; tag: TearTag; local?: boolean };
+export type Tearsheet = {
+  id: string;
+  image: string;
+  caption: string;
+  tag: TearTag;
+  /** Blob URL — sokulunce serbest birakiliyor. */
+  local?: boolean;
+  /**
+   * Ana sayfadaki akistan tohumlandi. `local` ile KARISTIRILMAMALI:
+   * o blob URL demek ve revokeObjectURL cagriliyor. Tohum kareleri
+   * kendi API ucumuzdan geliyor, serbest birakilacak bir sey yok —
+   * ama Next'in gorsel iyilestiricisinden de gecirilmemeliler.
+   */
+  tohum?: boolean;
+};
 export const tearsheets: Tearsheet[] = [
   { id: "t1", image: u("1524504388940-b1c1722653e1", 600), caption: "Yan pencere, yumuşak geçiş", tag: "Işık" },
   { id: "t2", image: u("1496747611176-843222e1e57c", 600), caption: "Rüzgârda kumaş, geniş kadraj", tag: "Poz" },

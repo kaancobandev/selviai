@@ -22,8 +22,10 @@ import {
   type Slot,
   type Status,
   type Tearsheet,
+  type TearTag,
 } from "@/lib/shoot";
 import { cn } from "@/lib/utils";
+import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Arrow, Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/field";
 import { Toast } from "@/components/ui/toast";
@@ -36,10 +38,55 @@ const colKey = (c: ModelCol) => c ?? "none";
  * Shooting — prodüksiyon ve set yönetimi masası.
  * A Ekip & lokasyon · B Sanat yönetimi & ışık · C Stilist çalışma alanı · D Call sheet.
  */
-export function ShootDesk() {
+
+/**
+ * Tohumu tearsheet'e cevirir. Eksen -> etiket eslemesi keyfi degil:
+ * her eksen zaten cekimde bir karara denk geliyor (siluet poza,
+ * malzeme gardiroba, renk renge, baglam mekana). Tohum kareleri
+ * listenin BASINA konuyor; ornekler silinmiyor cunku onlar isik ve
+ * sac gibi tohumun karsilamadigi baslıklari tasiyor.
+ */
+const EKSEN_ETIKET: Record<string, TearTag> = {
+  siluet: "Poz",
+  malzeme: "Gardırop",
+  renk: "Renk",
+  baglam: "Mekân",
+};
+
+function tohumdanTears(tohum: StudyoTohum | null | undefined, varsayilan: Tearsheet[]): Tearsheet[] {
+  if (!tohum) return varsayilan;
+  const eksenler = Object.keys(EKSEN_ETIKET);
+  const yeni: Tearsheet[] = tohum.ilham.map((image, i) => ({
+    id: `tohum-${i}`,
+    image,
+    caption: `İlham · ${eksenler[i] ?? i + 1}`,
+    tag: EKSEN_ETIKET[eksenler[i]] ?? "Poz",
+    tohum: true,
+  }));
+  if (tohum.turetilmis.moodboard) {
+    yeni.push({
+      id: "tohum-mood",
+      image: tohum.turetilmis.moodboard,
+      caption: "Moodboard",
+      tag: "Renk",
+      tohum: true,
+    });
+  }
+  return [...yeni, ...varsayilan];
+}
+/**
+ * `tohum` verilirse ilham kareleri ve moodboard tearsheet olarak
+ * masaya konuyor — Tearsheet tipine birebir oturuyorlar. Look listesi
+ * ve cekim programi TOHUMLANMIYOR: lib/shoot.ts icindeki
+ * `schedule[].lookId` degerleri l1..l8'e sabit bagli ve look listesi
+ * disaridan degistirilirse `looks.find()` sessizce undefined donup
+ * call sheet'ten look adlarini dusururdu. Hata firlatmaz, sadece
+ * bosalir — o yuzden ikisi birlikte ele alinmali, ayri turda.
+ */
+export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [selection, setSelection] = useState<Record<RoleId, string>>(defaultSelection);
   const [mood, setMood] = useState<MoodId>("daylight");
-  const [tears, setTears] = useState<Tearsheet[]>(initialTears);
+  const [tears, setTears] = useState<Tearsheet[]>(() => tohumdanTears(tohum, initialTears));
   const [assign, setAssign] = useState<Assignment>(defaultAssignment);
   const [propList, setPropList] = useState<Prop[]>(initialProps);
   const [newProp, setNewProp] = useState("");
@@ -186,7 +233,7 @@ export function ShootDesk() {
                 {tears.map((t) => (
                   <figure key={t.id} className="group">
                     <div className="relative aspect-[4/5] overflow-hidden bg-hair">
-                      <Image src={t.image} alt={t.caption} fill unoptimized={t.local} sizes="200px" className="photo-reveal object-cover" />
+                      <Image src={t.image} alt={t.caption} fill unoptimized={t.local || t.tohum} sizes="200px" className="photo-reveal object-cover" />
                       <button
                         type="button"
                         aria-label={`${t.caption} referansını kaldır`}

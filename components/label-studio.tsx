@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { TohumReferans, referanslar } from "@/components/tohum-referans";
+import type { StudyoTohum } from "@/lib/ai/tohum";
 import {
   careMaterials,
   careSizes,
@@ -51,7 +53,7 @@ const lab = <T extends string>(opts: Option<T>[], v: T) => opts.find((o) => o.va
  * Etiket stüdyosu — üstte üç etiket türü, solda cetvelli 1:1 sahne,
  * sağda şartname paneli; altta set özeti ve üretim şartnamesi.
  */
-export function LabelStudio() {
+export function LabelStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [type, setType] = useState<LabelType>("woven");
   const [content, setContent] = useState<LabelContent>(defaultContent);
   const [woven, setWoven] = useState<WovenConfig>(defaultWoven);
@@ -105,6 +107,10 @@ export function LabelStudio() {
 
   return (
     <div className="flex flex-1 flex-col">
+      <TohumReferans
+        baslik="Ana sayfada ürettiğiniz marka çalışması"
+        gorseller={referanslar(tohum, "branding", "Marka")}
+      />
       {/* Başlık */}
       <header className="flex flex-col gap-5 px-6 pt-8 md:flex-row md:items-end md:justify-between md:px-10 md:pt-10">
         <div>

@@ -15,6 +15,8 @@ import {
   type SwatchRole,
 } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { TohumReferans, referanslar } from "@/components/tohum-referans";
+import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Arrow, Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Toast } from "@/components/ui/toast";
@@ -29,7 +31,7 @@ const ROLES: SwatchRole[] = ["primary", "secondary", "accent"];
  * Marka sistemi stüdyosu — dört bölüm: 01 Logo, 02 Tipografi, 03 Renk, 04 Uygulama.
  * Solda bölüm başlığı ve kontroller (yapışkan), sağda canlı önizleme.
  */
-export function BrandStudio() {
+export function BrandStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [name, setName] = useState("Nar");
   const [manifesto, setManifesto] = useState("Sessizliğin de bir kesimi vardır.");
   const [logo, setLogo] = useState<{ url: string; file: string } | null>(null);
@@ -102,6 +104,10 @@ export function BrandStudio() {
 
   return (
     <div className="flex flex-1 flex-col bg-zemin px-6 pb-24 pt-8 md:px-10 md:pt-10 lg:px-14" style={brandVars}>
+      <TohumReferans
+        baslik="Ana sayfada ürettiğiniz marka çalışması"
+        gorseller={referanslar(tohum, "branding", "Marka")}
+      />
       {/* Başlık + temel girdiler */}
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
