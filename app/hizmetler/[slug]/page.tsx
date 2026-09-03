@@ -18,6 +18,7 @@ const WORKSPACES = new Set([
   "shooting",
   "teknik-cizim",
   "lookbook",
+  "moodboard",
 ]);
 
 /** Statik export: yalnızca bilinen slug'lar üretilir */
