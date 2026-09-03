@@ -6,6 +6,7 @@ import { DotField } from "@/components/dot-field";
 import { PromptAurora } from "@/components/prompt-aurora";
 import { FlipText } from "@/components/ui/flip-text";
 import { Arrow } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * Hero — siyah zemin, sabit lila yıkama, imlece tepki veren nokta ızgarası ve
@@ -23,17 +24,54 @@ import { Arrow } from "@/components/ui/button";
  * backdrop-blur'ünü her karede yeniden hesaplatıyordu.
  */
 
-const ipuclari = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"];
+export const IPUCLARI = ["Koleksiyon", "Ürün", "Lookbook", "Teknik çizim"] as const;
+export type Ipucu = (typeof IPUCLARI)[number];
 
 const BASLIK = "Learn Create Sell";
 
-export function Hero() {
+/**
+ * Prop'ların hepsi İSTEĞE BAĞLI ve verilmezse hero eski davranışını
+ * sürdürüyor (metni stüdyoya taşıyan yönlendirme). Böylece akışı saran
+ * bileşen formu devralabiliyor ama hero tek başına da çalışır durumda
+ * kalıyor — testte ve ileride başka bir yerde kullanılırsa.
+ *
+ * ÇİPLER ARTIK METNİ EZMİYOR. Eskiden `setIstek(ip)` yapıp kullanıcının
+ * yazdığını siliyorlardı; oysa akışta çip KATEGORİ, kutu ise BRIEF.
+ * İkisi ayrı şeyler, biri ötekinin yerine geçemez.
+ */
+type HeroProps = {
+  istek?: string;
+  onIstek?: (v: string) => void;
+  ipucu?: Ipucu | null;
+  onIpucu?: (v: Ipucu) => void;
+  onGonder?: () => void;
+  mesgul?: boolean;
+};
+
+export function Hero({
+  istek: disIstek,
+  onIstek,
+  ipucu,
+  onIpucu,
+  onGonder,
+  mesgul = false,
+}: HeroProps = {}) {
   const router = useRouter();
-  const [istek, setIstek] = useState("");
+  const [icIstek, setIcIstek] = useState("");
+  /* Kontrollü/kontrolsüz ikilisi: dışarıdan değer geldiyse o, yoksa kendi
+     state'i. React'in "controlled to uncontrolled" uyarısına düşmemek için
+     dışarıdan gelen değer undefined olamaz. */
+  const istek = disIstek ?? icIstek;
+  const yazildi = onIstek ?? setIcIstek;
 
   function gonder(e: React.FormEvent) {
     e.preventDefault();
-    // Girdiyi stüdyoya taşı; stüdyo kendi akışında karşılıyor.
+    if (mesgul) return;
+    if (onGonder) {
+      onGonder();
+      return;
+    }
+    // Prop verilmediyse eski davranış: girdiyi stüdyoya taşı.
     const q = istek.trim();
     router.push(q ? `/hizmetler/kompozisyon?fikir=${encodeURIComponent(q)}` : "/hizmetler/kompozisyon");
   }
@@ -92,27 +130,45 @@ export function Hero() {
           <input
             id="hero-fikir"
             value={istek}
-            onChange={(e) => setIstek(e.target.value)}
+            onChange={(e) => yazildi(e.target.value)}
             placeholder="Ne tasarlamak istiyorsun?"
-            className="w-full bg-transparent text-[15px] leading-7 text-kalem outline-none placeholder:text-kalem/45 md:text-base"
+            disabled={mesgul}
+            className="w-full bg-transparent text-[15px] leading-7 text-kalem outline-none placeholder:text-kalem/45 disabled:opacity-60 md:text-base"
           />
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            {ipuclari.map((ip) => (
-              <button
-                key={ip}
-                type="button"
-                onClick={() => setIstek(ip)}
-                className="rounded-full border border-kalem/15 px-3.5 py-1.5 text-[12px] text-kalem/70 transition-colors duration-200 hover:border-kalem/35 hover:text-kalem"
-              >
-                {ip}
-              </button>
-            ))}
+            {IPUCLARI.map((ip) => {
+              const secili = ipucu === ip;
+              return (
+                <button
+                  key={ip}
+                  type="button"
+                  aria-pressed={onIpucu ? secili : undefined}
+                  onClick={() => (onIpucu ? onIpucu(ip) : yazildi(ip))}
+                  className={cn(
+                    "rounded-full border px-3.5 py-1.5 text-[12px] transition-colors duration-200",
+                    secili
+                      ? "border-vurgu bg-vurgu text-vurgu-kalem"
+                      : "border-kalem/15 text-kalem/70 hover:border-kalem/35 hover:text-kalem",
+                  )}
+                >
+                  {ip}
+                </button>
+              );
+            })}
             <button
               type="submit"
-              aria-label="Stüdyoya git"
-              className="group ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-kalem text-zemin transition-colors duration-300 hover:bg-vurgu hover:text-vurgu-kalem"
+              disabled={mesgul}
+              aria-label={onGonder ? "Tasarımı başlat" : "Stüdyoya git"}
+              className="group ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-kalem text-zemin transition-colors duration-300 hover:bg-vurgu hover:text-vurgu-kalem disabled:opacity-50"
             >
-              <Arrow className="transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover:translate-x-0.5" />
+              {mesgul ? (
+                <span
+                  aria-hidden
+                  className="h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent"
+                />
+              ) : (
+                <Arrow className="transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover:translate-x-0.5" />
+              )}
             </button>
             </div>
           </div>

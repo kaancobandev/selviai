@@ -1,4 +1,4 @@
-import { Hero } from "@/components/hero";
+import { IlhamAkisi } from "@/components/ilham-akisi";
 import { Reveal } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
 import { DotImageReveal } from "@/components/ui/dot-image-reveal";
@@ -115,7 +115,9 @@ const KARSILASTIRMA_SATIRLARI = [
 export default function HomePage() {
   return (
     <>
-      <Hero />
+      {/* Hero + ilham akisi tek istemci agacinda: sonuc seridi hero formuyla
+          ayni state uzerinde calisiyor. */}
+      <IlhamAkisi />
 
       {/* Hero ile içerik arasındaki geçiş — kavislerin ışığı sınırın altında
           sönerek devam ediyor, böylece iki alan arasında keskin çizgi kalmıyor.
