@@ -131,6 +131,28 @@ export type JobKare = {
   ms: number;
 };
 
+/**
+ * ÇALIŞMA — ana sayfadaki akışın stüdyoya taşınan hâli.
+ *
+ * Ana sayfa İKİ iş üretiyor (dört ilham karesi, sonra seçilenden üç
+ * türetilmiş çıktı) ve stüdyonun ikisine de ihtiyacı var. Tek tek iş
+ * kimliği taşımak yerine oturum başına tek bir kayıt tutuluyor: en son
+ * üzerinde çalışılan set.
+ *
+ * URL parametresi TERCİH EDİLMEDİ. `?fikir=` zaten öyle denenmiş ve ölü
+ * kalmıştı; ayrıca stüdyoda altı ayrı rota var, her birine parametre
+ * iliştirmek altı yerde tutarlılık demek. Oturum kaydı tek kaynak.
+ */
+export type Calisma = {
+  brief: string;
+  ilhamIs: string;
+  /** Dört kareden hangisinin seçildiği. */
+  secilenSira: number;
+  /** Türetilmiş çıktıların işi; henüz bitmediyse boş. */
+  turetIs?: string;
+  guncellendi: string;
+};
+
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export type Job = {
@@ -200,7 +222,7 @@ export type JobMeta = {
 /** İstemciye dönen tek kare — kovadaki yol DEĞİL, kendi ucumuz. */
 export type JobKareView = {
   eksen: IlhamEkseni | TuretilmisTur;
-  /** `/api/kare/<isId>?k=<sira>` — kova özel, yol dışarı verilmiyor. */
+  /** `/api/kare/<isId>/<sira>` — kova özel, yol dışarı verilmiyor. */
   url?: string;
   dataUrl?: string;
 };
@@ -237,7 +259,7 @@ export function toJobView(job: Job): JobView {
        gitmiyor, çünkü kova özel ve yetki kontrolü tek yerde kalmalı. */
     kareler: job.kareler?.map((k, i) => ({
       eksen: k.eksen,
-      url: k.imagePath ? `/api/kare/${job.id}?k=${i}` : undefined,
+      url: k.imagePath ? `/api/kare/${job.id}/${i}` : undefined,
       dataUrl: k.dataUrl,
     })),
     istek: job.ilham?.metin ?? job.turetilmis?.metin,

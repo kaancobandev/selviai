@@ -3,6 +3,7 @@
 import Image from "next/image";
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type DragEvent,
@@ -20,6 +21,8 @@ type Base = { id: string; x: number; y: number; z: number; rotate: number };
 type ImageItem = Base & { type: "image"; src: string; alt: string; w: number; h: number; local?: boolean };
 type NoteItem = Base & { type: "note"; text: string; w: number };
 type PaletteItem = Base & { type: "palette"; title: string; colors: string[] };
+import type { StudyoTohum } from "@/lib/ai/tohum";
+
 export type BoardItem = ImageItem | NoteItem | PaletteItem;
 
 const u = (id: string, w = 900) =>
@@ -32,6 +35,62 @@ const SAMPLES: BoardItem[] = [
   { id: "s4", type: "note", text: "Sessizlik bir renk değil, bir tavırdır.", w: 260, x: 58, y: 20, z: 4, rotate: -1.5 },
   { id: "s5", type: "palette", title: "Palet 01", colors: ["#1a1a1a", "#d9d2c5", "#7a6a58"], x: 57, y: 57, z: 5, rotate: 1 },
 ];
+
+/**
+ * Tohumu pano öğelerine çevirir.
+ *
+ * Yerleşim ELLE, rastgele değil: üretilen kareler aynı boyutta geliyor
+ * ve üst üste binerse pano "tek görsel" gibi okunuyor. Hafif açı ve
+ * kaydırma, kolaj hissini veren şey.
+ *
+ * Moodboard varsa panonun sağına, biraz daha büyük konuluyor — akışta
+ * o "özet" rolünde ve panoda da öyle okunmalı.
+ */
+function tohumdanPano(t: StudyoTohum): BoardItem[] {
+  const yer = [
+    { x: 7, y: 14, w: 210, h: 262, rotate: -2.2 },
+    { x: 25, y: 30, w: 195, h: 244, rotate: 1.4 },
+    { x: 42, y: 12, w: 190, h: 238, rotate: -0.8 },
+    { x: 58, y: 34, w: 200, h: 250, rotate: 2 },
+  ];
+  const ogeler: BoardItem[] = t.ilham.slice(0, 4).map((src, i) => ({
+    id: `t${i}`,
+    type: "image",
+    src,
+    alt: `İlham karesi ${i + 1}`,
+    ...yer[i % yer.length],
+    z: i + 1,
+  }));
+
+  if (t.turetilmis.moodboard) {
+    ogeler.push({
+      id: "t-mood",
+      type: "image",
+      src: t.turetilmis.moodboard,
+      alt: "Moodboard",
+      w: 300,
+      h: 300,
+      x: 74,
+      y: 8,
+      z: ogeler.length + 1,
+      rotate: -1.2,
+    });
+  }
+
+  if (t.brief) {
+    ogeler.push({
+      id: "t-not",
+      type: "note",
+      text: t.brief,
+      w: 260,
+      x: 10,
+      y: 66,
+      z: ogeler.length + 1,
+      rotate: -1,
+    });
+  }
+  return ogeler;
+}
 
 const PALETTES = [
   ["#1a1a1a", "#e8e2d6", "#9c8b7a"],
@@ -54,8 +113,15 @@ function readXs(el: HTMLElement | null) {
   return Number.isFinite(v) && v > 0 ? v : 1;
 }
 
-export function InspirationBoard() {
-  const [items, setItems] = useState<BoardItem[]>(SAMPLES);
+/**
+ * `tohum` verilirse pano ÖRNEKLERLE DEĞİL kullanıcının kendi üretimiyle
+ * açılıyor: dört ilham karesi + moodboard, panoya serpiştirilmiş olarak.
+ * Verilmezse eskisi gibi SAMPLES ile açılır — araç tek başına da
+ * çalışır durumda kalıyor (tanıtım ekranı, doğrudan gezinme).
+ */
+export function InspirationBoard({ tohum }: { tohum?: StudyoTohum | null } = {}) {
+  const baslangic = useMemo(() => (tohum ? tohumdanPano(tohum) : SAMPLES), [tohum]);
+  const [items, setItems] = useState<BoardItem[]>(baslangic);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [fileOver, setFileOver] = useState(false);
@@ -63,7 +129,7 @@ export function InspirationBoard() {
   const canvasRef = useRef<HTMLElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<Drag | null>(null);
-  const zRef = useRef(SAMPLES.length + 1);
+  const zRef = useRef(baslangic.length + 1);
   const paletteCount = useRef(1);
   const itemsRef = useRef<BoardItem[]>(items);
 

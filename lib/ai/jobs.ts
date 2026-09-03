@@ -1,4 +1,4 @@
-import type { Job } from "./types";
+import type { Calisma, Job } from "./types";
 
 /* ------------------------------------------------------------------
    İş kaydı — iki arka uç:
@@ -25,6 +25,7 @@ type Store = {
 declare global {
   var __composeJobs: Map<string, Job> | undefined;
   var __composeSonIs: Map<string, string> | undefined;
+  var __composeCalisma: Map<string, Calisma> | undefined;
 }
 
 function memory(): Map<string, Job> {
@@ -35,6 +36,11 @@ function memory(): Map<string, Job> {
 function sonIsler(): Map<string, string> {
   globalThis.__composeSonIs ??= new Map<string, string>();
   return globalThis.__composeSonIs;
+}
+
+function calismalar(): Map<string, Calisma> {
+  globalThis.__composeCalisma ??= new Map<string, Calisma>();
+  return globalThis.__composeCalisma;
 }
 
 let storePromise: Promise<Store | null> | undefined;
@@ -115,6 +121,34 @@ export async function sonIsiOku(sessionId: string): Promise<string | null> {
     return v?.jobId ?? null;
   }
   return sonIsler().get(sessionId) ?? null;
+}
+
+/* ------------------------------------------------------------------
+   ÇALIŞMA KAYDI — oturum başına tek kayıt.
+
+   `sonIsiYaz/Oku` ile aynı desen: oturum anahtarı altında küçük bir
+   JSON. Ayrı bir depoya gerek yok, ayrı bir dosyaya da: burada duran
+   bellek/Blobs ikiliğini ikinci kez yazmak, birinde düzeltilen bir
+   hatanın ötekinde yaşaması demekti.
+   ------------------------------------------------------------------ */
+
+const CALISMA = (sessionId: string) => `calisma:${sessionId}`;
+
+export async function calismaYaz(sessionId: string, calisma: Calisma): Promise<void> {
+  const store = await blobStore();
+  if (store) {
+    await store.setJSON(CALISMA(sessionId), calisma);
+    return;
+  }
+  calismalar().set(sessionId, calisma);
+}
+
+export async function calismaOku(sessionId: string): Promise<Calisma | null> {
+  const store = await blobStore();
+  if (store) {
+    return ((await store.get(CALISMA(sessionId), { type: "json" })) as Calisma | null) ?? null;
+  }
+  return calismalar().get(sessionId) ?? null;
 }
 
 export async function dropJob(id: string): Promise<void> {

@@ -16,32 +16,12 @@ import { indir, kompozisyonYolu, sil } from "@/lib/ai/storage";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  /* Çok kareli işler (ilham, türetme) bu ucu KULLANMIYOR; onların her
+     karesi `/api/kare/<id>/<sıra>` altında servis ediliyor. */
   const job = await getJob(id);
-
-  /* ÇOK KARELİ İŞLER — `?k=<sıra>`.
-     İlham işi tek kare değil dört üretiyor; kompozisyonun `imagePath`
-     alanı buna yetmiyor. Kareler iş kaydında dizi olarak duruyor ve
-     sırasıyla adresleniyor. Kovadaki yol istemciye HİÇ gitmiyor: kova
-     özel ve yetki kontrolü bu tek noktada kalmalı. */
-  const sira = new URL(request.url).searchParams.get("k");
-  if (sira !== null) {
-    const i = Number(sira);
-    const kare = Number.isInteger(i) && i >= 0 ? job?.kareler?.[i] : undefined;
-    if (!kare?.imagePath) return new Response("Bulunamadı", { status: 404 });
-    const dosya = await indir(kare.imagePath);
-    if (!dosya) return new Response("Görsel okunamadı", { status: 502 });
-    return new Response(new Uint8Array(dosya.bayt), {
-      headers: {
-        "content-type": dosya.mime,
-        "content-length": String(dosya.bayt.length),
-        "cache-control": "private, max-age=31536000, immutable",
-      },
-    });
-  }
-
   let yol = job?.imagePath;
   let mime: string | undefined;
 

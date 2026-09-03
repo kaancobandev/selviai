@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Hero, type Ipucu } from "@/components/hero";
+import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { cn } from "@/lib/utils";
 
@@ -152,11 +153,44 @@ export function IlhamAkisi() {
     }
   }
 
+  /* Çalışma kaydı stüdyonun TEK bilgi kaynağı. İki kez yazılıyor:
+     seçim anında (stüdyo hemen açılabilsin) ve türetme bitince
+     (çıktılar da orada olsun). Hata yutuluyor — kaydın yazılamaması
+     akışı durdurmamalı, yalnız stüdyo tohumsuz açılır. */
+  const calismaKaydet = useCallback(
+    async (sira: number, turetJob?: string) => {
+      if (!ilhamIs) return;
+      try {
+        await fetch("/api/calisma", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ilhamIs,
+            secilenSira: sira,
+            turetIs: turetJob,
+            brief: istek.trim(),
+          }),
+        });
+      } catch {
+        /* sessiz */
+      }
+    },
+    [ilhamIs, istek],
+  );
+
+  /* Türetme bitince kaydı tazele: artık çıktıların işi de belli. */
+  useEffect(() => {
+    if (turet?.status === "completed" && turetIs && secili !== null) {
+      void calismaKaydet(secili, turetIs);
+    }
+  }, [turet?.status, turetIs, secili, calismaKaydet]);
+
   async function sec(sira: number) {
     if (!ilhamIs || mesgul) return;
     setSecili(sira);
     setHata(null);
     setTuret({ status: "queued" });
+    void calismaKaydet(sira);
     try {
       const r = await fetch("/api/ilham", {
         method: "POST",
@@ -324,6 +358,20 @@ export function IlhamAkisi() {
                   <p className="mt-6 text-[15px] leading-7 text-fog">
                     {turet.error ?? "Türetme tamamlanamadı."}
                   </p>
+                )}
+
+                {/* Stüdyoya devir. Bağlantı ancak çalışma kaydı yazıldıktan
+                    SONRA gösteriliyor; yoksa stüdyo tohumsuz açılır ve
+                    kullanıcı "hiçbir şey aktarılmamış" sanır. */}
+                {turetKareler.length > 0 && (
+                  <div className="mt-12 flex flex-wrap items-center gap-4">
+                    <Button href="/hizmetler/inspiration" variant="solid">
+                      Stüdyoda aç
+                    </Button>
+                    <p className="text-[15px] leading-7 text-fog">
+                      Seçtiğiniz kare ve üç çıktı stüdyodaki araçlara aktarıldı.
+                    </p>
+                  </div>
                 )}
               </Reveal>
             )}
