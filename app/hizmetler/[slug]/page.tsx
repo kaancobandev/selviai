@@ -12,6 +12,7 @@ type Params = Promise<{ slug: string }>;
 /** Kendi çalışma alanı olan hizmetler — bu rota onları işlemez */
 const WORKSPACES = new Set([
   "inspiration",
+  "collage",
   "kumas-secimi",
   "branding",
   "etiket-tasarimi",

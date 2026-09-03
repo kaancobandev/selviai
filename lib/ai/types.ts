@@ -87,11 +87,24 @@ export const TURETILMIS_TURLER = ["moodboard", "kumas", "branding"] as const;
 export type TuretilmisTur = (typeof TURETILMIS_TURLER)[number];
 
 /**
+ * KOLAJ KESİMLERİ — kolaj tuvaline yapıştırılacak, arka planından
+ * ayrılmış parçalar.
+ *
+ * NEDEN SABİT DÖRT YUVA, serbest sayı değil. Kareler kovaya
+ * `<isId>/<eksen>.<uzanti>` yoluna yazılıyor; aynı eksen adını taşıyan
+ * iki kare BİRBİRİNİN ÜSTÜNE yazardı. Yuvalar ayrı adlar veriyor.
+ * Dördün kendisi de keyfi değil: akış zaten dört ilham karesi üretiyor
+ * ve her kesim ~12 saniye + bir model çağrısı demek.
+ */
+export const KESIM_EKSENLERI = ["kesim-1", "kesim-2", "kesim-3", "kesim-4"] as const;
+export type KesimEkseni = (typeof KESIM_EKSENLERI)[number];
+
+/**
  * İş modu. Eskiden tek mod vardı ve kayıtta hiç yazmıyordu; alan
  * İSTEĞE BAĞLI çünkü yayındaki eski iş kayıtlarında yok — okunurken
  * boşsa "kompozisyon" sayılıyor.
  */
-export type IsModu = "kompozisyon" | "ilham" | "turetilmis";
+export type IsModu = "kompozisyon" | "ilham" | "turetilmis" | "kultur" | "kesim";
 
 /** Metinden dört kare üretimi — girdi görseli yok. */
 export type IlhamInput = {
@@ -117,13 +130,49 @@ export type TuretilmisInput = {
 };
 
 /**
+ * Kolaj kesimi — kaynak karelerden parça çıkarma.
+ *
+ * Modelin ŞEFFAF çıktı veremediği ölçüldü: görsel ucu alfa kanalsız
+ * JPEG döndürüyor, "transparan PNG" istense bile. Bu yüzden kesim
+ * DÜZ ANAHTAR RENKLE yapılıyor — model konuyu tek düze macenta zemine
+ * yerleştiriyor, saydamlığı tarayıcı canvas'ta açıyor (bkz. lib/kolaj.ts).
+ * Ölçüm: zeminin %48,1'i tam macenta, %0,7 saçak, ~12 sn.
+ */
+export type KesimInput = {
+  /** Kesilecek karelerin kovadaki yolları; sunucu çözüyor. */
+  yollar: string[];
+  metin: string;
+  aspect: Aspect;
+};
+
+/**
+ * Kültür analizi — depodaki tek METİN üreten iş.
+ *
+ * Görsel işleriyle aynı kuyruğa girmesinin sebebi süre: analiz canlı
+ * arama yaptığı için 10-30 saniye sürüyor ve Netlify senkron
+ * fonksiyonları 10 saniyede kesiyor (bkz. netlify.toml). İlk sürüm
+ * senkron yazılmıştı ve production'da çalışmazdı.
+ */
+export type KulturInput = {
+  brief: string;
+};
+
+/** Kültür analizinin sonucu — iş kaydında taşınıyor. */
+export type Analiz = {
+  metin: string;
+  kaynaklar: { baslik: string; adres: string }[];
+  sorgular: string[];
+  model: string;
+};
+
+/**
  * Çok çıktılı işlerin tek bir karesi. Kompozisyon işleri tek kare
  * ürettiği için `imagePath` alanını kullanmaya devam ediyor; ilham
  * işlerinde onun yerine bu dizi doluyor.
  */
 export type JobKare = {
   /** Hangi eksenden/türden geldiği — arayüz bunu etiket olarak gösteriyor. */
-  eksen: IlhamEkseni | TuretilmisTur;
+  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni;
   /** Kovadaki yol. Depo kapalıysa boş kalır ve dataUrl dolar. */
   imagePath?: string;
   dataUrl?: string;
@@ -186,8 +235,12 @@ export type Job = {
   mod?: IsModu;
   ilham?: IlhamInput;
   turetilmis?: TuretilmisInput;
+  kultur?: KulturInput;
+  kesim?: KesimInput;
   /** Çok çıktılı işlerde kareler; kompozisyonda boş kalır. */
   kareler?: JobKare[];
+  /** Yalnız kültür işlerinde dolar. */
+  analiz?: Analiz;
 };
 
 /** Tek bir üretim denemesinin özeti. */
@@ -221,7 +274,7 @@ export type JobMeta = {
  */
 /** İstemciye dönen tek kare — kovadaki yol DEĞİL, kendi ucumuz. */
 export type JobKareView = {
-  eksen: IlhamEkseni | TuretilmisTur;
+  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni;
   /** `/api/kare/<isId>/<sira>` — kova özel, yol dışarı verilmiyor. */
   url?: string;
   dataUrl?: string;
@@ -229,7 +282,7 @@ export type JobKareView = {
 
 export type JobView = Omit<
   Job,
-  "request" | "imagePath" | "meta" | "kareler" | "ilham" | "turetilmis"
+  "request" | "imagePath" | "meta" | "kareler" | "ilham" | "turetilmis" | "kultur" | "kesim"
 > & {
   resultUrl?: string;
   kareler?: JobKareView[];
@@ -262,7 +315,8 @@ export function toJobView(job: Job): JobView {
       url: k.imagePath ? `/api/kare/${job.id}/${i}` : undefined,
       dataUrl: k.dataUrl,
     })),
-    istek: job.ilham?.metin ?? job.turetilmis?.metin,
+    istek: job.ilham?.metin ?? job.turetilmis?.metin ?? job.kesim?.metin ?? job.kultur?.brief,
+    analiz: job.analiz,
     meta: job.meta && {
       model: job.meta.model,
       ms: job.meta.ms,

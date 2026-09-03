@@ -105,6 +105,75 @@ export function buildKulturPrompt(brief: string): string {
   ].join("\n");
 }
 
+/* ------------------------------------------------------------------
+   KAYNAK KEFALETİ — KARA LİSTE DEĞİL, BEYAZ LİSTE.
+
+   Prompt'taki "şunları kaynak sayma" yönlendirmesi TAVSİYE, kural değil:
+   ölçümde model yine de perakende ve sosyal medya adresleri döndürdü,
+   hepsi akademik arşivlerle aynı ağırlıkta listeleniyordu.
+
+   ÖNCE KARA LİSTE DENENDİ VE İŞE YARAMADI. facebook/pinterest/amazon
+   gibi tanınmış adresler yazıldı; ikinci ölçümde 14 kaynağın HİÇBİRİ
+   listeye düşmedi çünkü zayıf kaynaklar tanınmış platformlar değil,
+   uzun kuyruktu: representclo.com, endclothing.com, panacomp.net —
+   küçük mağazalar ve turizm siteleri. Sonuç, olmamasından kötüydü:
+   işaretsiz bir liste "hepsi denetlendi ve temiz" demek oluyordu.
+
+   Bu yüzden yön çevrildi. Kefil OLABİLDİKLERİMİZ işaretleniyor; geri
+   kalan işaretsiz kalıyor ve arayüz bunun ne demek olduğunu açıkça
+   yazıyor: "doğrulanmadı", "kötü" değil. Beyaz liste zaten yukarıdaki
+   ONCELIKLI_KAYNAKLAR'ın makine okunur hâli — iki yerde iki farklı
+   ölçüt olmasın.
+
+   Liste büyütülmek için var.
+   ------------------------------------------------------------------ */
+const GUCLU_SONEKLER = [".edu", ".ac.uk", ".gov", ".museum", ".edu.tr", ".ac.jp"];
+
+const GUCLU_ALANLAR = [
+  // Akademik arşiv ve dizinler
+  "dergipark.org.tr",
+  "jstor.org",
+  "academia.edu",
+  "researchgate.net",
+  // Müze ve koleksiyon arşivleri
+  "vam.ac.uk",
+  "metmuseum.org",
+  "momu.be",
+  "moma.org",
+  "sakipsabancimuzesi.org",
+  "europeana.eu",
+  "smithsonianmag.com",
+  // Yerleşik moda gazeteciliği
+  "voguebusiness.com",
+  "businessoffashion.com",
+  "showstudio.com",
+  "032c.com",
+  "dazeddigital.com",
+  "ft.com",
+  "nytimes.com",
+  "theguardian.com",
+  "latimes.com",
+  "washingtonpost.com",
+  "bbc.co.uk",
+  "bbc.com",
+  "reuters.com",
+  "apnews.com",
+  "economist.com",
+];
+
+/**
+ * Kaynağın kefil olunabilir bir kurumdan gelip gelmediği.
+ *
+ * Gemini'nin döndürdüğü `adres` bir yönlendirme sarmalayıcısı ve gerçek
+ * alan adı BAŞLIKTA duruyor; o yüzden kontrol başlık üzerinden.
+ * Alt alan adları da sayılıyor ("collections.vam.ac.uk").
+ */
+export function guvenilirKaynakMi(baslik: string): boolean {
+  const ad = baslik.trim().toLowerCase().replace(/^www\./, "");
+  if (GUCLU_SONEKLER.some((s) => ad === s.slice(1) || ad.endsWith(s))) return true;
+  return GUCLU_ALANLAR.some((z) => ad === z || ad.endsWith(`.${z}`));
+}
+
 /** Analizin üç bölümü — arayüz metni bunlara göre ayırıyor. */
 export const BOLUMLER = [
   { anahtar: "Ne görülüyor", etiket: "Ne görülüyor" },

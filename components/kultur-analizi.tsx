@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
-import { bolumlereAyir, type Bolum } from "@/lib/kultur";
+import { bolumlereAyir, guvenilirKaynakMi, type Bolum } from "@/lib/kultur";
 import type { StudyoTohum } from "@/lib/ai/tohum";
 
 /* ------------------------------------------------------------------
@@ -22,14 +22,23 @@ import type { StudyoTohum } from "@/lib/ai/tohum";
    Arama yapılmadıysa bu AÇIKÇA söyleniyor. Kaynaksız bir kültür
    analizini sessizce kaynaklıymış gibi sunmak, aracın yapabileceği en
    zararlı şey.
+
+   ÜRETİM ARKA PLANDA. Analiz canlı arama yaptığı için 10-30 saniye
+   sürüyor; senkron uçlar 10 saniyede kesildiğinden iş kuyruğa giriyor
+   ve burası görsel araçlarıyla aynı yoklama döngüsünü kullanıyor.
    ------------------------------------------------------------------ */
 
 type Kaynak = { baslik: string; adres: string };
 type Sonuc = { bolumler: Bolum[]; kaynaklar: Kaynak[]; sorgular: string[]; ms: number };
 
+const YOKLAMA_MS = 1500;
+const YOKLAMA_TAVANI_MS = 3 * 60 * 1000;
+
 export function KulturAnalizi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [brief, setBrief] = useState(tohum?.brief ?? "");
   const [sonuc, setSonuc] = useState<Sonuc | null>(null);
+  const [isId, setIsId] = useState<string | null>(null);
+  const [adim, setAdim] = useState<string | null>(null);
   const [mesgul, setMesgul] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -41,6 +50,8 @@ export function KulturAnalizi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     setMesgul(true);
     setHata(null);
     setSonuc(null);
+    setAdim(null);
+    setIsId(null);
     try {
       const r = await fetch("/api/kultur", {
         method: "POST",
@@ -49,21 +60,72 @@ export function KulturAnalizi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       });
       const j = await r.json();
       if (!r.ok) {
-        setHata(j.error ?? "Analiz tamamlanamadı.");
+        setHata(j.error ?? "Analiz başlatılamadı.");
+        setMesgul(false);
         return;
       }
-      setSonuc({
-        bolumler: bolumlereAyir(j.metin ?? ""),
-        kaynaklar: j.kaynaklar ?? [],
-        sorgular: j.aramaSorgulari ?? [],
-        ms: j.ms ?? 0,
-      });
+      // Yoklamayı aşağıdaki etki devralıyor; `mesgul` orada kapanıyor.
+      setIsId(j.jobId as string);
     } catch {
       setHata("Bağlantı kurulamadı. Tekrar deneyin.");
-    } finally {
       setMesgul(false);
     }
   }
+
+  /* İptal bayrağı şart: Strict Mode etkiyi iki kez çalıştırıyor ve
+     bileşen sökülünce eski döngü hâlâ state yazmaya kalkar. Yoklama
+     GET olduğu için ikinci döngünün baştan başlaması zararsız. */
+  useEffect(() => {
+    if (!isId) return;
+    let iptal = false;
+    const basladi = Date.now();
+
+    const tur = async () => {
+      if (iptal) return;
+      try {
+        const r = await fetch(`/api/jobs/${isId}`, { cache: "no-store" });
+        const j = await r.json();
+        if (iptal) return;
+
+        if (j.status === "completed") {
+          const a = j.analiz;
+          if (a?.metin) {
+            setSonuc({
+              bolumler: bolumlereAyir(a.metin),
+              kaynaklar: a.kaynaklar ?? [],
+              sorgular: a.sorgular ?? [],
+              ms: j.meta?.ms ?? 0,
+            });
+          } else {
+            setHata("Analiz boş döndü. Tekrar deneyin.");
+          }
+          setMesgul(false);
+          return;
+        }
+        if (j.status === "failed") {
+          setHata(j.error ?? "Analiz tamamlanamadı.");
+          setMesgul(false);
+          return;
+        }
+        setAdim(typeof j.step === "string" ? j.step : null);
+      } catch {
+        /* Ağ tökezlemesi işi bitirmez; sonraki turda tekrar denenir. */
+      }
+      if (Date.now() - basladi > YOKLAMA_TAVANI_MS) {
+        if (!iptal) {
+          setHata("Analiz beklenenden uzun sürdü. Tekrar deneyin.");
+          setMesgul(false);
+        }
+        return;
+      }
+      setTimeout(tur, YOKLAMA_MS);
+    };
+
+    void tur();
+    return () => {
+      iptal = true;
+    };
+  }, [isId]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -124,7 +186,13 @@ export function KulturAnalizi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
 
           {mesgul && (
             <div className="flex flex-col gap-4">
-              <p className="eyebrow text-fog">Kaynaklar taranıyor</p>
+              {/* İkinci deneme SESSİZ GEÇMİYOR: kullanıcı neden daha
+                  uzun beklediğini bilmeli. */}
+              <p className="eyebrow text-fog">
+                {adim === "yeniden-araniyor"
+                  ? "İlk denemede kaynak dönmedi, yeniden aranıyor"
+                  : "Kaynaklar taranıyor"}
+              </p>
               {[0, 1, 2].map((i) => (
                 <span key={i} className="h-4 w-full max-w-2xl animate-pulse bg-kalem/[0.06]" />
               ))}
@@ -149,6 +217,16 @@ export function KulturAnalizi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               <aside className="flex flex-col gap-8">
                 <div>
                   <p className="eyebrow text-fog">Kaynaklar</p>
+                  {sonuc.kaynaklar.length > 0 && (
+                    /* Sayıyı ÖNDE söylemek önemli: ölçümde 14 kaynağın
+                       çoğu küçük mağaza ve turizm sitesiydi. İşaretsiz
+                       bir listeyi kullanıcı "denetlenmiş" sanabilir. */
+                    <p className="mt-3 text-[13px] leading-6 text-fog">
+                      {sonuc.kaynaklar.filter((k) => guvenilirKaynakMi(k.baslik)).length}/
+                      {sonuc.kaynaklar.length} kaynak tanıdığımız bir kurumdan geliyor.
+                      İşaretsiz olanlar kötü demek değil, <em className="not-italic text-kalem">doğrulanmamış</em> demek.
+                    </p>
+                  )}
                   {sonuc.kaynaklar.length ? (
                     <ul className="mt-4 flex flex-col gap-3">
                       {sonuc.kaynaklar.map((k) => (
@@ -164,6 +242,14 @@ export function KulturAnalizi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                           >
                             {k.baslik}
                           </a>
+                          {/* Kefil olabildiğimiz kurumlar işaretleniyor;
+                              geri kalan "kötü" değil, DOĞRULANMAMIŞ. Ayrımı
+                              aşağıdaki not açıklıyor. */}
+                          {guvenilirKaynakMi(k.baslik) && (
+                            <span className="mt-1 block text-[12px] leading-5 text-fog">
+                              Kurumsal / akademik kaynak
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>

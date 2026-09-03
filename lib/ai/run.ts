@@ -4,8 +4,17 @@ import { agirlikliPuan, judgeComposite, qualityGateEnabled } from "./judge";
 import { getJob, patchJob } from "./jobs";
 import { cozGirdiler, girdiYollari } from "./resolve";
 import { depoAcikMi, depola, dosyaYukle, girdileriSil, indir } from "./storage";
-import { ILHAM_EKSENLERI, type Attempt, type ComposeRequest, type Job, type JobKare } from "./types";
-import { buildIlhamPrompt, buildTuretilmisPrompt } from "./prompt";
+import {
+  ILHAM_EKSENLERI,
+  KESIM_EKSENLERI,
+  type Attempt,
+  type ComposeRequest,
+  type Job,
+  type JobKare,
+} from "./types";
+import { buildIlhamPrompt, buildKesimPrompt, buildTuretilmisPrompt } from "./prompt";
+import { metinUret, MetinError } from "./metin";
+import { buildKulturPrompt } from "../kultur";
 
 /* ------------------------------------------------------------------
    Bir işi baştan sona çalıştırır. İki yerden çağrılır:
@@ -63,8 +72,16 @@ export async function runJob(id: string): Promise<void> {
      girdi çözme yok (görsel yok), kalite kapısı yok (karşılaştırılacak
      referans yok, hakemin rubriği "kare 4'ü kare 1-3'e karşı" puanlıyor)
      ve kazanan seçimi yok — dördü de kullanıcıya gidiyor. */
-  if (job.mod === "ilham" || job.mod === "turetilmis") {
+  if (job.mod === "ilham" || job.mod === "turetilmis" || job.mod === "kesim") {
     await ilhamKosusu(job);
+    return;
+  }
+
+  /* KÜLTÜR DALI — çıktı görsel değil metin. Kuyruğa girmesinin tek
+     sebebi süre: canlı arama 10-30 saniye tutuyor, senkron uçlar
+     10 saniyede kesiliyor. */
+  if (job.mod === "kultur") {
+    await kulturKosusu(job);
     return;
   }
 
@@ -287,6 +304,40 @@ async function ilhamKosusu(job: Job): Promise<void> {
       prompt: buildIlhamPrompt(g.metin, g.kategori, eksen),
       aspect: g.aspect,
     }));
+  } else if (job.mod === "kesim") {
+    const k = job.kesim;
+    if (!k?.yollar.length) {
+      return void (await basarisiz(id, "istek-yok", "İş kaydında kesilecek kare yok."));
+    }
+    /* Türetmeden farkı: orada TEK referans üç göreve gidiyor, burada
+       HER görevin kendi referansı var — her parça ayrı kareden kesiliyor.
+       Bu yüzden indirme döngü içinde. */
+    const dosyalar = await Promise.all(k.yollar.map((yol) => indir(yol)));
+    gorevler = [];
+    for (let i = 0; i < dosyalar.length; i += 1) {
+      const d = dosyalar[i];
+      /* Bir kare okunamazsa DİĞERLERİ YİNE KESİLİYOR: dört parçalık bir
+         işi tek dosya yüzünden tamamen düşürmek kullanıcıya pahalıya
+         mal olur. Hepsi düşerse aşağıdaki boş kontrolü yakalıyor. */
+      if (!d) {
+        console.error(`kesim: kaynak okunamadı (${k.yollar[i]})`);
+        continue;
+      }
+      gorevler.push({
+        /* Yuva adı İSTEK SIRASINDAN geliyor, kuyruk uzunluğundan değil.
+           Aradan bir kare düşerse sonrakiler bir yuva kaymış olurdu ve
+           istemci parçaları yanlış kareyle eşleştirirdi — sessiz ve
+           teşhisi zor bir hata. Yuva adı sabit kalınca eşleşme
+           indekse değil ada dayanıyor. */
+        eksen: KESIM_EKSENLERI[i],
+        prompt: buildKesimPrompt(k.metin),
+        aspect: k.aspect,
+        referans: { mimeType: d.mime, data: d.bayt.toString("base64") },
+      });
+    }
+    if (!gorevler.length) {
+      return void (await basarisiz(id, "kaynak-okunamadi", "Kesilecek kareler okunamadı."));
+    }
   } else {
     const t = job.turetilmis;
     if (!t) return void (await basarisiz(id, "istek-yok", "İş kaydında türetme isteği yok."));
@@ -377,6 +428,64 @@ async function ilhamKosusu(job: Job): Promise<void> {
       kabul: null,
     },
   });
+}
+
+/**
+ * KÜLTÜR ANALİZİ KOŞUSU.
+ *
+ * Görsel dallarından ayrı duruyor çünkü ortak hiçbir şeyi yok: model
+ * farklı, çıktı metin, kalite kapısı yok, kova yok. Ortak olan tek şey
+ * iş kaydı ve onu paylaşmasının sebebi de estetik değil zorunluluk —
+ * bkz. yukarıdaki dal yorumu.
+ */
+async function kulturKosusu(job: Job): Promise<void> {
+  const id = job.id;
+  const brief = job.kultur?.brief;
+  if (!brief) return void (await basarisiz(id, "istek-yok", "İş kaydında analiz metni yok."));
+
+  await patchJob(id, { status: "processing", step: "araniyor" });
+
+  try {
+    let sonuc = await metinUret(buildKulturPrompt(brief));
+
+    /* TEK SEFERLİK YENİDEN DENEME — yalnız hiç kaynak dönmediğinde.
+       Arama modelin KULLANABİLECEĞİ bir araç, garanti değil: ölçümde
+       aynı istek bir koşumda hiç aramadan, başka koşumda 5 kaynakla
+       döndü. Kullanıcı iddialı çıktı istedi ve kaynaksız iddia bu aracın
+       en zararlı hâli; bir tekrar, o hâlin sıklığını ciddi biçimde
+       düşürüyor. Maliyeti yalnız başarısız koşumda ödeniyor.
+
+       Arka plana taşındıktan sonra bu tekrar RAHAT: 15 dakikalık sınır
+       iki koşuma fazlasıyla yetiyor. Senkron sürümde ikinci deneme
+       zaten kesilmiş olurdu. */
+    if (!sonuc.kaynaklar.length) {
+      console.warn("Kültür analizi kaynaksız döndü, bir kez yeniden deneniyor.");
+      await patchJob(id, { step: "yeniden-araniyor" });
+      sonuc = await metinUret(
+        buildKulturPrompt(brief) +
+          "\n\nÖNEMLİ: Önceki denemende arama yapmadın ve yanıt kaynaksız kaldı. " +
+          "Bu sefer MUTLAKA arama yap ve yalnız doğrulayabildiğin çıpaları yaz.",
+      );
+    }
+
+    await patchJob(id, {
+      status: "completed",
+      completedAt: new Date().toISOString(),
+      step: "bitti",
+      analiz: {
+        metin: sonuc.metin,
+        kaynaklar: sonuc.kaynaklar,
+        sorgular: sonuc.aramaSorgulari,
+        model: sonuc.model,
+      },
+      meta: { model: sonuc.model, ms: sonuc.ms, kabul: null, deneme: 1 },
+    });
+  } catch (error) {
+    const mesaj =
+      error instanceof MetinError ? error.userMessage : "Analiz tamamlanamadı. Tekrar deneyin.";
+    console.error("Kültür analizi başarısız:", error instanceof Error ? error.message : error);
+    await basarisiz(id, "analiz-hatasi", mesaj);
+  }
 }
 
 async function basarisiz(id: string, step: string, error: string): Promise<void> {

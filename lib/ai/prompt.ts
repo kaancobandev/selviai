@@ -237,6 +237,56 @@ export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string
 }
 
 /**
+ * KOLAJ KESİMİ — konuyu zeminden ayırma.
+ *
+ * ŞEFFAFLIK İSTENMİYOR ÇÜNKÜ MODEL VEREMİYOR. Ölçüldü: "transparan
+ * arka planlı PNG" istendiğinde çıktı alfa kanalsız JPEG dönüyor
+ * (hasAlpha: false) ve köşe pikseli düz gri (174,165,158) — yani zemin
+ * saydam değil, sadece sade. Alfa üzerinden katmanlama imkânsız.
+ *
+ * Bu yüzden klasik yeşil-perde yöntemi: model konuyu DÜZ ANAHTAR RENGE
+ * oturtuyor, saydamlığı tarayıcı açıyor. Macenta seçildi çünkü moda
+ * fotoğrafında neredeyse hiç bulunmuyor — ten, kumaş ve toprak tonları
+ * ondan uzak, dolayısıyla yanlışlıkla silinen piksel az.
+ *
+ * Ölçüm (tek kare, gemini görsel ucu): zeminin %48,1'i tam (255,0,255),
+ * %0,7'si yakın-macenta saçak, siluet kenarı temiz, 11,6 saniye.
+ * Kalan zemin pikselleri tam maceta değil ama macentaya yakın; eşik
+ * lib/kolaj.ts içinde ölçüme göre ayarlı.
+ */
+export const ANAHTAR_RENK = { r: 255, g: 0, b: 255 } as const;
+
+export function buildKesimPrompt(istek: string): string {
+  const brief = istek.trim().slice(0, 300);
+  return [
+    "Cut the MAIN SUBJECT out of the attached image and place it alone",
+    "on a solid background.",
+    "",
+    "THE DIRECTION IT BELONGS TO",
+    `  ${brief}`,
+    "",
+    "BACKGROUND — THIS IS THE CRITICAL PART",
+    "  Fill the ENTIRE background with ONE completely flat, uniform colour:",
+    "  pure magenta, RGB (255, 0, 255), hex #FF00FF.",
+    "  Absolutely no gradient, no vignette, no texture, no shadow cast on it,",
+    "  no lighting falloff, no reflection of the subject onto it.",
+    "  Every background pixel must be the exact same magenta.",
+    "  The subject itself must contain NO magenta anywhere.",
+    "",
+    "SUBJECT",
+    "  Keep the garment, figure or object exactly as it appears: same shape,",
+    "  same proportions, same fabric, same colour, same lighting on the subject.",
+    "  Do not restyle it, do not change the pose, do not add or remove anything.",
+    "  Keep the full silhouette in frame with a small margin on every side.",
+    "  Crisp, clean edges — no soft glow or feathering into the background.",
+    "",
+    "OUTPUT",
+    "  One image. The subject, cut out, on flat magenta. No text, no watermark,",
+    "  no drop shadow, no border, no frame.",
+  ].join("\n");
+}
+
+/**
  * Onarım geçişi: kabul edilmeyen karede sıfırdan üretmek yerine tek bir
  * düzeltme istemek hem ucuz hem daha isabetli. (Faz 3'te devreye girecek.)
  */

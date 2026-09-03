@@ -1,24 +1,32 @@
 import { NextResponse } from "next/server";
-import { metinUret, MetinError } from "@/lib/ai/metin";
+import { putJob, sonIsiYaz } from "@/lib/ai/jobs";
+import { acikIsiBul, arkaPlandaBaslat } from "@/lib/ai/kuyruk";
+import { runJob } from "@/lib/ai/run";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
-import { buildKulturPrompt } from "@/lib/kultur";
+import type { Job } from "@/lib/ai/types";
 
 /* ------------------------------------------------------------------
    KÜLTÜR ANALİZİ UCU.
 
-   Görsel üretiminden farklı olarak KUYRUĞA ALINMIYOR: metin ~10 saniyede
-   dönüyor (ölçüldü: gemini-3.8-flash, iki arama sorgusu, 10,2 sn) ve
-   arka plan fonksiyonu + yoklama döngüsü kurmak bu süre için gereksiz
-   karmaşıklık olurdu. Görsel üretimi 12-40 sn sürdüğü ve Netlify'ın
-   senkron fonksiyonları 10 sn'de kestiği için orada kuyruk ŞART; burada
-   değil.
+   BU UÇ ÖNCE SENKRON YAZILDI VE YANLIŞTI. Gerekçe şuydu: "metin ~10
+   saniyede dönüyor, kuyruk gereksiz karmaşıklık." Ölçüm ilk denemeden
+   geliyordu; doğrulanabilir çıpa isteyen prompt'a geçilince süre 28,4
+   saniyeye çıktı ve o not güncellenmedi. Netlify senkron fonksiyonları
+   10 saniyede kesiyor (netlify.toml'da yazılı), yani uç yerelde
+   çalışırken production'da hiç çalışmayacaktı.
 
-   Oturum yine de açılıyor: ileride kredi/hız sınırı buraya da gelecek
-   ve o zaman kimin istediğini bilmek gerekecek.
+   Ders kayda geçsin: bir bileşenin süresi PROMPT DEĞİŞİNCE değişir.
+   Süreye dayanan mimari kararlar, prompt değiştiğinde yeniden ölçülmeli.
+
+   Şimdi görsel üretimiyle aynı yolu izliyor: iş kaydı açılıyor, arka
+   plan fonksiyonu tetikleniyor (15 dk sınırı), istemci /api/jobs/:id
+   ucundan yokluyor. Yoklama döngüsü zaten vardı — yeni altyapı yok.
    ------------------------------------------------------------------ */
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const MAX_BRIEF = 700;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -28,49 +36,62 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Gövde okunamadı." }, { status: 400 });
   }
 
-  const brief = typeof (body as { brief?: unknown })?.brief === "string"
-    ? ((body as { brief: string }).brief).trim()
-    : "";
+  const brief =
+    typeof (body as { brief?: unknown })?.brief === "string"
+      ? (body as { brief: string }).brief.trim()
+      : "";
   if (brief.length < 8) {
     return NextResponse.json(
       { error: "Analiz için tasarım yönünü birkaç cümleyle yazın." },
       { status: 400 },
     );
   }
-
-  await oturumAlVeyaOlustur();
-
-  try {
-    let sonuc = await metinUret(buildKulturPrompt(brief));
-
-    /* TEK SEFERLİK YENİDEN DENEME — yalnız hiç kaynak dönmediğinde.
-       Arama modelin KULLANABİLECEĞİ bir araç, garanti değil: ölçümde
-       aynı istek bir koşumda hiç aramadan, başka koşumda 5 kaynakla
-       döndü. Kullanıcı iddialı çıktı istedi ve kaynaksız iddia bu aracın
-       en zararlı hâli; bir tekrar, o hâlin sıklığını ciddi biçimde
-       düşürüyor. Maliyeti yalnız başarısız koşumda ödeniyor. */
-    if (!sonuc.kaynaklar.length) {
-      console.warn("Kültür analizi kaynaksız döndü, bir kez yeniden deneniyor.");
-      sonuc = await metinUret(
-        buildKulturPrompt(brief) +
-          "\n\nÖNEMLİ: Önceki denemende arama yapmadın ve yanıt kaynaksız kaldı. " +
-          "Bu sefer MUTLAKA arama yap ve yalnız doğrulayabildiğin çıpaları yaz.",
-      );
-    }
-
-    return NextResponse.json({
-      metin: sonuc.metin,
-      kaynaklar: sonuc.kaynaklar,
-      aramaSorgulari: sonuc.aramaSorgulari,
-      model: sonuc.model,
-      ms: sonuc.ms,
-    });
-  } catch (error) {
-    const mesaj =
-      error instanceof MetinError
-        ? error.userMessage
-        : "Analiz tamamlanamadı. Tekrar deneyin.";
-    console.error("Kültür analizi başarısız:", error instanceof Error ? error.message : error);
-    return NextResponse.json({ error: mesaj }, { status: 502 });
+  if (brief.length > MAX_BRIEF) {
+    return NextResponse.json({ error: "Analiz metni çok uzun." }, { status: 400 });
   }
+
+  const sessionId = await oturumAlVeyaOlustur();
+
+  /* Oturum kilidi görsel uçlarıyla ORTAK. Analiz ucuz bir iş ama kilidi
+     esnetmek "her uç kendi kuralını uydursun"a açılan kapı; tek kural
+     daha kolay savunuluyor. */
+  const acikIs = await acikIsiBul(sessionId);
+  if (acikIs) {
+    return NextResponse.json(
+      { error: "Bir üretiminiz sürüyor. Bitmesini bekleyin.", jobId: acikIs },
+      { status: 429 },
+    );
+  }
+
+  const job: Job = {
+    id: crypto.randomUUID(),
+    status: "queued",
+    createdAt: new Date().toISOString(),
+    sessionId,
+    katman: "ucretsiz",
+    mod: "kultur",
+    kultur: { brief },
+  };
+
+  await putJob(job);
+  await sonIsiYaz(sessionId, job.id);
+
+  // Sunucusuz ortamda yanıt döndükten sonra çalışan iş donuyor.
+  if (process.env.NODE_ENV === "development") {
+    void runJob(job.id);
+  } else if (!(await arkaPlandaBaslat(job.id, request))) {
+    await putJob({
+      ...job,
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      step: "baslatilamadi",
+      error: "Analiz işi başlatılamadı.",
+    });
+    return NextResponse.json(
+      { error: "Analiz başlatılamadı. Birazdan tekrar deneyin." },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json({ jobId: job.id }, { status: 202 });
 }
