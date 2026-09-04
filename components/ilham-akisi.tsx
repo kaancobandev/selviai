@@ -66,7 +66,17 @@ export function IlhamAkisi() {
   const [turet, setTuret] = useState<IsGorunum | null>(null);
 
   const [hata, setHata] = useState<string | null>(null);
-  const sonucRef = useRef<HTMLDivElement>(null);
+
+  /* PANEL — sonuçlar artık ana sayfaya EKLENMİYOR, üstünü kaplıyor.
+     Eskiden hero'nun altına bir bölüm açılıyordu: her üretimde sayfa
+     uzuyor ve önceki çıktılar orada kalıyordu. Gemini'nin yaptığı gibi
+     tek bir çalışma penceresi daha doğru — ana sayfa boyutunu koruyor,
+     çıktı birikmiyor ve çıkış yolu tek ve belli (sağ üstteki kapat). */
+  const [acik, setAcik] = useState(false);
+  /* Gönderilen brief AYRI tutuluyor: kullanıcı panel açıkken hero'daki
+     metni değiştirebilir, ama pencerede üretimi başlatan istek yazmalı. */
+  const [gonderilen, setGonderilen] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const mesgul =
     ilham?.status === "queued" ||
@@ -121,7 +131,14 @@ export function IlhamAkisi() {
   async function baslat() {
     const metin = istek.trim();
     if (metin.length < 3) {
+      /* Doğrulama hatası da PENCEREYİ AÇIYOR. Hata metni yalnız pencerede
+         render ediliyor; açmasaydık kullanıcı gönder'e basıp hiçbir şey
+         olmadığını görürdü — sessiz başarısızlık, hatanın en kötü hâli.
+         Hero'ya ayrı bir hata alanı eklemek de olurdu ama tasarımına
+         dokunmamak yeğ. */
       setHata("Ne tasarlamak istediğinizi birkaç kelimeyle yazın.");
+      setGonderilen(metin);
+      setAcik(true);
       return;
     }
     setHata(null);
@@ -131,6 +148,11 @@ export function IlhamAkisi() {
     setTuretIs(null);
 
     const brief = ipucu ? `${metin} — ${IPUCU_YONELIM[ipucu]}` : metin;
+    /* Pencere İSTEK GİDER GİTMEZ açılıyor, yanıt beklenmeden: kullanıcı
+       gönderdiğini anında görmeli. Yanıtı bekleseydi arada bir saniye
+       hiçbir şey olmamış gibi görünürdü. */
+    setGonderilen(brief);
+    setAcik(true);
     try {
       const r = await fetch("/api/ilham", {
         method: "POST",
@@ -144,10 +166,6 @@ export function IlhamAkisi() {
       }
       setIlhamIs(j.jobId);
       setIlham({ status: "queued" });
-      // Sonuç şeridi hero'nun altında; kullanıcı orada olduğunu görmeli.
-      requestAnimationFrame(() =>
-        sonucRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      );
     } catch {
       setHata("Bağlantı kurulamadı. Tekrar deneyin.");
     }
@@ -216,9 +234,63 @@ export function IlhamAkisi() {
     }
   }
 
+  /**
+   * Pencereyi kapatır ve akışı sıfırlar.
+   *
+   * İŞ KİMLİKLERİ TEMİZLENİYOR, çünkü yoklama döngüleri onlara bağlı —
+   * temizlenmezse pencere kapalıyken arka planda dönmeye devam eder.
+   *
+   * SUNUCUDAKİ İŞ DURMUYOR. Kapatmak yalnız arayüzü bırakıyor; başlamış
+   * bir üretim sunucuda tamamlanır ve parası zaten ödenmiştir. Bunun
+   * görünür sonucu şu: hemen yeni bir üretim denenirse oturum kilidi
+   * "Bir üretiminiz sürüyor" diyebilir (iş bitene ya da iki dakikalık
+   * bekçi süresi dolana kadar). Bu, yanlış bir davranış değil — doğru
+   * mesajla söylenen gerçek durum.
+   */
+  const kapat = useCallback(() => {
+    setAcik(false);
+    setIlhamIs(null);
+    setIlham(null);
+    setSecili(null);
+    setTuretIs(null);
+    setTuret(null);
+    setHata(null);
+    // Odak aşağıdaki etkide geri veriliyor, burada değil — gerekçesi orada.
+  }, []);
+
+  /* ODAK GERİ VERME BİR ETKİDE, `kapat` içinde DEĞİL.
+     İlk yazımda `requestAnimationFrame` ile yapılıyordu ve iki yerden
+     kırılıyordu: rAF gizli sekmede hiç çalışmıyor, ayrıca kare React
+     commit'inden önce gelirse hero'daki alan hâlâ `disabled` oluyor
+     (üretim sürerken öyle) ve `focus()` sessizce hiçbir şey yapmıyor.
+     Etki commit'ten SONRA koşuyor: alan o noktada etkin ve odaklanabilir. */
+  const oncekiAcik = useRef(false);
+  useEffect(() => {
+    if (oncekiAcik.current && !acik) {
+      document.getElementById("hero-fikir")?.focus();
+    }
+    oncekiAcik.current = acik;
+  }, [acik]);
+
+  /* Pencere açıkken arka plan kaydırılmamalı ve Escape çıkış vermeli —
+     tam ekranı kaplayan bir katmanda ikisi de beklenen davranış. */
+  useEffect(() => {
+    if (!acik) return;
+    const eskiTasma = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const tus = (olay: KeyboardEvent) => {
+      if (olay.key === "Escape") kapat();
+    };
+    document.addEventListener("keydown", tus);
+    panelRef.current?.focus();
+    return () => {
+      document.body.style.overflow = eskiTasma;
+      document.removeEventListener("keydown", tus);
+    };
+  }, [acik, kapat]);
+
   const ilhamKareler = ilham?.status === "completed" ? (ilham.kareler ?? []) : [];
   const turetKareler = turet?.status === "completed" ? (turet.kareler ?? []) : [];
-  const gosterilecek = Boolean(ilhamIs || hata);
 
   return (
     <>
@@ -231,21 +303,40 @@ export function IlhamAkisi() {
         mesgul={mesgul}
       />
 
-      {gosterilecek && (
-        <section
-          ref={sonucRef}
-          id="ilham"
-          aria-live="polite"
-          className="scroll-mt-16 px-5 py-20 md:scroll-mt-20 md:px-10 md:py-24"
+      {acik && (
+        /* Tam ekran çalışma penceresi. `z-[60]`: site başlığı `z-50`de
+           duruyor ve pencerenin onun da üstünü kapatması gerekiyor,
+           yoksa arkada yarı görünür bir şerit kalıyor. */
+        <div
+          ref={panelRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Üretim penceresi"
+          className="fixed inset-0 z-[60] overflow-y-auto bg-zemin outline-none"
         >
+          <button
+            type="button"
+            onClick={kapat}
+            aria-label="Pencereyi kapat"
+            className="fixed right-4 top-4 z-10 flex h-11 w-11 items-center justify-center border border-hair bg-zemin text-fog transition-colors duration-200 hover:border-fog hover:text-kalem md:right-6 md:top-6"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          <section
+            id="ilham"
+            aria-live="polite"
+            className="px-5 py-20 md:px-10 md:py-24"
+          >
           <div className="mx-auto max-w-6xl">
-            <p className="eyebrow text-fog">İlham</p>
-            <h2 className="mt-6 max-w-[24ch] font-display text-4xl leading-[1.05] md:text-5xl">
-              Dört yorum. <em className="text-vurgu">Birini seçin.</em>
-            </h2>
-            <p className="mt-5 max-w-[52ch] text-[15px] leading-7 text-fog">
-              Aynı fikir dört ayrı kapıdan: siluet, malzeme, renk ve bağlam.
-              Seçtiğinizin üzerinden moodboard, kumaş ve marka çalışması üretilir.
+            {/* Gönderilen istek pencerenin başında duruyor: kullanıcı neyin
+                üretildiğini görmeden dört kareye bakmak zorunda kalmasın. */}
+            <p className="eyebrow text-fog">İstek</p>
+            <p className="mt-4 max-w-[60ch] font-display text-2xl leading-snug md:text-3xl">
+              {gonderilen}
             </p>
 
             {hata && (
@@ -253,6 +344,20 @@ export function IlhamAkisi() {
                 {hata}
               </p>
             )}
+
+            {/* BAŞLIK VE IZGARA YALNIZ İŞ VARKEN. Doğrulama hatasında da
+                pencere açılıyor ve o durumda "Dört yorum. Birini seçin."
+                deyip dört boş iskelet göstermek yalan olurdu: hiçbir
+                üretim başlamadı. */}
+            {ilhamIs && (
+              <>
+            <h2 className="mt-14 max-w-[24ch] font-display text-3xl leading-[1.05] md:text-4xl">
+              Dört yorum. <em className="text-vurgu">Birini seçin.</em>
+            </h2>
+            <p className="mt-5 max-w-[52ch] text-[15px] leading-7 text-fog">
+              Aynı fikir dört ayrı kapıdan: siluet, malzeme, renk ve bağlam.
+              Seçtiğinizin üzerinden moodboard, kumaş ve marka çalışması üretilir.
+            </p>
 
             {/* ── Dört ilham karesi ── */}
             <div className="mt-10 grid gap-px bg-hair sm:grid-cols-2 lg:grid-cols-4">
@@ -375,8 +480,11 @@ export function IlhamAkisi() {
                 )}
               </Reveal>
             )}
+              </>
+            )}
           </div>
-        </section>
+          </section>
+        </div>
       )}
     </>
   );
