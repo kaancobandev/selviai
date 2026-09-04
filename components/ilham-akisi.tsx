@@ -360,13 +360,13 @@ export function IlhamAkisi() {
             <h2 className="mt-14 max-w-[24ch] text-2xl font-medium leading-snug md:text-3xl">
               Dört yorum. <span className="text-fog">Birini seçin.</span>
             </h2>
-            <p className="mt-5 max-w-[52ch] text-[15px] leading-7 text-fog">
-              Aynı fikir dört ayrı kapıdan: siluet, malzeme, renk ve bağlam.
-              Seçtiğinizin üzerinden moodboard, kumaş ve marka çalışması üretilir.
-            </p>
 
-            {/* ── Dört ilham karesi ── */}
-            <div className="mt-10 grid gap-px bg-hair sm:grid-cols-2 lg:grid-cols-4">
+            {/* ── Dört ilham karesi ──
+                `gap-px bg-hair` yerine gerçek boşluk: kareler eskiden saç
+                teli çizgilerle bitişik tek bir şerit gibiydi, şimdi ayrı
+                ayrı duruyor. Zemin rengi de kalktı, artık ayıran şey
+                boşluğun kendisi. */}
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {(ilhamKareler.length ? ilhamKareler : Array.from({ length: 4 })).map((k, i) => {
                 const kare = k as Kare | undefined;
                 const kaynak = kare?.url ?? kare?.dataUrl;
@@ -383,7 +383,7 @@ export function IlhamAkisi() {
                       secili !== null && secili !== i && "opacity-45",
                     )}
                   >
-                    <span className="relative block aspect-[4/5] overflow-hidden bg-hair">
+                    <span className="relative block aspect-[4/5] overflow-hidden rounded-2xl bg-hair">
                       {kaynak ? (
                         <Image
                           src={kaynak}
@@ -399,9 +399,11 @@ export function IlhamAkisi() {
                         <span className="absolute inset-0 animate-pulse bg-kalem/[0.06]" />
                       )}
                       {secili === i && (
+                        /* Çerçeve de yuvarlatıldı: köşeli bir çerçeve
+                           yuvarlak görselin dışına taşıp kulak yapıyordu. */
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute inset-0 border-2 border-vurgu"
+                          className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-vurgu"
                         />
                       )}
                     </span>
@@ -453,13 +455,14 @@ export function IlhamAkisi() {
                   Moodboard, kumaş ve marka.
                 </h3>
 
-                <div className="mt-10 grid gap-px bg-hair sm:grid-cols-3">
+                {/* İlham şeridiyle aynı dil: boşluk + yuvarlak köşe. */}
+                <div className="mt-10 grid gap-4 sm:grid-cols-3">
                   {(turetKareler.length ? turetKareler : Array.from({ length: 3 })).map((k, i) => {
                     const kare = k as Kare | undefined;
                     const kaynak = kare?.url ?? kare?.dataUrl;
                     return (
-                      <div key={kare?.eksen ?? i} className="bg-zemin">
-                        <span className="relative block aspect-square overflow-hidden bg-hair">
+                      <div key={kare?.eksen ?? i}>
+                        <span className="relative block aspect-square overflow-hidden rounded-2xl bg-hair">
                           {kaynak ? (
                             <Image
                               src={kaynak}
