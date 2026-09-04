@@ -45,10 +45,44 @@ const YOKLAMA_MS = 2000;
 /** Bu süre sonunda yoklama bırakılır; sunucu tarafı kendi bekçisini işletiyor. */
 const YOKLAMA_TAVANI_MS = 4 * 60 * 1000;
 
+/**
+ * Açılış listesi — ÖNCE TOHUMDAKİ ÇEKİM, yoksa varsayılan üç satır.
+ *
+ * NEDEN VAR: üretilen her kare ÜCRETLİ ama sonuçlar yalnız bileşen
+ * durumunda duruyordu; sayfa tazelenince liste varsayılana dönüyor ve
+ * çekilmiş kareler ekrandan siliniyordu. Canlıda üç kare böyle gitti,
+ * kullanıcı aynı kareler için ikinci kez ödemek zorunda kaldı. Oysa
+ * kareler o sırada da SUNUCUDA duruyordu — eksik olan tek şey arayüzün
+ * onlara götürecek adresiydi. Tohum artık işi hatırlıyor ve satırın hem
+ * TANIMINI hem sonucunu taşıyor (bkz. lib/ai/tohum.ts, `cekim`).
+ *
+ * SATIR ŞEKLİ DEĞİŞMİYOR: iş dönünce `kareleriUygula` ne yazıyorsa
+ * (`sonuc` = kare adresi) burada da o yazılıyor. İki ayrı temsil olsaydı
+ * "geri gelen satır" ile "yeni çekilen satır" ayrı kodlar isterdi.
+ *
+ * KİMLİK KALIBI VARSAYILANLARIN AYNISI (`c1`, `c2`…): kimlik hem React
+ * anahtarı hem işten dönen kareyi bulan adres, ve elle eklenen satırlar
+ * ayrı bir önek taşıyor (`ek1`, `ek2` — bkz. yeniCekim), çakışmıyor.
+ *
+ * ADRESSİZ SATIR HİÇ ÇEKİLMEMİŞ GİBİ duruyor: o kare üretilememiş
+ * demektir. `basarisiz` işaretlemek bitmiş bir işten dönmüş gibi
+ * "Gelmedi" yazdırırdı, adresi olduğu gibi vermek de kırık görsel.
+ */
+function acilisCekimleri(tohum?: StudyoTohum | null): Cekim[] {
+  const kayitli = tohum?.cekim ?? [];
+  if (!kayitli.length) return varsayilanCekimler();
+  return kayitli.map((satir, i) => ({
+    id: `c${i + 1}`,
+    kadraj: satir.crop,
+    isik: satir.lighting,
+    sonuc: satir.url,
+  }));
+}
+
 export function CekimListesi({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const kareler = useMemo(() => kaynakKareler(tohum), [tohum]);
 
-  const [cekimler, setCekimler] = useState<Cekim[]>(varsayilanCekimler);
+  const [cekimler, setCekimler] = useState<Cekim[]>(() => acilisCekimleri(tohum));
   const [kaynak, setKaynak] = useState<KaynakKare | null>(() =>
     varsayilanKaynak(kareler, tohum?.secilen),
   );

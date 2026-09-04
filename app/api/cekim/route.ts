@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getJob, putJob, sonIsiYaz } from "@/lib/ai/jobs";
+import { calismayaIsEkle, getJob, putJob, sonIsiYaz } from "@/lib/ai/jobs";
 import { acikIsiBul, arkaPlandaBaslat, kotaAyir } from "@/lib/ai/kuyruk";
 import { runJob } from "@/lib/ai/run";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
@@ -103,6 +103,10 @@ export async function POST(request: Request) {
 
   await putJob(job);
   await sonIsiYaz(sessionId, job.id);
+  /* Çalışma kaydına iliştiriliyor ki sayfa tazelenince sonuçlar geri
+     gelsin. Kareler zaten sunucuda duruyordu; eksik olan tek şey
+     onları bulacak adresti. */
+  await calismayaIsEkle(sessionId, { cekimIs: job.id });
 
   // Sunucusuz ortamda yanıt döndükten sonra çalışan iş donuyor.
   if (process.env.NODE_ENV === "development") {

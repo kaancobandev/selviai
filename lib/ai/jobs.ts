@@ -143,6 +143,25 @@ export async function calismaYaz(sessionId: string, calisma: Calisma): Promise<v
   calismalar().set(sessionId, calisma);
 }
 
+/**
+ * Stüdyoda üretilen bir işi çalışma kaydına iliştirir.
+ *
+ * TAMAMINI YAZMIYOR, ÜSTÜNE EKLİYOR: kayıt ana sayfada kuruluyor
+ * (brief, ilham işi, seçilen sıra) ve buradan gelen yalnız bir iş
+ * kimliği. `calismaYaz` ile tam kayıt yazmak brief'i ve seçimi silerdi.
+ *
+ * KAYIT YOKSA SESSİZCE GEÇİYOR. Araçlar tohumsuz da açılabiliyor;
+ * o hâlde iliştirilecek bir çalışma yok ve bu bir hata değil.
+ */
+export async function calismayaIsEkle(
+  sessionId: string,
+  yama: Partial<Pick<Calisma, "cekimIs" | "teknikIs">>,
+): Promise<void> {
+  const mevcut = await calismaOku(sessionId);
+  if (!mevcut) return;
+  await calismaYaz(sessionId, { ...mevcut, ...yama, guncellendi: new Date().toISOString() });
+}
+
 export async function calismaOku(sessionId: string): Promise<Calisma | null> {
   const store = await blobStore();
   if (store) {

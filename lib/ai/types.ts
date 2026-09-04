@@ -334,6 +334,20 @@ export type Calisma = {
   secilenSira: number;
   /** Türetilmiş çıktıların işi; henüz bitmediyse boş. */
   turetIs?: string;
+  /**
+   * STÜDYODA ÜRETİLENLER. Bu ikisi ana sayfada değil araçların içinde
+   * üretiliyor ve sonuçları eskiden yalnız bileşen durumunda duruyordu:
+   * kullanıcı üç çekim karesi ürettikten sonra sekmeyi tazeleyince
+   * hepsi kayboluyor ve yeniden ÜCRETLİ üretim gerekiyordu. Kareler
+   * sunucuda duruyordu, onları geri bulacak adres yoktu.
+   *
+   * Yeni bir tasarım koşumu bunları SIFIRLIYOR ve bu kasıtlı:
+   * `/api/calisma` kaydın tamamını yeniden yazıyor, dolayısıyla ana
+   * sayfada yeni bir kare seçildiğinde eski çekimler düşüyor. Zaten
+   * başka bir giysiye aitler.
+   */
+  cekimIs?: string;
+  teknikIs?: string;
   guncellendi: string;
 };
 

@@ -1,6 +1,13 @@
 import { calismaOku, getJob } from "./jobs";
 import { oturumOku } from "./session";
-import { TURETILMIS_TURLER, type TuretilmisTur } from "./types";
+import {
+  TEKNIK_EKSENLERI,
+  TURETILMIS_TURLER,
+  type Crop,
+  type Lighting,
+  type TeknikEkseni,
+  type TuretilmisTur,
+} from "./types";
 
 /* ------------------------------------------------------------------
    STÜDYO TOHUMU
@@ -58,6 +65,20 @@ export type StudyoTohum = {
   turetilmis: Partial<Record<TuretilmisTur, string>>;
   /** Her karenin kimliği — kesim gibi sunucuya kare gösteren araçlar için. */
   kareler: TohumKare[];
+  /**
+   * STÜDYODA ÜRETİLENLER — araçların kendi çıktıları, ana sayfanınkiler
+   * değil. Sayfa tazelenince geri gelsinler diye buradalar; eskiden
+   * yalnız bileşen durumunda duruyorlardı ve tazeleme ÜCRETLİ çıktıyı
+   * siliyordu.
+   */
+  teknik: Partial<Record<TeknikEkseni, string>>;
+  /**
+   * Çekim listesi: hem satırın TANIMI hem sonucu. Tanım da taşınıyor
+   * çünkü sonucu tek başına geri vermek yetmez — kullanıcı satırları
+   * kendi kurmuş olabilir ve hangi karenin hangi kadrajdan geldiği
+   * bilinmeden liste yeniden çizilemez. İş kaydı ikisini de tutuyor.
+   */
+  cekim: { crop: Crop; lighting: Lighting; url?: string }[];
 };
 
 export async function tohumOku(): Promise<StudyoTohum | null> {
@@ -103,11 +124,50 @@ export async function tohumOku(): Promise<StudyoTohum | null> {
     }
   }
 
+  /* STÜDYODA ÜRETİLENLER — ikisi de aynı desende: kayıttaki iş kimliği
+     okunuyor, oturum AYRICA doğrulanıyor (kayıt eski bir oturumdan
+     kalmış olabilir) ve kareler adreslerine çevriliyor.
+
+     Eşleşme YUVA ADIYLA, dizi sırasıyla değil: bir kare üretilememişse
+     `kareler` dizisi kısa geliyor ve sıraya güvenmek sonuçları yanlış
+     satıra bindirirdi. Aynı gerekçe istemci tarafında da yazılı. */
+  const teknik: Partial<Record<TeknikEkseni, string>> = {};
+  if (calisma.teknikIs) {
+    const teknikIs = await getJob(calisma.teknikIs);
+    if (teknikIs && teknikIs.sessionId === oturum) {
+      (teknikIs.kareler ?? []).forEach((k, i) => {
+        if ((TEKNIK_EKSENLERI as readonly string[]).includes(k.eksen)) {
+          teknik[k.eksen as TeknikEkseni] = adres(calisma.teknikIs!, i);
+        }
+      });
+    }
+  }
+
+  let cekim: { crop: Crop; lighting: Lighting; url?: string }[] = [];
+  if (calisma.cekimIs) {
+    const cekimIs = await getJob(calisma.cekimIs);
+    if (cekimIs && cekimIs.sessionId === oturum && cekimIs.cekim) {
+      /* Satır TANIMI iş kaydından geliyor; sonuç ise yuva adından
+         çözülüyor. Tanım olmadan liste yeniden çizilemezdi. */
+      const adrese = new Map<string, string>();
+      (cekimIs.kareler ?? []).forEach((k, i) => {
+        adrese.set(k.eksen, adres(calisma.cekimIs!, i));
+      });
+      cekim = cekimIs.cekim.kareler.map((satir, i) => ({
+        crop: satir.crop,
+        lighting: satir.lighting,
+        url: adrese.get(`cekim-${i + 1}`),
+      }));
+    }
+  }
+
   return {
     brief: calisma.brief,
     secilen: adres(calisma.ilhamIs, calisma.secilenSira),
     ilham: kareler.map((_, i) => adres(calisma.ilhamIs, i)),
     turetilmis,
     kareler: kimlikler,
+    teknik,
+    cekim,
   };
 }

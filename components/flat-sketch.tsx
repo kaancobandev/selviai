@@ -188,11 +188,11 @@ const ALTLIK_OPAKLIK = 0.45;
    yapabileceği bir iş; ilham karesinden yoktan teknik çizim uydurmak
    değil. Siluet yoksa düğme kapalı kalıyor.
 
-   ÇİZİMLER ÇALIŞMA KAYDINA YAZILMIYOR: iş kendi kimliğiyle duruyor ama
-   `Calisma` yalnız ilham ve türetme işini tanıyor (bkz. lib/ai/tohum.ts).
-   Yani üretilen çizim bu araç açıkken yaşıyor, sayfa yenilenince yeniden
-   üretmek gerekiyor. Kayda bağlamak tohum tipini ve sunucu tarafını
-   değiştirmek demekti; bu tur yalnız aracı değiştiriyor.
+   ÇİZİMLER ÇALIŞMA KAYDINA YAZILIYOR. `/api/teknik` iş kimliğini kayda
+   işliyor, tohum da çizimleri adresleriyle geri veriyor (bkz.
+   `StudyoTohum.teknik`). Eskiden yazmıyordu: çizim yalnız bu araç açıkken
+   yaşıyordu ve sayfa tazelenince ÜCRETLİ çıktı siliniyordu — kareler
+   kovada dururken kullanıcı aynı çizimi ikinci kez ödüyordu.
    ------------------------------------------------------------------ */
 
 /**
@@ -287,6 +287,23 @@ function tohumKareleri(tohum: StudyoTohum | null | undefined): Referans[] {
   }));
 }
 
+/**
+ * Önceki oturumda üretilmiş teknik çizimler — görünüm başına, yoksa null.
+ *
+ * Okuma YUVA ADIYLA, dizi sırasıyla değil: bir kare üretilememişse tohum
+ * o yuvayı hiç taşımıyor ve sıraya güvenmek arkadan gelen çizimi ön
+ * görünüme bindirirdi. `teknikUygula` içindeki gerekçenin aynısı.
+ */
+function kayitliTeknikCizimler(
+  tohum: StudyoTohum | null | undefined,
+): Record<AltlikGorunum, Altlik | null> {
+  const oku = (g: AltlikGorunum): Altlik | null => {
+    const src = tohum?.teknik[TEKNIK_YUVA[g]];
+    return src ? { src, tur: "teknik" } : null;
+  };
+  return { front: oku("front"), back: oku("back") };
+}
+
 type Drag =
   | { kind: "pan"; startClient: Pt; startView: Pt }
   | { kind: "move"; id: string; start: Pt; orig: Pt[]; recorded: boolean }
@@ -322,25 +339,47 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [spaceDown, setSpaceDown] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  /* Açılış altlığı: giysi silueti → moodboard → seçilen ilham karesi.
-     Siluet önce çünkü tek GİYSİ olan o; ötekiler tasarımın kaynağı ya da
-     özeti, üstünden kalıp çizilecek şey değil. Aynı kare iki görünüme de
-     konuyor — siluet ÖNDEN bir kare ve arkada zayıf kalıyor, teknik çizim
-     tam bu boşluğu dolduruyor. Kullanıcı panelden istediğine geçebiliyor.
-     Tohum yalnız ilk kurulumda okunuyor. */
+  /* AÇILIŞTA ÖNCEKİ ÇİZİMLER GERİ YÜKLENİYOR. Teknik çizim ÜCRETLİ çıktı:
+     her yuva bir üretim demek. Eskiden yalnız bileşen durumunda dururdu ve
+     sayfa tazelenince siliniyordu — kareler sunucuda dururken kullanıcı
+     onları bulacak adresi kaybediyor, aynı çizimi ikinci kez ödüyordu.
+     Aşağıdaki üç durum bu yüzden tohumdan besleniyor: altlık, altlığın
+     çerçevesi ve referans şeridi. */
+  const kayitliTeknik = kayitliTeknikCizimler(tohum);
+
+  /* Açılış altlığı: kayıtlı teknik çizim → giysi silueti → moodboard →
+     seçilen ilham karesi. Çizim en önde çünkü fotoğraf zaten onun YEDEĞİ
+     (bkz. TEKNİK ÇİZİM bloğu); geri gelen çizimi altlığa koymamak, onu
+     üretmiş olmanın bütün sebebini boşa çıkarırdı.
+     Fotoğraf yedeği: siluet önce çünkü tek GİYSİ olan o; ötekiler
+     tasarımın kaynağı ya da özeti, üstünden kalıp çizilecek şey değil.
+     Aynı kare iki görünüme de konuyor — siluet ÖNDEN bir kare ve arkada
+     zayıf kalıyor, teknik çizim tam bu boşluğu dolduruyor. Tek yuva
+     dönmüşse öteki görünüm kendi yedeğinde kalıyor; üretimden tek kare
+     geldiğindeki davranışın aynısı. Kullanıcı panelden istediğine
+     geçebiliyor. Tohum yalnız ilk kurulumda okunuyor. */
   const [altliklar, setAltliklar] = useState<Record<AltlikGorunum, Altlik | null>>(() => {
     const src = tohum?.turetilmis.siluet ?? tohum?.turetilmis.moodboard ?? tohum?.secilen ?? null;
     const ilk: Altlik | null = src ? { src, tur: "kare" } : null;
-    return { front: ilk, back: ilk };
+    return { front: kayitliTeknik.front ?? ilk, back: kayitliTeknik.back ?? ilk };
   });
   const [altlikOpaklik, setAltlikOpaklik] = useState(ALTLIK_OPAKLIK);
-  const [altlikKutu, setAltlikKutu] = useState<AltlikKutu>(KROKI_ALAN);
+  /* Çerçeve `varsayilanKutu()` üzerinden: teknik çizim ile fotoğraf ayrı
+     kutulara oturuyor ve ölçüler iki yerde yazılmamalı. Tek yuva dönmüş
+     olsa bile kutu çizimin çerçevesine geçiyor — `teknikUygula` da öyle
+     yapıyor, geri yüklenen çizim taze üretilenden ayırt edilmemeli.
+     Hiç çizim yoksa `null` gidiyor ve kutu KROKI_ALAN kalıyor. */
+  const [altlikKutu, setAltlikKutu] = useState<AltlikKutu>(() =>
+    varsayilanKutu(kayitliTeknik.front ?? kayitliTeknik.back),
+  );
   /* Üretilen teknik çizimler altlıktan AYRI tutuluyor: kullanıcı altlığı
-     fotoğrafa çevirdiğinde çizim şeritten düşmemeli, geri dönebilmeli. */
-  const [teknikCizim, setTeknikCizim] = useState<Record<AltlikGorunum, string | null>>({
-    front: null,
-    back: null,
-  });
+     fotoğrafa çevirdiğinde çizim şeritten düşmemeli, geri dönebilmeli.
+     Kayıtlı çizimler de buraya giriyor — şeritte "Teknik ön/arka" diye
+     taze üretilmiş gibi görünmelerinin tek yolu bu. */
+  const [teknikCizim, setTeknikCizim] = useState<Record<AltlikGorunum, string | null>>(() => ({
+    front: kayitliTeknik.front?.src ?? null,
+    back: kayitliTeknik.back?.src ?? null,
+  }));
   const [teknikIsId, setTeknikIsId] = useState<string | null>(null);
   const [teknikCalisiyor, setTeknikCalisiyor] = useState(false);
   const [teknikAdim, setTeknikAdim] = useState<string | null>(null);
