@@ -611,6 +611,22 @@ html.dark .ters-kart {
 }
 
 /* ------------------------------------------------------------------
+   ÜRETİM PENCERESİ YAZISI — Archivo.
+
+   Pencere sitenin geri kalanından ayrı bir bağlam: burası okunacak bir
+   sayfa değil, çalışılan bir yüzey. Bodoni'nin editoryal kontrastı
+   yerine nötr ve okunaklı bir arayüz yazısı istendi.
+
+   `*` ile TÜM alt öğelere veriliyor çünkü `.eyebrow` ve `.font-display`
+   kendi `font-family`lerini açıkça yazıyor; yalnız kapsayıcıya vermek
+   onları değiştirmezdi ve pencerede iki ayrı yazı tipi kalırdı.
+   ------------------------------------------------------------------ */
+.pencere-yazi,
+.pencere-yazi * {
+  font-family: var(--font-archivo), var(--font-sans);
+}
+
+/* ------------------------------------------------------------------
    Utilities
    ------------------------------------------------------------------ */
 

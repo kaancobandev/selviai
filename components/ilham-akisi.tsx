@@ -313,7 +313,7 @@ export function IlhamAkisi() {
           role="dialog"
           aria-modal="true"
           aria-label="Üretim penceresi"
-          className="fixed inset-0 z-[60] overflow-y-auto bg-zemin outline-none"
+          className="pencere-yazi fixed inset-0 z-[60] overflow-y-auto bg-zemin outline-none"
         >
           <button
             type="button"
@@ -332,12 +332,16 @@ export function IlhamAkisi() {
             className="px-5 py-20 md:px-10 md:py-24"
           >
           <div className="mx-auto max-w-6xl">
-            {/* Gönderilen istek pencerenin başında duruyor: kullanıcı neyin
-                üretildiğini görmeden dört kareye bakmak zorunda kalmasın. */}
-            <p className="eyebrow text-fog">İstek</p>
-            <p className="mt-4 max-w-[60ch] font-display text-2xl leading-snug md:text-3xl">
-              {gonderilen}
-            </p>
+            {/* İSTEK BALONCUĞU — sohbet arayüzlerindeki gibi sağa yaslı.
+                Önce büyük puntoyla, sola yaslı, başlık gibi duruyordu ve
+                sayfanın konusuymuş gibi okunuyordu; oysa bu kullanıcının
+                söylediği şey. Baloncuk onu bir konuşma balonu yapıyor:
+                küçük, kenarda, ama bağlam olarak orada. */}
+            <div className="flex justify-end">
+              <p className="max-w-[52ch] rounded-2xl bg-kalem/[0.06] px-5 py-4 text-left text-[14px] leading-6 text-kalem">
+                {gonderilen}
+              </p>
+            </div>
 
             {hata && (
               <p className="mt-8 border-l-2 border-vurgu pl-4 text-[15px] leading-7 text-kalem">
@@ -351,8 +355,10 @@ export function IlhamAkisi() {
                 üretim başlamadı. */}
             {ilhamIs && (
               <>
-            <h2 className="mt-14 max-w-[24ch] font-display text-3xl leading-[1.05] md:text-4xl">
-              Dört yorum. <em className="text-vurgu">Birini seçin.</em>
+            {/* Vurgu rengi (lila) ve Bodoni burada YOK: pencere Archivo ile
+                ve tek renkle yazılıyor. */}
+            <h2 className="mt-14 max-w-[24ch] text-2xl font-medium leading-snug md:text-3xl">
+              Dört yorum. <span className="text-fog">Birini seçin.</span>
             </h2>
             <p className="mt-5 max-w-[52ch] text-[15px] leading-7 text-fog">
               Aynı fikir dört ayrı kapıdan: siluet, malzeme, renk ve bağlam.
@@ -399,14 +405,30 @@ export function IlhamAkisi() {
                         />
                       )}
                     </span>
-                    <span className="flex items-center justify-between gap-3 p-4">
-                      <span className="eyebrow text-fog">
-                        {kare ? (EKSEN_ADI[kare.eksen] ?? kare.eksen) : "Üretiliyor"}
-                      </span>
-                      {kaynak && (
-                        <span className="eyebrow text-vurgu opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    {/* EKSEN ADLARI (SİLÜET / MALZEME / RENK / BAĞLAM)
+                        KALDIRILDI: kullanıcı için ayrım teknik bir detay,
+                        karar ise görsele bakarak veriliyor.
+
+                        SEÇİM İPUCU KALDI. Dördü de tıklanabilir ve akış
+                        birini seçmeyi ZORUNLU kılıyor; hiçbir işaret
+                        bırakmamak kareleri sıradan birer resim gibi
+                        gösterir ve akış orada durur. Üretim sürerken de
+                        bir satır kalıyor, yoksa kutuların altı boş
+                        kalıp düzen zıplıyor. */}
+                    <span className="flex items-center justify-end gap-3 px-4 py-3">
+                      {kaynak ? (
+                        <span
+                          className={cn(
+                            "eyebrow transition-opacity duration-200",
+                            secili === i
+                              ? "text-kalem opacity-100"
+                              : "text-fog opacity-0 group-hover:opacity-100",
+                          )}
+                        >
                           {secili === i ? "Seçildi" : "Seç"}
                         </span>
+                      ) : (
+                        <span className="eyebrow text-fog">Üretiliyor</span>
                       )}
                     </span>
                   </button>
