@@ -25,7 +25,7 @@ Tarayıcıda `http://localhost:3000`.
 | `/hizmetler/kumas-secimi` | Kumaş: makro doku kütüphanesi, cetvelli/zoom'lu görsel, metraj hesabı, ağırlık/esneklik/döküm sürgüleri |
 | `/hizmetler/branding` | Marka sistemi stüdyosu: logo/monogram kılavuzları, tipografi eşleşmesi, renk token'ları, canlı mockup |
 | `/hizmetler/etiket-tasarimi` | Etiket stüdyosu: dokuma / asma / bakım etiketi, 1:1 cetvelli sahne, şartname ve tahmini maliyet |
-| `/hizmetler/shooting` | Prodüksiyon masası: ekip/lokasyon kartları, mood & gün ışığı, tearsheet, look–model sürükle-bırak, prop listesi, call sheet |
+| `/hizmetler/shooting` | Prodüksiyon masası: ışık senaryosu, tearsheet referansları, look–model sürükle-bırak, prop listesi (ekip/lokasyon/call sheet kaldırıldı — bkz. DESIGN.md H) |
 | `/hizmetler/teknik-cizim` | Vektörel teknik çizim tuvali: kalem, seç, mezura, makas, dikiş tipleri, kumaş dolgusu, ön/arka/detay, SVG indir |
 | `/hizmetler/kompozisyon` | **Kompozisyon stüdyosu** — kişi + ürün + arka plan görsellerini yapay zekâ ile tek karede birleştirir |
 | `/hizmetler/[slug]` | Diğer dört hizmet için tanıtım ekranı (collage, moodboard, lookbook, kultur-analizi) |

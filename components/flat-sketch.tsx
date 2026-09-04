@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type DragEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -27,6 +28,7 @@ import {
   type Pt,
 } from "@/lib/geometry";
 import { cn } from "@/lib/utils";
+import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Croquis } from "@/components/croquis";
 import { Toast } from "@/components/ui/toast";
 
@@ -105,6 +107,68 @@ const initialDoc: Doc = {
   },
 };
 
+/* ------------------------------------------------------------------
+   TOHUM ALTLIĞI — ana sayfada üretilen kare, çizimin arkasında
+
+   NE OLMADIĞI ÖNEMLİ: bu, mankene GİYDİRİLMİŞ BİR GİYSİ DEĞİL. Öyle bir
+   kare bugün yok: dört ilham karesi doğa / sanat / doku / mekân kaynağı
+   ve ilham istemi giysiyi açıkça yasaklıyor; üç türetilmiş çıktı da düz
+   yatık görsel. Bir doğa fotoğrafına "ürettiğimiz giysi" demek,
+   üretmediğimiz şeyi üretmiş gibi göstermek olurdu.
+
+   Bugün yapılabilecek ve dürüst olan: kareyi kroki'nin ARKASINA,
+   ayarlanabilir opaklıkta bir REFERANS ALTLIK olarak koymak — tasarımcı
+   üstünden çizer. Kutu panelden ayarlanıyor, tuvalden sürüklenerek
+   değil: altlık `pointer-events-none` olmak ZORUNDA, aksi hâlde vuruş
+   testi, kalem ve makas sessizce ölür.
+   ------------------------------------------------------------------ */
+type AltlikKutu = { x: number; y: number; w: number; h: number };
+
+/* Kroki'nin kapladığı alan — components/croquis.tsx'ten ölçüldü: baş
+   elipsi (cy 40, ry 36) y=4'te başlıyor, ayak tabanı y=672, en dış kol
+   çizgisi |x|=90. Altlık varsayılan olarak buraya oturuyor. */
+const KROKI_ALAN: AltlikKutu = { x: -90, y: 4, w: 180, h: 668 };
+const ALTLIK_OPAKLIK = 0.45;
+
+/** Eksen kodundan okunur ad; tohum kareleri bu kodlarla etiketleniyor. */
+const EKSEN_ADI: Record<string, string> = {
+  doga: "Doğa",
+  sanat: "Sanat",
+  doku: "Doku",
+  mekan: "Mekân",
+  moodboard: "Moodboard",
+  kumas: "Kumaş",
+  branding: "Marka",
+};
+
+/**
+ * Üretilen kumaş karesinin kumaş kimliği — deseni `fab-tohum` oluyor.
+ *
+ * `fabrics` dizisinde BİLEREK YOK: kartelada kompozisyon, gramaj, en ve
+ * fiyat gibi ölçülmüş veriler var, üretilen karede yalnız görüntü var.
+ * Diziye uydurma bir satır eklemek o alanları yalan söyletirdi. Kimliği
+ * ada çeviren tek yer bu yüzden `kumasAdi()`; `fabrics.find()` bu kimlikte
+ * undefined döner ve panelde boşluk bırakırdı.
+ */
+const TOHUM_KUMAS = "tohum";
+
+function kumasAdi(id: string | null): string {
+  if (!id) return "—";
+  if (id === TOHUM_KUMAS) return "Üretilen kumaş karesi";
+  return fabrics.find((f) => f.id === id)?.name ?? id;
+}
+
+/** Tohumdaki bütün kareler: dört ilham kaynağı ve türetilmiş çıktılar. */
+function tohumKareleri(tohum: StudyoTohum | null | undefined): { src: string; etiket: string }[] {
+  if (!tohum) return [];
+  const adlar = new Map(tohum.kareler.map((k) => [k.url, EKSEN_ADI[k.etiket] ?? k.etiket]));
+  const turetilmis = Object.values(tohum.turetilmis).filter((u): u is string => Boolean(u));
+  return [...new Set([...tohum.ilham, ...turetilmis])].map((src) => ({
+    src,
+    etiket: adlar.get(src) ?? "Kare",
+  }));
+}
+
 type Drag =
   | { kind: "pan"; startClient: Pt; startView: Pt }
   | { kind: "move"; id: string; start: Pt; orig: Pt[]; recorded: boolean }
@@ -115,7 +179,14 @@ type Drag =
 /* ------------------------------------------------------------------
    Bileşen
    ------------------------------------------------------------------ */
-export function FlatSketch() {
+/**
+ * `tohum` verilirse ana sayfada üretilenler ARAÇTA GÖRÜNÜR olur: kareler
+ * kroki'nin arkasına altlık olarak konabiliyor, üretilen kumaş karesi de
+ * dolgu deseni oluyor. Belge TOHUMLANMIYOR — parçalar, ölçüler ve dikiş
+ * tipleri bir görselden çıkarılamaz; uydurulursa araç ölçmediği şeyi
+ * ölçmüş gibi gösterir. Tohumsuz açılışta araç eskisiyle birebir aynı.
+ */
+export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [doc, setDoc] = useState<Doc>(initialDoc);
   const [undo, setUndo] = useState<Doc[]>([]);
   const [view, setView] = useState<ViewId>("front");
@@ -133,6 +204,14 @@ export function FlatSketch() {
   const [spaceDown, setSpaceDown] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  /* Altlık: moodboard varsa o, yoksa seçilen ilham karesi. Moodboard önce
+     çünkü üçü içinde tasarıma en yakın duran o; kullanıcı panelden
+     istediğine geçebiliyor. Tohum yalnız ilk kurulumda okunuyor. */
+  const [altlik, setAltlik] = useState<string | null>(
+    () => tohum?.turetilmis.moodboard ?? tohum?.secilen ?? null,
+  );
+  const [altlikOpaklik, setAltlikOpaklik] = useState(ALTLIK_OPAKLIK);
+  const [altlikKutu, setAltlikKutu] = useState<AltlikKutu>(KROKI_ALAN);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -243,8 +322,9 @@ export function FlatSketch() {
   };
   const applyFabric = (shapeId: string, fabricId: string | null) => {
     updateShape(shapeId, { fabricId });
-    const f = fabrics.find((x) => x.id === fabricId);
-    if (f) setToast(`${f.name} uygulandı`);
+    /* Ad `kumasAdi()` üzerinden: tohum kumaşı kartelada olmadığı için
+       `fabrics.find()` onda sessizce hiçbir şey söylemezdi. */
+    if (fabricId) setToast(`${kumasAdi(fabricId)} uygulandı`);
   };
 
   /* ---------- klavye ---------- */
@@ -429,7 +509,14 @@ export function FlatSketch() {
     a.download = `teknik-cizim-${view}.svg`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setToast("SVG indirildi");
+    /* DIŞA AKTARMA SINIRI. Dosya SVG METNİ; görseller bağlantı olarak
+       kalıyor. Kartela kumaşları mutlak adres (unsplash) taşıdığı için
+       diskten açılan dosyada da çözülüyor, üretilen kare ise göreceli
+       (`/api/kare/...`) ve BOŞ kalır. Altlık `data-ui` ile zaten düşüyor;
+       dolguyu da yasaklamak yerine indirme anında söylüyoruz — sessizce
+       bozuk dosya vermek daha kötü. */
+    const tohumlu = cur.shapes.some((s) => s.visible && s.fabricId === TOHUM_KUMAS);
+    setToast(tohumlu ? "SVG indirildi — üretilen kumaş dolgusu dosyada boş kalır" : "SVG indirildi");
   }
 
   /* ---------- türetilen ---------- */
@@ -440,6 +527,52 @@ export function FlatSketch() {
   const selBox = selected ? bbox(selected.points) : null;
   const toolMeta = TOOLS.find((t) => t.id === tool) ?? TOOLS[0];
   const pct = Math.round(vp.zoom * 100);
+
+  /* ---------- tohum ---------- */
+  const referanslar = tohumKareleri(tohum);
+  const tohumKumas = tohum?.turetilmis.kumas ?? null;
+  /* Kartela + (varsa) üretilen kare. Üretilen SONA konuyor: kartelanın
+     sırası kullanıcının alıştığı sıra. Alanlar tek tek birleştiriliyor,
+     çünkü kartelaya ileride boş kalabilen bir alan eklenebilir ve ipucunda
+     "undefined" görünmemeli. */
+  const kumasSecenekleri: { id: string; ad: string; gorsel: string; ipucu: string }[] = [
+    ...fabrics.map((f) => ({
+      id: f.id,
+      ad: f.name,
+      gorsel: f.image,
+      ipucu: [f.name, f.composition].filter(Boolean).join(" · "),
+    })),
+    ...(tohumKumas
+      ? [{
+          id: TOHUM_KUMAS,
+          ad: "Üretilen",
+          gorsel: tohumKumas,
+          ipucu: "Ana sayfada üretilen kumaş karesi — gramaj, en, fiyat gibi kartela verisi yok",
+        }]
+      : []),
+  ];
+  /* Başlık tohumdan; tohum yoksa örnek belgenin adı kalıyor. "Kaydedildi
+     10:52" KALDIRILDI — kaydetme diye bir şey yok, sabit bir saat yazmak
+     kullanıcıya olmayan bir güvence veriyordu. */
+  const baslik = tohum?.brief.trim() || "Keten bluz";
+
+  /* Altlık kutusu panelden ayarlanıyor; sürgüler kutunun KENDİSİNDEN
+     türüyor, ayrı bir ölçek/konum durumu tutulmuyor ki ikisi ayrışmasın. */
+  const altlikOlcek = Math.round((altlikKutu.w / KROKI_ALAN.w) * 100);
+  const kutuMerkez = { x: altlikKutu.x + altlikKutu.w / 2, y: altlikKutu.y + altlikKutu.h / 2 };
+  const krokiMerkez = { x: KROKI_ALAN.x + KROKI_ALAN.w / 2, y: KROKI_ALAN.y + KROKI_ALAN.h / 2 };
+  const altligiOlcekle = (yuzde: number) => {
+    const w = (KROKI_ALAN.w * yuzde) / 100;
+    const h = (KROKI_ALAN.h * yuzde) / 100;
+    // merkez sabit kalıyor: ölçek değişince altlık figürün altından kaçmasın
+    setAltlikKutu((k) => ({ x: k.x + k.w / 2 - w / 2, y: k.y + k.h / 2 - h / 2, w, h }));
+  };
+  const altligiTasi = (eksen: "x" | "y", sapma: number) =>
+    setAltlikKutu((k) =>
+      eksen === "x"
+        ? { ...k, x: krokiMerkez.x + sapma - k.w / 2 }
+        : { ...k, y: krokiMerkez.y + sapma - k.h / 2 },
+    );
 
   return (
     <div ref={wrapRef} className="tuval relative flex-1 select-none overflow-hidden bg-paper min-h-[calc(100svh-4rem-3.25rem)] lg:min-h-[calc(100svh-5rem)]">
@@ -474,6 +607,13 @@ export function FlatSketch() {
               <image href={f.image} width="96" height="96" preserveAspectRatio="xMidYMid slice" />
             </pattern>
           ))}
+          {/* Üretilen kumaş karesi de bir desen: kartela kumaşlarıyla aynı
+              yoldan (tıkla ya da sürükle-bırak) uygulanıyor. */}
+          {tohumKumas && (
+            <pattern id={`fab-${TOHUM_KUMAS}`} width="96" height="96" patternUnits="userSpaceOnUse">
+              <image href={tohumKumas} width="96" height="96" preserveAspectRatio="xMidYMid slice" />
+            </pattern>
+          )}
         </defs>
 
         {/* sonsuz zemin */}
@@ -483,6 +623,36 @@ export function FlatSketch() {
           <line x1="-20000" y1="0" x2="20000" y2="0" vectorEffect="non-scaling-stroke" />
           <line x1="0" y1="-20000" x2="0" y2="20000" vectorEffect="non-scaling-stroke" />
         </g>
+
+        {/* Altlık — sıralama: zemin → ALTLIK → kroki → parçalar. Yalnız ön
+            ve arka görünümde; detay görünümünde manşet ve cep var, figür
+            yok, altlık orada anlamsız kalır.
+
+            `pointer-events-none` ZORUNLU: tuvalin bütün vuruş testi
+            SVG'nin kendi işaretçi olaylarından geçiyor, araya olay alan
+            bir görsel girerse seçim, kalem ve makas SESSİZCE ölür.
+
+            `data-ui` dışa aktarmada düşürüyor (exportSvg [data-ui] taşıyan
+            her düğümü siliyor): altlık referans, çizimin parçası değil —
+            ayrıca kare adresi göreceli olduğu için diskteki dosyada zaten
+            çözülemezdi.
+
+            `slice`: kutu ne ise o görünüyor, kare kırpılıyor. Böylece
+            kutu sürgüleri dürüst kalıyor — kareden daha çoğunu görmek için
+            kutuyu genişletmek yetiyor. */}
+        {view !== "detail" && altlik && (
+          <image
+            data-ui
+            href={altlik}
+            x={altlikKutu.x}
+            y={altlikKutu.y}
+            width={altlikKutu.w}
+            height={altlikKutu.h}
+            opacity={altlikOpaklik}
+            preserveAspectRatio="xMidYMid slice"
+            className="pointer-events-none"
+          />
+        )}
 
         {view !== "detail" && <Croquis back={view === "back"} />}
 
@@ -625,8 +795,10 @@ export function FlatSketch() {
         </Glass>
 
         <Glass className="pointer-events-auto flex items-center gap-4 px-4 py-2.5">
-          <span className="eyebrow text-ink">Teknik çizim · Keten bluz</span>
-          <span className="eyebrow text-ash">Taslak · Kaydedildi 10:52</span>
+          <span className="eyebrow max-w-[42ch] truncate text-ink" title={baslik}>
+            Teknik çizim · {baslik}
+          </span>
+          <span className="eyebrow shrink-0 text-ash">Taslak</span>
         </Glass>
       </div>
 
@@ -646,6 +818,106 @@ export function FlatSketch() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4 [scrollbar-width:thin]">
+            {/* Referans — ana sayfada üretilen kareler.
+                Etiketler tohumun kendi eksen adlarından geliyor (doğa,
+                sanat, doku, mekân, moodboard, kumaş, marka); hiçbiri
+                "giysi" ya da "manken" demiyor çünkü değiller. */}
+            {referanslar.length > 0 && (
+              <section className="mb-7">
+                <div className="flex items-baseline justify-between">
+                  <p className="eyebrow text-ash">Referans</p>
+                  <span className="eyebrow text-ash">Ana sayfadan</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-4 text-fog">
+                  Üretilen kareler giysi değil, ilham kaynağı ve düz yatık çıktı. Biri kroki&apos;nin
+                  arkasına altlık olarak konuyor, üstünden çiziyorsunuz.
+                </p>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {referanslar.map((r) => {
+                    const aktif = r.src === altlik;
+                    return (
+                      <button
+                        key={r.src}
+                        type="button"
+                        onClick={() => setAltlik(aktif ? null : r.src)}
+                        title={aktif ? `${r.etiket} · altlığı kaldır` : `${r.etiket} · altlığa koy`}
+                        aria-label={r.etiket}
+                        aria-pressed={aktif}
+                        className="group flex flex-col items-center gap-1.5"
+                      >
+                        <span
+                          className={cn(
+                            "block h-11 w-full border border-ink/10 bg-cover bg-center transition-[outline-color,scale] duration-300 outline outline-1 outline-offset-2",
+                            aktif ? "outline-[#6B7C93]" : "outline-transparent group-hover:scale-105",
+                          )}
+                          style={{ backgroundImage: `url(${r.src})` }}
+                        />
+                        <span className="w-full truncate text-center text-[9px] leading-3 text-ash">{r.etiket}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {altlik ? (
+                  <div className="mt-4 space-y-3">
+                    <Kaydirac
+                      id="altlik-opaklik"
+                      etiket="Opaklık"
+                      deger={Math.round(altlikOpaklik * 100)}
+                      min={5}
+                      max={100}
+                      step={5}
+                      bicim={(v) => `%${v}`}
+                      onChange={(v) => setAltlikOpaklik(v / 100)}
+                    />
+                    <Kaydirac
+                      id="altlik-olcek"
+                      etiket="Ölçek"
+                      deger={altlikOlcek}
+                      min={40}
+                      max={250}
+                      step={5}
+                      bicim={(v) => `%${v}`}
+                      onChange={altligiOlcekle}
+                    />
+                    <Kaydirac
+                      id="altlik-yatay"
+                      etiket="Yatay"
+                      deger={Math.round(kutuMerkez.x - krokiMerkez.x)}
+                      min={-300}
+                      max={300}
+                      step={4}
+                      bicim={(v) => `${fmtCm(v)} cm`}
+                      onChange={(v) => altligiTasi("x", v)}
+                    />
+                    <Kaydirac
+                      id="altlik-dikey"
+                      etiket="Dikey"
+                      deger={Math.round(kutuMerkez.y - krokiMerkez.y)}
+                      min={-300}
+                      max={300}
+                      step={4}
+                      bicim={(v) => `${fmtCm(v)} cm`}
+                      onChange={(v) => altligiTasi("y", v)}
+                    />
+                    <div className="flex items-baseline justify-between gap-3">
+                      <button type="button" onClick={() => setAltlikKutu(KROKI_ALAN)} className="eyebrow u-line text-ash hover:text-ink">
+                        Kroki boyuna sıfırla
+                      </button>
+                      <button type="button" onClick={() => setAltlik(null)} className="eyebrow u-line text-ash hover:text-ink">
+                        Altlığı kaldır
+                      </button>
+                    </div>
+                    {view === "detail" && (
+                      <p className="text-[11px] leading-4 text-fog">Altlık yalnız ön ve arka görünümde çiziliyor.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-[11px] leading-4 text-fog">Altlık kapalı — bir kareye tıklayın.</p>
+                )}
+              </section>
+            )}
+
             {/* Seçim */}
             <p className="eyebrow text-ash">Seçim</p>
             {selected ? (
@@ -660,7 +932,7 @@ export function FlatSketch() {
                 <Row k="Nokta">{selected.points.length}{selected.closed ? " · kapalı" : " · açık"}</Row>
                 <Row k="Dikiş">{STITCHES.find((s) => s.id === selected.stitch)?.label}</Row>
                 <Row k="Kumaş">
-                  {selected.fabricId ? fabrics.find((f) => f.id === selected.fabricId)?.name : "—"}
+                  {kumasAdi(selected.fabricId)}
                   {selected.fabricId && (
                     <button type="button" onClick={() => applyFabric(selected.id, null)} className="ml-2 eyebrow text-ash u-line hover:text-ink">
                       Kaldır
@@ -675,26 +947,26 @@ export function FlatSketch() {
             {/* Kumaş */}
             <div className="mt-7 flex items-baseline justify-between">
               <p className="eyebrow text-ash">Kumaş</p>
-              <span className="eyebrow text-ash">Kumaş sayfasından</span>
+              <span className="eyebrow text-ash">{tohumKumas ? "Kartela · üretilen" : "Kumaş sayfasından"}</span>
             </div>
             <div className="mt-3 grid grid-cols-4 gap-3">
-              {fabrics.map((f) => {
-                const active = selected?.fabricId === f.id;
+              {kumasSecenekleri.map((k) => {
+                const active = selected?.fabricId === k.id;
                 return (
                   <button
-                    key={f.id}
+                    key={k.id}
                     type="button"
                     draggable
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("text/fabric", f.id);
+                      e.dataTransfer.setData("text/fabric", k.id);
                       e.dataTransfer.effectAllowed = "copy";
                     }}
                     onClick={() => {
-                      if (selected && selected.closed) applyFabric(selected.id, f.id);
+                      if (selected && selected.closed) applyFabric(selected.id, k.id);
                       else setToast("Önce kapalı bir parça seçin ya da kumaşı parçanın üstüne sürükleyin");
                     }}
-                    title={`${f.name} · ${f.composition}`}
-                    aria-label={f.name}
+                    title={k.ipucu}
+                    aria-label={k.ad}
                     aria-pressed={active}
                     className="group flex flex-col items-center gap-1.5"
                   >
@@ -703,9 +975,9 @@ export function FlatSketch() {
                         "block h-9 w-9 rounded-full border border-ink/10 bg-cover bg-center transition-[outline-color,scale] duration-300 outline outline-1 outline-offset-2",
                         active ? "outline-[#6B7C93]" : "outline-transparent group-hover:scale-105",
                       )}
-                      style={{ backgroundImage: `url(${f.image})` }}
+                      style={{ backgroundImage: `url(${k.gorsel})` }}
                     />
-                    <span className="w-full truncate text-center text-[9px] leading-3 text-ash">{f.name}</span>
+                    <span className="w-full truncate text-center text-[9px] leading-3 text-ash">{k.ad}</span>
                   </button>
                 );
               })}
@@ -885,6 +1157,51 @@ function Row({ k, children }: { k: string; children: ReactNode }) {
     <div className="flex items-baseline justify-between gap-3 border-b border-mist pb-1.5 last:border-b-0">
       <span className="eyebrow text-ash">{k}</span>
       <span className="text-right tabular-nums text-smoke">{children}</span>
+    </div>
+  );
+}
+
+/** Sürgü — dolu kısmın yüzdesi `--p` ile veriliyor (bkz. .slider). */
+function Kaydirac({
+  id,
+  etiket,
+  deger,
+  min,
+  max,
+  step = 1,
+  bicim,
+  onChange,
+}: {
+  id: string;
+  etiket: string;
+  deger: number;
+  min: number;
+  max: number;
+  step?: number;
+  bicim: (v: number) => string;
+  onChange: (v: number) => void;
+}) {
+  const oran = ((deger - min) / (max - min)) * 100;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="eyebrow text-ash">
+          {etiket}
+        </label>
+        <span className="text-[12px] tabular-nums text-fog">{bicim(deger)}</span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={deger}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-valuetext={bicim(deger)}
+        className="slider mt-1"
+        style={{ "--p": `${oran}%` } as CSSProperties}
+      />
     </div>
   );
 }

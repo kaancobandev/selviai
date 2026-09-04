@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { ShootDesk } from "@/components/shoot-desk";
 import { tohumOku } from "@/lib/ai/tohum";
 
+/* Açıklama ekip / mekân / call sheet sayıyordu; üçü de kaldırıldı
+   (bkz. components/shoot-desk.tsx). Geriye çekimin yaratıcı kısmı kaldı. */
 export const metadata: Metadata = {
   title: "Shooting — Prodüksiyon masası",
-  description: "Ekip, mekân, ışık, look–model eşleştirme, prop listesi ve call sheet — tek ekranda çekim yönetimi.",
+  description: "Işık senaryosu, tearsheet referansları, look–model eşleştirme ve prop listesi — tek ekranda çekim hazırlığı.",
 };
 
 

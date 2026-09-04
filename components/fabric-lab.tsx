@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
-import { fabrics, type Fabric } from "@/lib/fabrics";
+import { DOKUMALAR, fabrics, tohumdanKumas, type Fabric, type Weave } from "@/lib/fabrics";
 import { cn, formatTRY } from "@/lib/utils";
 import { TohumReferans, referanslar } from "@/components/tohum-referans";
 import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Arrow, Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { Toast } from "@/components/ui/toast";
 import { Ruler } from "@/components/ui/ruler";
 import { site } from "@/lib/site";
@@ -15,10 +15,25 @@ import { site } from "@/lib/site";
 const nf = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 });
 const nf0 = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 });
 
-type Spec = { weight: number; stretch: number; drape: number };
+/* null = ÖLÇÜLMEDİ, sıfır değil. Kaydırıcı da bunu sayı yerine
+   "Ölçülmedi" diye yazıyor; ortalama bir sayı koymak ölçülmemiş değeri
+   ölçülmüş gibi göstermek olurdu. */
+type Spec = { weight: number | null; stretch: number | null; drape: number | null };
+const BOS_SPEC: Spec = { weight: null, stretch: null, drape: null };
 const specOf = (f: Fabric): Spec => ({ weight: f.weight, stretch: f.stretch, drape: f.drape });
 
-/* Makro görselin temsil ettiği gerçek ölçü (1:1) */
+/** Üretilen kare için kullanıcının elle girdiği alanlar. */
+type Olcum = { composition: string; weave: Weave | ""; width: string; price: string };
+const BOS_OLCUM: Olcum = { composition: "", weave: "", width: "", price: "" };
+
+/** Boş ya da anlamsız giriş "ölçülmedi" demek — 0 demek değil. */
+function pozitif(metin: string): number | null {
+  const v = parseFloat(metin.replace(",", "."));
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/* Makro görselin temsil ettiği gerçek ölçü (1:1) — YALNIZCA katalog
+   kayıtları için geçerli; üretilen fotoğrafın ölçeğini bilmiyoruz. */
 const SCALE_W_CM = 10;
 const SCALE_H_CM = 7.5;
 
@@ -28,11 +43,27 @@ const SCALE_H_CM = 7.5;
  * büyük görseli (tıkla: yakınlaştır) ve metraj / fiziksel özellik paneli.
  */
 export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
-  const initial = fabrics[1];
-  const [activeId, setActiveId] = useState(initial.id);
-  const active = fabrics.find((f) => f.id === activeId) ?? fabrics[0];
+  /* Üretilen kare kütüphanenin BAŞINA giriyor ve açılışta seçili
+     geliyor: kullanıcı ana sayfadaki akıştan buraya onun için geliyor.
+     Tohum yoksa eski varsayılan (keten) aynen duruyor. */
+  const uretilen = tohum ? tohumdanKumas(tohum) : null;
+  const kutuphane = uretilen ? [uretilen, ...fabrics] : fabrics;
 
-  const [spec, setSpec] = useState<Spec>(() => specOf(initial));
+  const [activeId, setActiveId] = useState((uretilen ?? fabrics[1]).id);
+  const active = kutuphane.find((f) => f.id === activeId) ?? fabrics[0];
+
+  /* İki ayrı ölçüm durumu. Katalog kumaşında seçim değişince spec
+     kumaşın kendi değerlerine dönüyor — kayıp yok, değerler kayıtta
+     duruyor. Üretilen karede dönemez: oradaki tek kaynak kullanıcının
+     kendi girdiği ölçüm ve kütüphanede gezinirken silinmemeli. */
+  const [katalogSpec, setKatalogSpec] = useState<Spec>(() => specOf(fabrics[1]));
+  const [uretilenSpec, setUretilenSpec] = useState<Spec>(BOS_SPEC);
+  const spec = active.uretilen ? uretilenSpec : katalogSpec;
+  const setSpec = active.uretilen ? setUretilenSpec : setKatalogSpec;
+
+  /* Elle girilen alanlar yalnız bileşen durumunda duruyor: kalıcılık
+     ayrı bir karar (/api/calisma) ve sahibi henüz vermedi. */
+  const [olcum, setOlcum] = useState<Olcum>(BOS_OLCUM);
   const [length, setLength] = useState("3");
   const [zoom, setZoom] = useState(false);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
@@ -42,7 +73,7 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
 
   function select(f: Fabric) {
     setActiveId(f.id);
-    setSpec(specOf(f));
+    if (!f.uretilen) setKatalogSpec(specOf(f));
     setZoom(false);
   }
 
@@ -56,9 +87,20 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   }
 
   const meters = Math.max(0, parseFloat(length.replace(",", ".")) || 0);
-  const area = (active.width / 100) * meters;
-  const grams = area * spec.weight;
-  const cost = meters * active.price;
+
+  /* Üretilen karede en, fiyat, kompozisyon ve dokuma kullanıcıdan
+     geliyor; girilmediyse null kalıyor ve metraj kutuları sayı
+     BASMIYOR. "0 m²" ya da "₺0" ölçülmemiş değeri ölçülmüş gibi
+     gösterirdi. */
+  const width = active.uretilen ? pozitif(olcum.width) : active.width;
+  const price = active.uretilen ? pozitif(olcum.price) : active.price;
+  const kompozisyon = active.uretilen ? olcum.composition.trim() || null : active.composition;
+  const dokuma = active.uretilen ? olcum.weave || null : active.weave;
+  const olcekli = !active.uretilen;
+
+  const area = width !== null ? (width / 100) * meters : null;
+  const grams = area !== null && spec.weight !== null ? area * spec.weight : null;
+  const cost = price !== null ? meters * price : null;
   const inKartela = kartela.includes(active.id);
   const specChanged =
     spec.weight !== active.weight || spec.stretch !== active.stretch || spec.drape !== active.drape;
@@ -75,9 +117,13 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
 
   return (
     <div className="flex flex-1 flex-col">
+      {/* Üretilen kumaş karesi artık kütüphanede SEÇİLEBİLİR bir kayıt;
+          şeritte ikinci kez göstermek aynı görsele iki farklı davranış
+          vermek olurdu. Seçilen ilham karesi kalıyor: kumaşın hangi
+          tasarımdan türediğini yalnız o söylüyor. */}
       <TohumReferans
-        baslik="Ana sayfada ürettiğiniz kumaş çalışması"
-        gorseller={referanslar(tohum, "kumas", "Kumaş")}
+        baslik="Ana sayfadaki tasarımınız"
+        gorseller={referanslar(tohum, "kumas", "Kumaş").filter((g) => g.src !== uretilen?.image)}
       />
       {/* Başlık */}
       <header className="flex flex-col gap-5 px-6 pt-8 md:flex-row md:items-end md:justify-between md:px-10 md:pt-10">
@@ -87,7 +133,7 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         </div>
         <div className="flex items-center gap-6">
           <span className="eyebrow tabular-nums text-fog">
-            {fabrics.length} kumaş · Kartela ({kartela.length})
+            {fabrics.length} kumaş{uretilen ? " · 1 üretilen" : ""} · Kartela ({kartela.length})
           </span>
           <div className="hidden items-center gap-1.5 md:flex">
             <ScrollButton label="Kütüphaneyi geri kaydır" onClick={() => scrollLibrary(-1)} back />
@@ -101,7 +147,7 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         ref={scroller}
         className="mt-6 flex snap-x gap-5 overflow-x-auto px-6 pb-7 pt-1 scroll-px-6 [scrollbar-width:none] md:px-10 md:scroll-px-10 [&::-webkit-scrollbar]:hidden"
       >
-        {fabrics.map((f) => {
+        {kutuphane.map((f) => {
           const isActive = f.id === activeId;
           const marked = kartela.includes(f.id);
           return (
@@ -114,14 +160,23 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             >
               <span className="relative block">
                 <span className="relative block aspect-square overflow-hidden bg-hair">
+                  {/* unoptimized: üretilen kare kendi ucumuzdan
+                      (/api/kare) geliyor, Next'in iyileştiricisinden
+                      geçmesinin faydası yok — bkz. tohum-referans. */}
                   <Image
                     src={f.image}
                     alt=""
                     fill
+                    unoptimized={f.uretilen}
                     sizes="168px"
                     className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.05]"
                   />
                   {marked && <span aria-hidden className="absolute left-2 top-2 h-1.5 w-1.5 bg-paper" />}
+                  {f.uretilen && (
+                    <span className="absolute right-2 top-2 bg-paper/85 px-1.5 py-1 eyebrow text-ink backdrop-blur-sm">
+                      Üretilen
+                    </span>
+                  )}
                 </span>
                 <span
                   aria-hidden
@@ -139,7 +194,11 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               >
                 {f.name}
               </span>
-              <span className="mt-1.5 block eyebrow text-fog">{f.composition}</span>
+              {/* Üretilen kare TEK bir kumaş değil; kartelada tek satırla
+                  da olsa bunu söylemek zorundayız. */}
+              <span className="mt-1.5 block eyebrow text-fog">
+                {f.uretilen ? "4–6 parça · ölçülmedi" : f.composition}
+              </span>
             </button>
           );
         })}
@@ -155,10 +214,22 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           aria-label="Makro doku"
           className="px-6 py-8 md:px-10 md:py-10 lg:col-span-7 lg:border-r lg:border-hair"
         >
-          <div className="grid grid-cols-[20px_1fr] grid-rows-[20px_auto] gap-1.5">
-            <span aria-hidden />
-            <Ruler orientation="h" cm={SCALE_W_CM} className="h-5" />
-            <Ruler orientation="v" cm={SCALE_H_CM} className="h-full w-5" />
+          {/* Cetveller ve 1:1 rozeti yalnız ölçeği BİLİNEN kayıtlarda.
+              Üretilen kare bir fotoğraf; kaç santimetre gösterdiğini
+              bilmiyoruz, cetvel koymak uydurma bir ölçek iddiası olurdu. */}
+          <div
+            className={cn(
+              "grid gap-1.5",
+              olcekli ? "grid-cols-[20px_1fr] grid-rows-[20px_auto]" : "grid-cols-1",
+            )}
+          >
+            {olcekli && (
+              <>
+                <span aria-hidden />
+                <Ruler orientation="h" cm={SCALE_W_CM} className="h-5" />
+                <Ruler orientation="v" cm={SCALE_H_CM} className="h-full w-5" />
+              </>
+            )}
             <div
               role="button"
               tabIndex={0}
@@ -180,9 +251,10 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               <Image
                 key={active.id}
                 src={active.image}
-                alt={`${active.name} — makro doku`}
+                alt={active.uretilen ? `${active.name} — 4–6 parçalı kare` : `${active.name} — makro doku`}
                 fill
                 priority
+                unoptimized={active.uretilen}
                 sizes="(min-width: 1024px) 55vw, 100vw"
                 className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)]"
                 style={{
@@ -191,7 +263,13 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 }}
               />
               <span className="absolute left-3 top-3 bg-paper/85 px-2.5 py-2 eyebrow text-ink backdrop-blur-sm">
-                1:1 · <span className="normal-case">{SCALE_W_CM} × {nf.format(SCALE_H_CM)} cm</span>
+                {olcekli ? (
+                  <>
+                    1:1 · <span className="normal-case">{SCALE_W_CM} × {nf.format(SCALE_H_CM)} cm</span>
+                  </>
+                ) : (
+                  "Üretilen · ölçek bilinmiyor"
+                )}
               </span>
               <span
                 aria-hidden
@@ -206,13 +284,23 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pl-[26px] eyebrow text-fog">
+          <div
+            className={cn(
+              "mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 eyebrow text-fog",
+              olcekli && "pl-[26px]",
+            )}
+          >
             <span>
-              Makro doku · {active.weave} · {active.color}
+              {active.uretilen
+                ? `Üretilen çalışma · ${dokuma ?? "Dokuma ölçülmedi"}`
+                : `Makro doku · ${active.weave} · ${active.color}`}
             </span>
-            <span>Desen tekrarı · {active.repeat ? `${active.repeat} cm` : "Yok"}</span>
+            <span>
+              Desen tekrarı ·{" "}
+              {active.repeat ? `${active.repeat} cm` : active.uretilen ? "Ölçülmedi" : "Yok"}
+            </span>
           </div>
-          <p className="mt-2 pl-[26px] text-[11px] leading-4 text-fog">
+          <p className={cn("mt-2 text-[11px] leading-4 text-fog", olcekli && "pl-[26px]")}>
             {zoom ? "İmleci gezdirerek dokuyu inceleyin; kapatmak için tıklayın." : "Yakınlaştırmak için dokuya tıklayın."}
           </p>
         </section>
@@ -222,20 +310,98 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <p className="eyebrow text-fog">Ölçüm laboratuvarı</p>
           <h2 className="mt-3 font-display text-3xl leading-none md:text-4xl">{active.name}</h2>
           <p className="mt-3 eyebrow text-fog">
-            {active.composition} · {active.color}
+            {active.uretilen
+              ? (kompozisyon ?? "Kompozisyon ölçülmedi")
+              : `${active.composition} · ${active.color}`}
           </p>
+
+          {active.uretilen && (
+            <section className="mt-10 border-t border-hair pt-8">
+              <div className="flex items-baseline justify-between">
+                <h3 className="eyebrow">Ölçüm girişi</h3>
+                <span className="eyebrow text-fog">Kaydedilmiyor</span>
+              </div>
+              {/* Karenin ne olduğunu olduğu gibi söylüyoruz. Üretim istemi
+                  (lib/ai/prompt.ts) dört ilâ altı FARKLI parça istiyor;
+                  buna tek bir gramaj ya da kompozisyon yazmak veri
+                  uydurmak olurdu. Metin modeli de göremiyor: ölçüyü ancak
+                  kumaşa bakan kişi koyabilir. */}
+              <p className="mt-4 text-[11px] leading-4 text-fog">
+                Bu kare tek bir kumaş değil — dört ilâ altı farklı ağırlık ve dokuda parça
+                gösteriyor. Ölçülebilir alanlar bu yüzden boş geliyor; hangi parçayı
+                çalıştığınıza siz karar verip değerleri buraya yazın.
+              </p>
+              <div className="mt-6 grid grid-cols-2 gap-8">
+                <Field label="Kompozisyon" htmlFor="uretilen-kompozisyon">
+                  <Input
+                    id="uretilen-kompozisyon"
+                    value={olcum.composition}
+                    placeholder="Ölçülmedi"
+                    onChange={(e) => setOlcum((o) => ({ ...o, composition: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Dokuma" htmlFor="uretilen-dokuma">
+                  <Select
+                    id="uretilen-dokuma"
+                    value={olcum.weave}
+                    onChange={(e) =>
+                      setOlcum((o) => ({ ...o, weave: e.target.value as Weave | "" }))
+                    }
+                  >
+                    <option value="">Ölçülmedi</option>
+                    {DOKUMALAR.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+            </section>
+          )}
 
           <section className="mt-10 border-t border-hair pt-8">
             <div className="flex items-baseline justify-between">
               <h3 className="eyebrow">Metraj</h3>
-              <span className="eyebrow tabular-nums text-fog">{formatTRY(active.price)} / m</span>
+              <span className="eyebrow tabular-nums text-fog">
+                {price !== null ? `${formatTRY(price)} / m` : "Fiyat ölçülmedi"}
+              </span>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-8">
               <Field label="En" htmlFor="fabric-width" trailing="cm">
-                <p id="fabric-width" className="border-b border-hair py-3 text-[15px] leading-6 tabular-nums">
-                  {active.width}
-                </p>
+                {active.uretilen ? (
+                  <Input
+                    id="fabric-width"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step={1}
+                    value={olcum.width}
+                    placeholder="Ölçülmedi"
+                    onChange={(e) => setOlcum((o) => ({ ...o, width: e.target.value }))}
+                    className="tabular-nums"
+                  />
+                ) : (
+                  <p id="fabric-width" className="border-b border-hair py-3 text-[15px] leading-6 tabular-nums">
+                    {active.width}
+                  </p>
+                )}
               </Field>
+              {active.uretilen && (
+                <Field label="Metre fiyatı" htmlFor="fabric-price" trailing="₺">
+                  <Input
+                    id="fabric-price"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step={10}
+                    value={olcum.price}
+                    placeholder="Ölçülmedi"
+                    onChange={(e) => setOlcum((o) => ({ ...o, price: e.target.value }))}
+                    className="tabular-nums"
+                  />
+                </Field>
+              )}
               <Field label="İstenen uzunluk" htmlFor="fabric-length" trailing="metre">
                 <Input
                   id="fabric-length"
@@ -249,11 +415,27 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 />
               </Field>
             </div>
+            {/* Eksik ölçüde kutular tire basıyor: hesap en, gramaj ve
+                fiyata dayanıyor, üçü de üretilen karede bilinmiyor. */}
             <dl className="mt-7 grid grid-cols-3 gap-4">
-              <Stat label="Alan" value={`${nf.format(area)} m²`} />
-              <Stat label="Ağırlık" value={grams >= 1000 ? `${nf.format(grams / 1000)} kg` : `${nf0.format(grams)} g`} />
-              <Stat label="Tahmini tutar" value={formatTRY(cost)} />
+              <Stat label="Alan" value={area !== null ? `${nf.format(area)} m²` : "—"} />
+              <Stat
+                label="Ağırlık"
+                value={
+                  grams === null
+                    ? "—"
+                    : grams >= 1000
+                      ? `${nf.format(grams / 1000)} kg`
+                      : `${nf0.format(grams)} g`
+                }
+              />
+              <Stat label="Tahmini tutar" value={cost !== null ? formatTRY(cost) : "—"} />
             </dl>
+            {active.uretilen && (area === null || grams === null || cost === null) && (
+              <p className="mt-4 text-[11px] leading-4 text-fog">
+                Hesap için en, gramaj ve metre fiyatı gerekiyor; girilmeyen alan tire kalıyor.
+              </p>
+            )}
           </section>
 
           <section className="mt-10 border-t border-hair pt-8">
@@ -265,7 +447,9 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                   onClick={() => setSpec(specOf(active))}
                   className="fade eyebrow text-fog u-line hover:text-kalem"
                 >
-                  Kumaşın değerlerine dön
+                  {/* Üretilende dönülecek bir "kumaş değeri" yok: sıfırlama
+                      ölçümü ÖLÇÜLMEDİ'ye geri alıyor. */}
+                  {active.uretilen ? "Ölçümleri temizle" : "Kumaşın değerlerine dön"}
                 </button>
               )}
             </div>
@@ -302,6 +486,11 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 hints={["Sert", "Akışkan"]}
               />
             </div>
+            {active.uretilen && (
+              <p className="mt-6 text-[11px] leading-4 text-fog">
+                Üç kaydırıcı da boş başlıyor: değeri sürükleyerek siz koyuyorsunuz.
+              </p>
+            )}
           </section>
 
           <div className="mt-10 flex flex-col gap-5 border-t border-hair pt-8 sm:flex-row sm:items-center sm:justify-between">
@@ -350,7 +539,8 @@ function Slider({
 }: {
   id: string;
   label: string;
-  value: number;
+  /** null = ölçülmedi; sayı yerine "Ölçülmedi" yazılıyor. */
+  value: number | null;
   min: number;
   max: number;
   step?: number;
@@ -358,14 +548,22 @@ function Slider({
   format: (v: number) => string;
   hints: [string, string];
 }) {
-  const pct = ((value - min) / (max - min)) * 100;
+  /* Ölçülmemiş kaydırıcı: dolgu sıfır, kol en başta ve okunan değer
+     "Ölçülmedi". Ortaya bir sayı koymak (mesela aralığın ortası) daha
+     "dolu" görünürdü ama ölçülmemiş değeri ölçülmüş gibi gösterirdi;
+     kolun ilk hareketi zaten gerçek bir değer yazıyor. */
+  const olculdu = value !== null;
+  const v = value ?? min;
+  const pct = olculdu ? ((v - min) / (max - min)) * 100 : 0;
   return (
     <div>
       <div className="flex items-baseline justify-between">
         <label htmlFor={id} className="eyebrow text-fog">
           {label}
         </label>
-        <span className="text-sm tabular-nums">{format(value)}</span>
+        <span className={cn("text-sm tabular-nums", !olculdu && "text-fog")}>
+          {olculdu ? format(v) : "Ölçülmedi"}
+        </span>
       </div>
       <input
         id={id}
@@ -373,10 +571,16 @@ function Slider({
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={v}
         onChange={(e) => onChange(Number(e.target.value))}
-        aria-valuetext={format(value)}
-        className="slider mt-3"
+        /* Ölçülmemişken kol zaten min'de duruyor: kullanıcı tam min'i
+           seçerse change olayı HİÇ gelmez ve alan "Ölçülmedi" kalırdı.
+           Kaldırma anında değeri yazıyoruz; ölçülmüşse zaten dokunmuyor. */
+        onPointerUp={() => {
+          if (!olculdu) onChange(v);
+        }}
+        aria-valuetext={olculdu ? format(v) : "Ölçülmedi"}
+        className={cn("slider mt-3", !olculdu && "opacity-45")}
         style={{ "--p": `${pct}%` } as CSSProperties}
       />
       <div className="mt-1 flex justify-between text-[9px] uppercase tracking-[0.14em] text-fog/80">

@@ -357,39 +357,41 @@ başlığı + kontroller (4/12), sağda "eser gibi" önizleme (8/12). Zemin bemb
 
 ### H) Shooting — prodüksiyon masası `/hizmetler/shooting`
 
-Araştırmadan türeyen özellikler: kişi bazlı call saatleri ve **onay takibi** (StudioBinder),
-**pull sheet / ödünç numune takibi** (Glam Observer), sahneye **model atama** ve bileşen bazlı
-mood board (Milanote, Format), **altın saat / güneş planı** (PhotoPills), yaratıcı-lojistik-ekip-
-ekipman şeritlerinin tek ekranda görünmesi (Storyflow).
+**EKİP, LOKASYON VE CALL SHEET KALDIRILDI.** Gerekçe ürünün kendisi: Selvi tam da o insanlara
+ve o efora ihtiyaç kalmasın diye var; kendi ekranımızda rol listesi, mekân adayları ve gün
+planı tutmak bunun tersini söylüyordu. Gün ışığı şeridi de aynı turda gitti — içeriği (doğuş,
+batış, altın saat) saf lokasyon lojistiğiydi ve look tikleri call sheet dilimlerinden geliyordu,
+bırakılsaydı sessizce boşalırdı.
+
+Ayakta kalan araştırma izleri: **pull sheet / ödünç numune takibi** (Glam Observer), sahneye
+**model atama** ve bileşen bazlı mood board (Milanote, Format).
 
 ```
-│ SHOOTING · PRODÜKSİYON MASASI            Ekip 4/6 · 4/8 look · 3 açık iş [CALL SHEET'İ PAYLAŞ] │
-│ SS26 Kampanya — çekim günü · 14 Eylül · Call 07:00 · Cihangir · 24° az bulutlu             │
-│ ── Ekip ve lokasyon ───────────────────────────────────────────────────────────── 4/6 onaylı│
-│ [◯ Fotoğrafçı] [◯ Stilist] [◯ Saç&Makyaj]   kart: portre · ad (serif) · meta · durum · call │
-│ [◯ Model I   ] [◯ Model II] [▢ Mekân     ]   altta "Seçenek" mini avatarlar (aday değiştir) │
-│ ── Sanat yönetimi ve ışık ──────────────── │ ── Call sheet ───────────────── 6/15 tamamlandı│
-│ Gündüz · Altın saat · Gece · Stüdyo  (K°)  │ 14 Eylül 2026, Pazartesi                       │
-│ not (serif) · gün ışığı şeridi + look tik  │ Call·Wrap / Mekân / Hava / Güneş / Onaylar     │
-│ Tearsheet 4 sütun + "Referans ekle"        │ ◦ 07:00 Ekip call ……………… (tamamlandı üstü çizili)│
-│ ── Stilist çalışma alanı ────────────────  │ ◦ 09:00 Look 01 · Keten takım — Elif · 45 dk   │
-│ [Atanmamış] [Elif — Model I] [Derin — II]  │ ── Şimdi 10:52 ──────────────────────────────  │
-│  sürükle-bırak look kartları (sıra = çekim)│ ◦ 11:45 Look 04 … [MODEL ATANMADI]             │
-│ Aksesuar ve prop listesi ☑ ☐ + Ödünç·İade  │ ◦ 18:35 Look 08 … [ALTIN SAAT]                 │
+│ SHOOTING · PRODÜKSİYON MASASI                            4/8 look atandı · 3 açık iş        │
+│ SS26 Kampanya — çekim günü        ← tohum varsa başlık kullanıcının kendi brief'i           │
+│ ── Sanat yönetimi ve ışık ──────────────────────────────── 5600 K · 09:00 – 15:30 ───────── │
+│ Gündüz · Altın saat · Gece · Stüdyo        seçilen mood'un notu (serif, tek cümle)          │
+│ Tearsheet · referanslar   ▣ ▣ ▣ ▣ + "Referans ekle"   tohum kareleri listenin başında       │
+│ ── Stilist çalışma alanı ──────────────────────── 4/8 look atandı · 3 açık iş ───────────── │
+│ [Atanmamış] [Model I] [Model II]           sürükle-bırak look kartları (sıra = çekim sırası)│
+│ Aksesuar ve prop listesi ☑ ☐ + Ödünç·İade  ödünç parçalarda kaynak ve iade tarihi           │
 ```
 
-- **Durum renkleri yalnızca burada pastel**: onaylandı (adaçayı), bekliyor/ödünç/altın saat
-  (kum), call sheet gönderildi (sis), model atanmadı (gül). Arayüzün kalanı monokrom.
-- **Ekip kartları**: yuvarlak portre (kişi) / kare görsel (mekân); her rol için 2–3 aday;
-  seçim header sayacını ve call sheet onaylarını günceller.
-- **Işık**: mood seçimi K° ve pencere bilgisini değiştirir; gün ışığı şeridi doğuş/batış,
-  iki altın saat penceresi, look tikleri ve "şimdi" çizgisini gösterir.
-- **Look–model**: HTML5 sürükle-bırak + klavye/touch için "sonraki sütuna taşı" düğmesi;
-  atamalar call sheet satırlarına model adı olarak yansır; atanmamış look kırmızımsı rozet.
+- **Pastel ton yalnızca burada, ve tek**: ödünç rozeti (kum). Onaylandı (adaçayı), call sheet
+  gönderildi (sis) ve model atanmadı (gül) tonları ait oldukları bölümlerle birlikte silindi.
+- **Işık**: mood seçimi K° ve pencere bilgisini değiştirir, notu serif tek cümle olarak yazar.
+- **Tearsheet**: 4 sütunlu referans ızgarası + "Referans ekle" (yerel dosya, blob URL).
+  Tohum varsa dört ilham karesi ve moodboard listenin başına giriyor; etiket **karenin
+  kendisinden** okunuyor (`tohum.kareler[].etiket`), sıradan değil — eksen adları
+  doğa/sanat/doku/mekân, tearsheet başlıklarına ışık/poz/gardırop/mekân diye eşleniyor.
+- **Look–model**: HTML5 sürükle-bırak + klavye/touch için "sonraki sütuna taşı" düğmesi.
+  Sütunlar artık kişi adı taşımıyor: "Atanmamış · Model I · Model II".
 - **Prop listesi**: üstü çizilebilir checklist, ödünç parçalarda kaynak ve iade tarihi, yeni
-  satır ekleme.
-- **Call sheet**: tıklayınca tamamlanan zaman çizelgesi, "şimdi" işareti, süre ve dış mekân
-  notu; paylaş/PDF prototip toast.
+  satır ekleme. **Aynı lojistik önermesinden geliyor** (steamer, dikiş kiti, "ödünç · iade
+  17 Eyl") ama silinmedi; kalıp kalmayacağı sahibinin kararı.
+- **Kalanın dürüst tarifi**: bu haliyle araç bir mood seçici + referans ızgarası, üstüne
+  look–model eşleştirme ve prop listesi. İlk ikisi `components/moodboard-studio.tsx` ile
+  belirgin biçimde örtüşüyor. Yerine yeni bir özellik konmadı — istenmedi.
 
 ### I) Teknik Çizim — dijital kalıp ve çizim tuvali `/hizmetler/teknik-cizim`
 
@@ -449,7 +451,7 @@ components/
   label-studio.tsx    etiket tezgâhı: sekmeler, 1:1 sahne, şartname paneli, set özeti
   label-previews.tsx  dokuma / asma / bakım etiketi önizlemeleri (mm tabanlı)
   care-symbols.tsx    bakım sembolleri (1px SVG)
-  shoot-desk.tsx      prodüksiyon masası: ekip kartları, ışık şeridi, tearsheet, look–model DnD, prop listesi, call sheet
+  shoot-desk.tsx      prodüksiyon masası: mood/ışık, tearsheet, look–model DnD, prop listesi
   flat-sketch.tsx     teknik çizim tezgâhı: SVG tuval, araçlar, dikiş tipleri, kumaş dolgusu, katmanlar, görünümler
   croquis.tsx         9 baş oranlı ince çizgi manken silueti (ön/arka)
   ui/ruler.tsx        santimetre cetveli (Kumaş ve Etiket sayfalarında ortak)

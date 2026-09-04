@@ -1,27 +1,63 @@
+import type { StudyoTohum } from "@/lib/ai/tohum";
+
 const u = (id: string, w = 1400) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
-export type Weave = "Düz dokuma" | "Dimi" | "Saten" | "Örme" | "Krep";
+/** Dokuma türleri tek yerde: arayüz de bu listeden seçtiriyor. */
+export const DOKUMALAR = ["Düz dokuma", "Dimi", "Saten", "Örme", "Krep"] as const;
+export type Weave = (typeof DOKUMALAR)[number];
+
+/* ------------------------------------------------------------------
+   KUMAŞ — veri modeli.
+
+   NEDEN ÖLÇÜLEBİLİR ALANLAR NULL OLABİLİYOR. Kütüphaneye artık ana
+   sayfada ÜRETİLMİŞ kumaş karesi de giriyor (`tohumdanKumas`) ve o
+   karenin ölçülebilir hiçbir alanı bilinmiyor:
+
+   - Kare tek bir kumaş DEĞİL. `lib/ai/prompt.ts` üretim isteminde
+     "dört ilâ altı, her biri farklı ağırlık ya da dokuda parça"
+     istiyor; ona tek bir kompozisyon/gramaj/döküm yazmak veri
+     UYDURMAK olurdu.
+   - Modele de sorulamıyor: `lib/ai/metin.ts` yalnız METİN çalışıyor,
+     ona görsel gösterilemiyor.
+
+   Bu yüzden null "sıfır" değil, "ÖLÇÜLMEDİ" demek. Arayüz alanı böyle
+   yazıyor ve değeri kullanıcı giriyor. Kataloğun dokuz kaydı gerçek
+   değerlerini koruyor; onlarda hiçbir alan null'a düşmüyor.
+
+   UYUMLULUK — `components/flat-sketch.tsx`. Orası `f.name`, `f.image`,
+   `f.id` ve `f.composition` okuyor. `name` ve `image` zaten null'a
+   düşmüyor; `composition` yalnız `` `${f.name} · ${f.composition}` ``
+   şablonunda geçiyor ve TypeScript şablon dizisinde null'ı kabul
+   ediyor — yani o dosyaya dokunmadan derleniyor. Çalışma zamanında da
+   sorun yok: flat-sketch yalnız `fabrics` dizisini geziyor, üretilen
+   kayıt o diziye HİÇ girmiyor (kütüphaneye kumaş bileşeninin içinde
+   ekleniyor). Alternatif "composition'ı string tutup 'Ölçülmedi'
+   yazmak"tı; seçmedik, çünkü o zaman "ölçüldü mü" sorusunun cevabı bir
+   METİN KARŞILAŞTIRMASINA dönerdi.
+   ------------------------------------------------------------------ */
 
 export type Fabric = {
   id: string;
   name: string;
-  composition: string;
-  color: string;
-  weave: Weave;
+  composition: string | null;
+  color: string | null;
+  weave: Weave | null;
   /** g/m² */
-  weight: number;
+  weight: number | null;
   /** % esneme */
-  stretch: number;
+  stretch: number | null;
   /** 0 sert — 100 akışkan */
-  drape: number;
+  drape: number | null;
   /** kumaş eni, cm */
-  width: number;
+  width: number | null;
   /** ₺ / metre */
-  price: number;
-  /** desen tekrarı, cm — düz kumaşta null */
+  price: number | null;
+  /** desen tekrarı, cm — düz kumaşta null; üretilen kayıtta "ölçülmedi" */
   repeat: number | null;
   image: string;
+  /** Ana sayfadaki akıştan gelen kare mi — ölçülmemiş kaydı işaretler. */
+  uretilen?: boolean;
 };
 
 export const fabrics: Fabric[] = [
@@ -152,3 +188,38 @@ export const fabrics: Fabric[] = [
     image: u("1643313260651-9c335822ecde"),
   },
 ];
+
+/**
+ * Akıştan kumaş kaydı kurar — `tohumdanMoodboard` / `tohumdanLookbook`
+ * ile aynı kalıp: tohum adresi taşıyor, araç onu kendi modeline
+ * çeviriyor.
+ *
+ * FARKI: burada ölçülebilir HİÇBİR alan doldurulmuyor (yukarıdaki nota
+ * bakın). Doldurulan üç şey var — kimlik, ad ve görsel. Kaydın kataloğa
+ * girmesinin sebebi de zaten bu: değeri veri olarak değil, SEÇİLEBİLİR
+ * kayıt olarak taşımak. Referans şeridindeki 80×96 küçük resim ne
+ * seçilebiliyordu ne de üstüne ölçüm yazılabiliyordu.
+ *
+ * Kimlik sabit "uretilen": çalışma başına tek üretilmiş kumaş karesi
+ * var; ikincisi üretilse tohum onu zaten `turetilmis.kumas`'ın üstüne
+ * yazıyor.
+ */
+export function tohumdanKumas(tohum: StudyoTohum): Fabric | null {
+  const kare = tohum.turetilmis.kumas;
+  if (!kare) return null;
+  return {
+    id: "uretilen",
+    name: "Üretilen kumaş çalışması",
+    composition: null,
+    color: null,
+    weave: null,
+    weight: null,
+    stretch: null,
+    drape: null,
+    width: null,
+    price: null,
+    repeat: null,
+    image: kare,
+    uretilen: true,
+  };
+}
