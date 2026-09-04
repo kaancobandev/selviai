@@ -152,11 +152,44 @@ export const CEKIM_EKSENLERI = [
 export type CekimEkseni = (typeof CEKIM_EKSENLERI)[number];
 
 /**
+ * TEKNİK ÇİZİM (flat) — giysinin çizgi resmi, ön ve arka.
+ *
+ * NEDEN SİLUET KARESİ YETMİYOR. Teknik çizim aracı krokinin arkasına bir
+ * altlık koyup üstünden çizdiriyor ve oraya bugüne kadar siluet karesi
+ * konuyordu — ama o bir FOTOĞRAF: perspektifi var, gölgesi var, kırışığı
+ * var ve içinde beden var. Üstünden çizmek için kötü bir kılavuz. İstenen
+ * şey endüstrinin flat'i: beyaz zeminde siyah çizgi, düz yatık, simetrik;
+ * dikiş, pens, üstdikiş ve kapamalar okunuyor. Flat krokiyle doğal olarak
+ * hizalanıyor çünkü ikisi de önden ve simetrik.
+ *
+ * İKİ YUVA: araçta zaten `front` / `back` / `detail` görünümleri var ve
+ * kroki `back` alıyor, yani ön ve arka flat iki görünüme birebir oturuyor.
+ * Detay görünümünün kendi altlığı yok; oraya çizim koymak için üçüncü bir
+ * kare üretmek gerekirdi ve detay zaten kullanıcının kendi kadrajı.
+ *
+ * AKIŞA EKLENMEDİ, ARAÇTA ÜRETİLİYOR: ana sayfa koşumu zaten sekiz kare
+ * ve kullanıcıların çoğu teknik çizime hiç girmiyor. İstendiğinde iki kare.
+ *
+ * Sabit yuva adları, kesim ve çekimdeki gerekçenin aynısı: kareler kovaya
+ * `<isId>/<eksen>.<uzanti>` yoluna yazılıyor, aynı ad iki kez kullanılsa
+ * ikinci kare birincinin üstüne yazardı.
+ */
+export const TEKNIK_EKSENLERI = ["teknik-on", "teknik-arka"] as const;
+export type TeknikEkseni = (typeof TEKNIK_EKSENLERI)[number];
+
+/**
  * İş modu. Eskiden tek mod vardı ve kayıtta hiç yazmıyordu; alan
  * İSTEĞE BAĞLI çünkü yayındaki eski iş kayıtlarında yok — okunurken
  * boşsa "kompozisyon" sayılıyor.
  */
-export type IsModu = "kompozisyon" | "ilham" | "turetilmis" | "kultur" | "kesim" | "cekim";
+export type IsModu =
+  | "kompozisyon"
+  | "ilham"
+  | "turetilmis"
+  | "kultur"
+  | "kesim"
+  | "cekim"
+  | "teknik";
 
 /** Metinden dört kare üretimi — girdi görseli yok. */
 export type IlhamInput = {
@@ -234,6 +267,20 @@ export type CekimInput = {
 };
 
 /**
+ * Teknik çizim işi — TEK REFERANS, İKİ SABİT ÇIKTI.
+ *
+ * Çekimden farkı: orada satırları kullanıcı kuruyor, burada çıktı hep
+ * aynı ikili — ön ve arka flat. O yüzden `kareler` alanı yok; iş neyi
+ * üreteceğini kendi modundan biliyor.
+ */
+export type TeknikInput = {
+  /** Giysi karesinin kovadaki yolu; istemci değil sunucu çözüyor. */
+  kaynakYol: string;
+  metin: string;
+  aspect: Aspect;
+};
+
+/**
  * Kültür analizi — depodaki tek METİN üreten iş.
  *
  * Görsel işleriyle aynı kuyruğa girmesinin sebebi süre: analiz canlı
@@ -260,7 +307,7 @@ export type Analiz = {
  */
 export type JobKare = {
   /** Hangi eksenden/türden geldiği — arayüz bunu etiket olarak gösteriyor. */
-  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni | CekimEkseni;
+  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni | CekimEkseni | TeknikEkseni;
   /** Kovadaki yol. Depo kapalıysa boş kalır ve dataUrl dolar. */
   imagePath?: string;
   dataUrl?: string;
@@ -336,6 +383,7 @@ export type Job = {
   kultur?: KulturInput;
   kesim?: KesimInput;
   cekim?: CekimInput;
+  teknik?: TeknikInput;
   /** Çok çıktılı işlerde kareler; kompozisyonda boş kalır. */
   kareler?: JobKare[];
   /** Yalnız kültür işlerinde dolar. */
@@ -373,7 +421,7 @@ export type JobMeta = {
  */
 /** İstemciye dönen tek kare — kovadaki yol DEĞİL, kendi ucumuz. */
 export type JobKareView = {
-  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni | CekimEkseni;
+  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni | CekimEkseni | TeknikEkseni;
   /** `/api/kare/<isId>/<sira>` — kova özel, yol dışarı verilmiyor. */
   url?: string;
   dataUrl?: string;
@@ -390,6 +438,7 @@ export type JobView = Omit<
   | "kultur"
   | "kesim"
   | "cekim"
+  | "teknik"
 > & {
   resultUrl?: string;
   kareler?: JobKareView[];

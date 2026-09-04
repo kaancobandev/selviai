@@ -443,6 +443,75 @@ export function buildCekimPrompt(crop: Crop, lighting: Lighting, istek: string):
   ].join("\n");
 }
 
+/* ==================================================================
+   TEKNİK ÇİZİM (FLAT)
+
+   NEDEN SİLUET KARESİ YETMİYOR. Teknik çizim aracı krokinin arkasına bir
+   altlık koyup üstünden çizdiriyor; oraya bugüne kadar siluet karesi
+   konuyordu ama o bir FOTOĞRAF — perspektifi, gölgesi, kırışığı var ve
+   içinde beden var. Üstünden çizmek için kötü bir kılavuz.
+
+   İstenen şey endüstrinin flat'i: beyaz zeminde siyah çizgi, düz yatık,
+   simetrik, gölgesiz. Flat krokiyle doğal olarak hizalanıyor çünkü ikisi
+   de önden ve simetrik.
+
+   REFERANS GİYSİ FOTOĞRAFI, İSTENEN ŞEY ONUN ÇİZİMİ. Yani bu bir
+   "tasarla" işi değil, bir ÇEVİRİ işi: tasarım sabit, değişen yalnız
+   anlatım biçimi. İstemin en sert kısıtı da bu.
+   ================================================================== */
+
+const TEKNIK_GORUNUM: Record<"on" | "arka", string> = {
+  on:
+    "This is the FRONT view. Show the front of the garment: neckline or collar and lapel, " +
+    "front closure (buttons, zip or wrap) drawn on the correct side, front pockets, front " +
+    "darts or princess seams, cuff and hem finishes.",
+  arka:
+    "This is the BACK view of the SAME garment. It must agree with the front in every " +
+    "measurable way: identical length, identical width, identical shoulder slope, identical " +
+    "sleeve length and identical hem line. Show what belongs to the back: back yoke, centre " +
+    "back seam, back darts, vent or pleat, and any detail that wraps round from the front.",
+};
+
+export function buildTeknikPrompt(gorunum: "on" | "arka", istek: string): string {
+  const brief = istek.trim().slice(0, 300);
+
+  return [
+    "The attached image is a photograph of a garment the designer created.",
+    "Redraw that SAME garment as a TECHNICAL FLAT — the line drawing a factory works from.",
+    "",
+    "THE DIRECTION IT BELONGS TO",
+    `  ${brief}`,
+    "",
+    "THIS IS A TRANSLATION, NOT A NEW DESIGN",
+    "  The garment is fixed. Same silhouette, same proportions, same length, same collar,",
+    "  same closure, same pockets, same sleeve. Only the way it is DRAWN changes.",
+    "",
+    "HOW A TECHNICAL FLAT LOOKS",
+    "  - Pure line drawing: solid black outlines on a plain pure white background.",
+    "  - NO colour fill, no grey shading, no gradient, no drop shadow, no fabric texture,",
+    "    no 3D rendering, no photographic element of any kind.",
+    "  - The garment lies perfectly FLAT and SYMMETRIC, as if laid on a table, seen straight",
+    "    on from directly above. Sleeves out to the sides, not folded.",
+    "  - NOT on a body, NOT on a mannequin, NOT on a hanger, not worn. No human, no head,",
+    "    no hands, no legs anywhere in the frame.",
+    "  - Construction must read clearly: seam lines, dart placement, topstitching drawn as",
+    "    dashed lines, closures (buttons, buttonholes, zip teeth, snaps), pocket openings,",
+    "    collar and lapel shape, cuff, waistband and hem finishes.",
+    "  - Line weight is deliberate: a heavier outline for the silhouette, lighter lines for",
+    "    internal construction, dashed for topstitching.",
+    "  - The garment is centred and fills the frame with a small, even margin on all sides.",
+    "",
+    "VIEW",
+    `  ${TEKNIK_GORUNUM[gorunum]}`,
+    "",
+    "HARD CONSTRAINTS",
+    "  - One garment, one view, one frame. No second view beside it, no collage, no grid.",
+    "  - No text, no labels, no callouts, no arrows, no measurements, no size chart,",
+    "    no logos, no watermark, no border, no title block.",
+    "  - Pure white background, edge to edge. No paper texture, no grid paper, no desk.",
+  ].join("\n");
+}
+
 /**
  * Onarım geçişi: kabul edilmeyen karede sıfırdan üretmek yerine tek bir
  * düzeltme istemek hem ucuz hem daha isabetli. (Faz 3'te devreye girecek.)

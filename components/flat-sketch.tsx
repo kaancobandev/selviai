@@ -28,6 +28,7 @@ import {
   type Pt,
 } from "@/lib/geometry";
 import { cn } from "@/lib/utils";
+import { TEKNIK_EKSENLERI, type Aspect, type TeknikEkseni } from "@/lib/ai/types";
 import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Croquis } from "@/components/croquis";
 import { Toast } from "@/components/ui/toast";
@@ -122,6 +123,30 @@ const initialDoc: Doc = {
    giysi" demek üretmediğimiz şeyi üretmiş gibi göstermek olurdu. Şimdi
    siluet gerçekten üretiliyor, o yüzden adıyla anılabiliyor.
 
+   AMA FOTOĞRAF ZAYIF BİR KILAVUZ. Siluet karesi gerçek bir çekim gibi
+   duruyor: perspektifi, gölgesi, kırışığı ve içinde bir beden var.
+   Üstünden çizgi geçirmek için istenen şey TEKNİK ÇİZİM — sektörün düz
+   yatık, simetrik, gölgesiz çizgi resmi. Araç onu istendiğinde
+   üretebiliyor (bkz. TEKNİK ÇİZİM bloğu); fotoğraf altlığı YEDEK kaldı.
+
+   ALTLIK GÖRÜNÜM BAŞINA TUTULUYOR. Eskiden tek bir değer hem öne hem
+   arkaya konuyordu; siluet tek bir ÖNDEN karedir, arkaya konduğunda
+   tasarımcı arkayı ön fotoğrafından çiziyordu. Teknik çizim işi zaten
+   ön ve arka olmak üzere iki kare döndürüyor, o yüzden altlık da iki
+   yuva: `front` ve `back`. Detayda figür yok, altlık da yok.
+
+   OPAKLIK/ÖLÇEK/KONUM PAYLAŞILIYOR, görünüm başına DEĞİL. Bunlar karenin
+   değil BAKIŞIN ayarı — "ne kadar soluk", "ne kadar büyük". İki teknik
+   çizim aynı işten, aynı oranla, aynı kroki'nin üstüne geliyor; biri için
+   ayarlanan kutu ötekine de oturuyor. Görünüm başına tutmak paneldeki
+   dört sürgüyü sekize çıkarır, karşılığında hiçbir şey vermezdi.
+
+   Bedeli bilinerek ödeniyor: iki görünümde FARKLI TÜR altlık varsa (biri
+   çizim, öteki fotoğraf — üretimden yalnız bir kare döndüğünde olur) tek
+   kutu ikisine birden hizmet ediyor ve öteki tür kendi çerçevesinde
+   durmuyor. Panelin "sıfırla" düğmesi tek tıkla aktif türün çerçevesine
+   döndürüyor.
+
    Kare kroki'nin ARKASINA, ayarlanabilir opaklıkta bir REFERANS ALTLIK
    olarak konuyor — tasarımcı üstünden çizer. Kutu panelden ayarlanıyor,
    tuvalden sürüklenerek değil: altlık `pointer-events-none` olmak
@@ -129,11 +154,92 @@ const initialDoc: Doc = {
    ------------------------------------------------------------------ */
 type AltlikKutu = { x: number; y: number; w: number; h: number };
 
+/** Altlık taşıyan görünümler — detayda manşet ve cep var, figür yok. */
+type AltlikGorunum = "front" | "back";
+
+/**
+ * Bir görünümün altlığı. `tur` süs değil, tuvalde davranış değiştiriyor:
+ * teknik çizim kutuya SIĞARAK (`meet`), fotoğraf kutuyu DOLDURARAK
+ * (`slice`) yerleşiyor — gerekçe `image` düğümünün başında.
+ */
+type Altlik = { src: string; tur: "kare" | "teknik" };
+
 /* Kroki'nin kapladığı alan — components/croquis.tsx'ten ölçüldü: baş
    elipsi (cy 40, ry 36) y=4'te başlıyor, ayak tabanı y=672, en dış kol
    çizgisi |x|=90. Altlık varsayılan olarak buraya oturuyor. */
 const KROKI_ALAN: AltlikKutu = { x: -90, y: 4, w: 180, h: 668 };
 const ALTLIK_OPAKLIK = 0.45;
+
+/* ------------------------------------------------------------------
+   TEKNİK ÇİZİM — istendiğinde üretilen ön/arka çizgi resmi
+
+   NEDEN BURADAN, AKIŞTAN DEĞİL. Ana sayfa koşusu zaten sekiz kare
+   harcıyor ve kullanıcıların çoğu bu aracı hiç açmıyor; iki kareyi
+   herkese peşinen ödetmek yerine isteyene burada üretiliyor. Kolaj
+   kesimindeki karar bu (bkz. components/kolaj-studio.tsx başı).
+
+   NEDEN İKİ KARE. Araçta ön ve arka ayrı görünüm ve `Croquis` `back`
+   propuyla dönüyor; ikisi birebir eşleşiyor. Yuva adları motorun
+   sözlüğünden geliyor, burada ikinci bir sözlük tutulmuyor: `TEKNIK_YUVA`
+   `TeknikEkseni` ile yazıldığı için eksen adı değişirse burası DERLENMEZ,
+   sessizce boş kare beklemez.
+
+   KAYNAK SİLUET. Giysi fotoğrafını çizgi resme çevirmek modelin
+   yapabileceği bir iş; ilham karesinden yoktan teknik çizim uydurmak
+   değil. Siluet yoksa düğme kapalı kalıyor.
+
+   ÇİZİMLER ÇALIŞMA KAYDINA YAZILMIYOR: iş kendi kimliğiyle duruyor ama
+   `Calisma` yalnız ilham ve türetme işini tanıyor (bkz. lib/ai/tohum.ts).
+   Yani üretilen çizim bu araç açıkken yaşıyor, sayfa yenilenince yeniden
+   üretmek gerekiyor. Kayda bağlamak tohum tipini ve sunucu tarafını
+   değiştirmek demekti; bu tur yalnız aracı değiştiriyor.
+   ------------------------------------------------------------------ */
+
+/**
+ * Üretim oranı. Kroki alanı 180×668 birim, yani ~1:3,7; `ASPECTS` içinde
+ * o kadar dar bir oran yok, en dikeyi 3:4. Kare kutuya `meet` ile
+ * oturduğu için artan boşluk zarar vermiyor — kırpma verirdi.
+ */
+const TEKNIK_ORAN: Aspect = "3:4";
+
+/**
+ * Teknik çizimin varsayılan çerçevesi — KROKI_ALAN DEĞİL.
+ *
+ * Kroki alanı bütün figür: 180×668, yani ~1:3,7. 3:4'lük bir kareyi oraya
+ * sığdırmak (`meet`) çizimi genişlikten oturtur ve 180×240'a düşürür —
+ * çizim figürün ortasında ufacık kalır, üstünden çizilecek hâlde olmaz.
+ *
+ * Çerçeve bu yüzden GİYSİNİN oturduğu alandan türetildi. Ölçüler bu
+ * dosyadaki örnek bluzdan: omuz y=106, etek ucu y=410, omuz ucu |x|=72
+ * (croquis.tsx da aynısını söylüyor — omuz ucu 72/118, kalça çizgisi 400).
+ * Giysi zarfı 144×304, merkezi (0, 258).
+ *
+ * Karedeki giysinin çerçeveyi payla doldurduğunu varsayıyoruz (~%85):
+ * 304 / 0,85 ≈ 358 yükseklik, 3:4'te 268 genişlik. Kutu tam 3:4 olduğu
+ * için `meet` ile `slice` çakışıyor — ne kırpma ne boşluk kalıyor.
+ * Varsayım tutmazsa ölçek ve konum sürgüleri duruyor.
+ */
+const TEKNIK_ALAN: AltlikKutu = { x: -134, y: 79, w: 268, h: 358 };
+
+/** Hangi görünümün altlığı hangi yuvadan gelir. */
+const TEKNIK_YUVA: Record<AltlikGorunum, TeknikEkseni> = {
+  front: "teknik-on",
+  back: "teknik-arka",
+};
+
+/** Referans şeridinde üretilen çizimlerin adı. */
+const TEKNIK_ETIKET: Record<AltlikGorunum, string> = {
+  front: "Teknik ön",
+  back: "Teknik arka",
+};
+
+/** Altlığın varsayılan çerçevesi; ölçek ve konum sürgüleri de buna göre okunuyor. */
+const varsayilanKutu = (altlik: Altlik | null): AltlikKutu =>
+  altlik?.tur === "teknik" ? TEKNIK_ALAN : KROKI_ALAN;
+
+const YOKLAMA_MS = 2000;
+/** Bu süre sonunda yoklama bırakılır; sunucu kendi bekçisini işletiyor. */
+const YOKLAMA_TAVANI_MS = 4 * 60 * 1000;
 
 /** Eksen kodundan okunur ad; tohum kareleri bu kodlarla etiketleniyor. */
 const EKSEN_ADI: Record<string, string> = {
@@ -166,13 +272,17 @@ function kumasAdi(id: string | null): string {
   return fabrics.find((f) => f.id === id)?.name ?? id;
 }
 
+/** Şeritteki tek kare — tohumdan gelmiş ya da burada üretilmiş olabilir. */
+type Referans = Altlik & { etiket: string };
+
 /** Tohumdaki bütün kareler: dört ilham kaynağı ve türetilmiş çıktılar. */
-function tohumKareleri(tohum: StudyoTohum | null | undefined): { src: string; etiket: string }[] {
+function tohumKareleri(tohum: StudyoTohum | null | undefined): Referans[] {
   if (!tohum) return [];
   const adlar = new Map(tohum.kareler.map((k) => [k.url, EKSEN_ADI[k.etiket] ?? k.etiket]));
   const turetilmis = Object.values(tohum.turetilmis).filter((u): u is string => Boolean(u));
   return [...new Set([...tohum.ilham, ...turetilmis])].map((src) => ({
     src,
+    tur: "kare" as const,
     etiket: adlar.get(src) ?? "Kare",
   }));
 }
@@ -212,15 +322,28 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [spaceDown, setSpaceDown] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  /* Altlık sırası: giysi silueti → moodboard → seçilen ilham karesi.
+  /* Açılış altlığı: giysi silueti → moodboard → seçilen ilham karesi.
      Siluet önce çünkü tek GİYSİ olan o; ötekiler tasarımın kaynağı ya da
-     özeti, üstünden kalıp çizilecek şey değil. Kullanıcı panelden
-     istediğine geçebiliyor. Tohum yalnız ilk kurulumda okunuyor. */
-  const [altlik, setAltlik] = useState<string | null>(
-    () => tohum?.turetilmis.siluet ?? tohum?.turetilmis.moodboard ?? tohum?.secilen ?? null,
-  );
+     özeti, üstünden kalıp çizilecek şey değil. Aynı kare iki görünüme de
+     konuyor — siluet ÖNDEN bir kare ve arkada zayıf kalıyor, teknik çizim
+     tam bu boşluğu dolduruyor. Kullanıcı panelden istediğine geçebiliyor.
+     Tohum yalnız ilk kurulumda okunuyor. */
+  const [altliklar, setAltliklar] = useState<Record<AltlikGorunum, Altlik | null>>(() => {
+    const src = tohum?.turetilmis.siluet ?? tohum?.turetilmis.moodboard ?? tohum?.secilen ?? null;
+    const ilk: Altlik | null = src ? { src, tur: "kare" } : null;
+    return { front: ilk, back: ilk };
+  });
   const [altlikOpaklik, setAltlikOpaklik] = useState(ALTLIK_OPAKLIK);
   const [altlikKutu, setAltlikKutu] = useState<AltlikKutu>(KROKI_ALAN);
+  /* Üretilen teknik çizimler altlıktan AYRI tutuluyor: kullanıcı altlığı
+     fotoğrafa çevirdiğinde çizim şeritten düşmemeli, geri dönebilmeli. */
+  const [teknikCizim, setTeknikCizim] = useState<Record<AltlikGorunum, string | null>>({
+    front: null,
+    back: null,
+  });
+  const [teknikIsId, setTeknikIsId] = useState<string | null>(null);
+  const [teknikCalisiyor, setTeknikCalisiyor] = useState(false);
+  const [teknikAdim, setTeknikAdim] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -504,6 +627,135 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     }
   }
 
+  /* ---------- teknik çizim üretimi ---------- */
+  /* Kaynak KİMLİĞİYLE gidiyor, adresiyle değil: `/api/teknik` "hangi işin
+     kaçıncı karesi" diyeni kovadaki yola kendisi çeviriyor ve o sırada
+     karenin bu oturuma ait olduğunu doğruluyor. İstemcinin depo yolu
+     bilmesi gerekmiyor — kesim ve çekim uçlarındaki gerekçenin aynısı. */
+  const siluetKare = tohum?.kareler.find((k) => k.etiket === "siluet") ?? null;
+
+  async function teknikUret() {
+    if (!siluetKare) {
+      setToast("Akışta giysi silueti yok; teknik çizim ondan üretiliyor.");
+      return;
+    }
+    setTeknikCalisiyor(true);
+    setTeknikAdim(null);
+    try {
+      const r = await fetch("/api/teknik", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kaynak: { isId: siluetKare.isId, sira: siluetKare.sira },
+          /* Ayrı bir not alanı YOK: çizim tamamen kaynak karenin
+             kopyası, serbest metin onu ancak saptırır. Brief yine de
+             gidiyor — giysinin adını modelin sözlüğüne koyuyor. */
+          metin: tohum?.brief ?? "",
+          aspect: TEKNIK_ORAN,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        /* Ucun kendi metni gösteriliyor: 429 "zaten süren bir iş var"
+           diyor ve kullanıcı bunu bilmeden düğmeye basmayı sürdürür. */
+        setToast(j.error ?? "Teknik çizim başlatılamadı.");
+        setTeknikCalisiyor(false);
+        return;
+      }
+      setTeknikIsId(j.jobId as string);
+    } catch {
+      setToast("Bağlantı kurulamadı.");
+      setTeknikCalisiyor(false);
+    }
+  }
+
+  /* Gelen kareleri yuva ADIYLA eşleştirir, dizi sırasıyla değil: bir kare
+     üretilemezse iş onu atlayıp ötekini döndürüyor ve sırayla okunsaydı
+     arkadan gelen çizim ön görünüme düşerdi.
+
+     `dataUrl` YEDEĞİ OKUNMAK ZORUNDA. Koşucu kareyi kovaya yükleyemezse
+     (5xx, zaman aşımı, dolu kova) `url` boş kalıyor ve baytlar `dataUrl`
+     olarak geliyor — kare üretilmiş ve parası ödenmiş demektir. Kolaj
+     aracında yalnız `url` okunuyordu ve o kareler sessizce atılıyordu. */
+  const teknikUygula = useCallback((gelenler: { eksen: string; url?: string; dataUrl?: string }[]) => {
+    const gelen = new Map<string, string>();
+    for (const kare of gelenler) {
+      const adres = kare.url ?? kare.dataUrl;
+      if (adres) gelen.set(kare.eksen, adres);
+    }
+    const on = gelen.get(TEKNIK_YUVA.front) ?? null;
+    const arka = gelen.get(TEKNIK_YUVA.back) ?? null;
+    if (!on && !arka) {
+      setToast("Teknik çizim gelmedi. Tekrar deneyin.");
+      return;
+    }
+
+    setTeknikCizim((c) => ({ front: on ?? c.front, back: arka ?? c.back }));
+    /* Gelen çizim doğrudan altlığa oturuyor: üretmenin bütün sebebi bu.
+       Yalnız gelen yuva değişiyor — biri düştüyse öteki görünümün altlığı
+       yerinde kalsın. */
+    setAltliklar((a) => ({
+      front: on ? { src: on, tur: "teknik" } : a.front,
+      back: arka ? { src: arka, tur: "teknik" } : a.back,
+    }));
+    /* Kutu çizimin çerçevesine dönüyor: kullanıcının fotoğraf için
+       ayarladığı ölçek ve kaydırma başka bir kadraja göreydi, çizim ise
+       giysinin oturduğu alana gelmek üzere üretildi (bkz. TEKNIK_ALAN). */
+    setAltlikKutu(TEKNIK_ALAN);
+    setToast(
+      on && arka
+        ? "Teknik çizim geldi — ön ve arka altlığa kondu."
+        : on
+          ? "Yalnız ön teknik çizim geldi; arka eski altlığında kaldı."
+          : "Yalnız arka teknik çizim geldi; ön eski altlığında kaldı.",
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!teknikIsId) return;
+    let iptal = false;
+    const basladi = Date.now();
+
+    const tur = async () => {
+      if (iptal) return;
+      try {
+        const r = await fetch(`/api/jobs/${teknikIsId}`, { cache: "no-store" });
+        const j = await r.json();
+        if (iptal) return;
+
+        if (j.status === "completed") {
+          teknikUygula(j.kareler ?? []);
+          setTeknikCalisiyor(false);
+          setTeknikIsId(null);
+          return;
+        }
+        if (j.status === "failed") {
+          setToast(j.error ?? "Teknik çizim tamamlanamadı.");
+          setTeknikCalisiyor(false);
+          setTeknikIsId(null);
+          return;
+        }
+        setTeknikAdim(typeof j.step === "string" ? j.step : null);
+      } catch {
+        /* Ağ tökezlemesi işi bitirmez; sonraki turda tekrar denenir. */
+      }
+      if (Date.now() - basladi > YOKLAMA_TAVANI_MS) {
+        if (!iptal) {
+          setToast("Teknik çizim beklenenden uzun sürdü.");
+          setTeknikCalisiyor(false);
+          setTeknikIsId(null);
+        }
+        return;
+      }
+      setTimeout(tur, YOKLAMA_MS);
+    };
+
+    void tur();
+    return () => {
+      iptal = true;
+    };
+  }, [teknikIsId, teknikUygula]);
+
   /* ---------- dışa aktar ---------- */
   function exportSvg() {
     const svg = svgRef.current;
@@ -538,7 +790,17 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const pct = Math.round(vp.zoom * 100);
 
   /* ---------- tohum ---------- */
-  const referanslar = tohumKareleri(tohum);
+  /* Üretilen çizimler şeridin SONUNA ekleniyor: tohum kareleri
+     kullanıcının ana sayfadan tanıdığı sırada kalsın, yeni gelen de
+     bulunabilsin. Şeritte durmaları şart — altlığı fotoğrafa çevirip
+     çizime geri dönmenin başka yolu olmazdı. */
+  const referanslar: Referans[] = [
+    ...tohumKareleri(tohum),
+    ...(["front", "back"] as const).flatMap((g) => {
+      const src = teknikCizim[g];
+      return src ? [{ src, tur: "teknik" as const, etiket: TEKNIK_ETIKET[g] }] : [];
+    }),
+  ];
   const tohumKumas = tohum?.turetilmis.kumas ?? null;
   /* Kartela + (varsa) üretilen kare. Üretilen SONA konuyor: kartelanın
      sırası kullanıcının alıştığı sıra. Alanlar tek tek birleştiriliyor,
@@ -565,22 +827,48 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      kullanıcıya olmayan bir güvence veriyordu. */
   const baslik = tohum?.brief.trim() || "Keten bluz";
 
+  /* Panelin hangi görünümün altlığını düzenlediği. Detayda altlık
+     çizilmiyor ama panel açık kalıyor; seçim ÖNE uygulanıyor ki tıklama
+     sessizce kaybolmasın (panel bunu ayrıca yazıyor). */
+  const altlikGorunum: AltlikGorunum = view === "back" ? "back" : "front";
+  const aktifAltlik = altliklar[altlikGorunum];
+  const gorunumAdi = VIEWS.find((v) => v.id === altlikGorunum)?.label ?? "Ön";
+  const altligiSec = (secim: Altlik | null) => {
+    setAltliklar((a) => ({ ...a, [altlikGorunum]: secim }));
+    /* TÜR değişince kutu o türün çerçevesine dönüyor — fotoğraf çerçevesi
+       kroki'nin tamamı, teknik çizim çerçevesi giysinin alanı; ikisi aynı
+       kutuya sığmıyor. Aynı tür içinde geçişte kullanıcının ayarı
+       korunuyor: iki fotoğraf arasında gidip gelmek ayarı silmemeli. */
+    if (secim && secim.tur !== aktifAltlik?.tur) setAltlikKutu(varsayilanKutu(secim));
+  };
+
+  const teknikDugmesi = teknikCalisiyor
+    ? teknikAdim?.startsWith("model-cagriliyor")
+      ? "Çiziliyor…"
+      : "Sıraya alındı…"
+    : `Teknik çizim üret · ${TEKNIK_EKSENLERI.length} kare`;
+
   /* Altlık kutusu panelden ayarlanıyor; sürgüler kutunun KENDİSİNDEN
-     türüyor, ayrı bir ölçek/konum durumu tutulmuyor ki ikisi ayrışmasın. */
-  const altlikOlcek = Math.round((altlikKutu.w / KROKI_ALAN.w) * 100);
+     türüyor, ayrı bir ölçek/konum durumu tutulmuyor ki ikisi ayrışmasın.
+
+     Sıfır noktası AKTİF ALTLIĞIN çerçevesi: %100 ve 0 cm "geldiği gibi"
+     demek. Ölçüyü hep kroki alanına bağlamak, teknik çizim seçiliyken
+     dokunulmamış bir kutuya "%149" dedirtirdi. */
+  const temelKutu = varsayilanKutu(aktifAltlik);
+  const altlikOlcek = Math.round((altlikKutu.w / temelKutu.w) * 100);
   const kutuMerkez = { x: altlikKutu.x + altlikKutu.w / 2, y: altlikKutu.y + altlikKutu.h / 2 };
-  const krokiMerkez = { x: KROKI_ALAN.x + KROKI_ALAN.w / 2, y: KROKI_ALAN.y + KROKI_ALAN.h / 2 };
+  const temelMerkez = { x: temelKutu.x + temelKutu.w / 2, y: temelKutu.y + temelKutu.h / 2 };
   const altligiOlcekle = (yuzde: number) => {
-    const w = (KROKI_ALAN.w * yuzde) / 100;
-    const h = (KROKI_ALAN.h * yuzde) / 100;
+    const w = (temelKutu.w * yuzde) / 100;
+    const h = (temelKutu.h * yuzde) / 100;
     // merkez sabit kalıyor: ölçek değişince altlık figürün altından kaçmasın
     setAltlikKutu((k) => ({ x: k.x + k.w / 2 - w / 2, y: k.y + k.h / 2 - h / 2, w, h }));
   };
   const altligiTasi = (eksen: "x" | "y", sapma: number) =>
     setAltlikKutu((k) =>
       eksen === "x"
-        ? { ...k, x: krokiMerkez.x + sapma - k.w / 2 }
-        : { ...k, y: krokiMerkez.y + sapma - k.h / 2 },
+        ? { ...k, x: temelMerkez.x + sapma - k.w / 2 }
+        : { ...k, y: temelMerkez.y + sapma - k.h / 2 },
     );
 
   return (
@@ -646,19 +934,23 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             ayrıca kare adresi göreceli olduğu için diskteki dosyada zaten
             çözülemezdi.
 
-            `slice`: kutu ne ise o görünüyor, kare kırpılıyor. Böylece
-            kutu sürgüleri dürüst kalıyor — kareden daha çoğunu görmek için
-            kutuyu genişletmek yetiyor. */}
-        {view !== "detail" && altlik && (
+            YERLEŞİM TÜRE GÖRE. Fotoğraf `slice` ile yerleşiyor: kutu ne
+            ise o görünüyor, kare kırpılıyor — kutu sürgüleri dürüst kalsın
+            diye, kareden daha çoğunu görmek için kutuyu genişletmek
+            yetiyor. Teknik çizim ise `meet` ile SIĞARAK yerleşiyor: kutu
+            kroki gibi dar (180×668) ve çizim 3:4; `slice` olsaydı çizimin
+            kolları kırpılırdı, yani üstünden çizilecek şeyin ta kendisi
+            kesilirdi. Fotoğrafta kırpma zararsız, çizimde değil. */}
+        {view !== "detail" && aktifAltlik && (
           <image
             data-ui
-            href={altlik}
+            href={aktifAltlik.src}
             x={altlikKutu.x}
             y={altlikKutu.y}
             width={altlikKutu.w}
             height={altlikKutu.h}
             opacity={altlikOpaklik}
-            preserveAspectRatio="xMidYMid slice"
+            preserveAspectRatio={aktifAltlik.tur === "teknik" ? "xMidYMid meet" : "xMidYMid slice"}
             className="pointer-events-none"
           />
         )}
@@ -827,30 +1119,38 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4 [scrollbar-width:thin]">
-            {/* Referans — ana sayfada üretilen kareler.
-                Etiketler tohumun kendi eksen adlarından geliyor (doğa,
+            {/* Referans — ana sayfada üretilen kareler ve burada üretilen
+                teknik çizimler.
+                Tohum etiketleri kendi eksen adlarından geliyor (doğa,
                 sanat, doku, mekân, moodboard, kumaş, marka, giysi
-                siluet). Yalnız sonuncusu giysi; ötekiler ne "giysi" ne
-                "manken" diyor çünkü değiller. */}
+                siluet). Yalnız siluet giysi; ötekiler ne "giysi" ne
+                "manken" diyor çünkü değiller. Şerit GÖRÜNÜM BAŞINA
+                seçiyor: tıklama açık olan görünümün altlığını değiştirir. */}
             {referanslar.length > 0 && (
               <section className="mb-7">
                 <div className="flex items-baseline justify-between">
                   <p className="eyebrow text-ash">Referans</p>
-                  <span className="eyebrow text-ash">Ana sayfadan</span>
+                  <span className="eyebrow text-ash">{gorunumAdi} görünümü</span>
                 </div>
                 <p className="mt-2 text-[11px] leading-4 text-fog">
-                  Giysi silueti dışındakiler giysi değil; ilham kaynağı ve düz yatık çıktı. Biri
-                  kroki&apos;nin arkasına altlık olarak konuyor, üstünden çiziyorsunuz.
+                  Seçilen kare kroki&apos;nin arkasına altlık olur, üstünden çizersiniz. Teknik
+                  çizim tam bunun için üretilmiş çizgi resimdir: düz yatık, simetrik, gölgesiz —
+                  dikiş, pens ve kapama hatları okunur. Fotoğraf kareleri yedek; içlerinde
+                  perspektif, gölge ve beden var.
                 </p>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {referanslar.map((r) => {
-                    const aktif = r.src === altlik;
+                    const aktif = r.src === aktifAltlik?.src;
                     return (
                       <button
                         key={r.src}
                         type="button"
-                        onClick={() => setAltlik(aktif ? null : r.src)}
-                        title={aktif ? `${r.etiket} · altlığı kaldır` : `${r.etiket} · altlığa koy`}
+                        onClick={() => altligiSec(aktif ? null : { src: r.src, tur: r.tur })}
+                        title={
+                          aktif
+                            ? `${r.etiket} · ${gorunumAdi} altlığından kaldır`
+                            : `${r.etiket} · ${gorunumAdi} altlığına koy`
+                        }
                         aria-label={r.etiket}
                         aria-pressed={aktif}
                         className="group flex flex-col items-center gap-1.5"
@@ -868,8 +1168,44 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                   })}
                 </div>
 
-                {altlik ? (
+                {/* Detayda tıklama sessizce kaybolmasın: seçim öne
+                    uygulanıyor ve bunu yazmak, hiçbir şey olmamasından iyi. */}
+                {view === "detail" && (
+                  <p className="mt-3 text-[11px] leading-4 text-fog">
+                    Detay görünümünde altlık çizilmiyor — figür yok. Seçim ön görünüme uygulanır.
+                  </p>
+                )}
+
+                {/* Maliyet DÜĞMENİN KENDİSİNDE: "· 2 kare". Kullanıcı basmadan
+                    önce ne harcadığını bilmeli; altındaki satır bunun iki ayrı
+                    üretim demek olduğunu açıyor. */}
+                <div className="mt-4 border-t border-mist pt-4">
+                  <button
+                    type="button"
+                    onClick={teknikUret}
+                    disabled={teknikCalisiyor || !siluetKare}
+                    className="w-full border border-ink/15 px-3 py-2 eyebrow text-ink transition-colors duration-300 hover:bg-ink/[0.04] disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    {teknikDugmesi}
+                  </button>
+                  <p className="mt-2 text-[11px] leading-4 text-fog">
+                    {siluetKare
+                      ? "Giysi siluetinden ön ve arka çizgi çizimi üretilir; iki kare, iki üretim demek. Gelenler doğrudan altlığa oturur."
+                      : "Teknik çizim giysi siluetinden üretiliyor; akışta o kare yok. Önce ana sayfada üretin."}
+                  </p>
+                </div>
+
+                {aktifAltlik ? (
                   <div className="mt-4 space-y-3">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="eyebrow text-ash">{gorunumAdi} altlığı</p>
+                      <span className="eyebrow text-ash">
+                        {aktifAltlik.tur === "teknik" ? "Teknik çizim" : "Fotoğraf"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-4 text-fog">
+                      Opaklık, ölçek ve konum iki görünümde ortak.
+                    </p>
                     <Kaydirac
                       id="altlik-opaklik"
                       etiket="Opaklık"
@@ -893,7 +1229,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                     <Kaydirac
                       id="altlik-yatay"
                       etiket="Yatay"
-                      deger={Math.round(kutuMerkez.x - krokiMerkez.x)}
+                      deger={Math.round(kutuMerkez.x - temelMerkez.x)}
                       min={-300}
                       max={300}
                       step={4}
@@ -903,7 +1239,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                     <Kaydirac
                       id="altlik-dikey"
                       etiket="Dikey"
-                      deger={Math.round(kutuMerkez.y - krokiMerkez.y)}
+                      deger={Math.round(kutuMerkez.y - temelMerkez.y)}
                       min={-300}
                       max={300}
                       step={4}
@@ -911,19 +1247,18 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                       onChange={(v) => altligiTasi("y", v)}
                     />
                     <div className="flex items-baseline justify-between gap-3">
-                      <button type="button" onClick={() => setAltlikKutu(KROKI_ALAN)} className="eyebrow u-line text-ash hover:text-ink">
-                        Kroki boyuna sıfırla
+                      <button type="button" onClick={() => setAltlikKutu(temelKutu)} className="eyebrow u-line text-ash hover:text-ink">
+                        {aktifAltlik.tur === "teknik" ? "Giysi alanına sıfırla" : "Kroki boyuna sıfırla"}
                       </button>
-                      <button type="button" onClick={() => setAltlik(null)} className="eyebrow u-line text-ash hover:text-ink">
+                      <button type="button" onClick={() => altligiSec(null)} className="eyebrow u-line text-ash hover:text-ink">
                         Altlığı kaldır
                       </button>
                     </div>
-                    {view === "detail" && (
-                      <p className="text-[11px] leading-4 text-fog">Altlık yalnız ön ve arka görünümde çiziliyor.</p>
-                    )}
                   </div>
                 ) : (
-                  <p className="mt-3 text-[11px] leading-4 text-fog">Altlık kapalı — bir kareye tıklayın.</p>
+                  <p className="mt-4 text-[11px] leading-4 text-fog">
+                    {gorunumAdi} görünümünde altlık kapalı — bir kareye tıklayın.
+                  </p>
                 )}
               </section>
             )}

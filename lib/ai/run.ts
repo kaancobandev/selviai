@@ -6,6 +6,7 @@ import { cozGirdiler, girdiYollari } from "./resolve";
 import { depoAcikMi, depola, dosyaYukle, girdileriSil, indir } from "./storage";
 import {
   CEKIM_EKSENLERI,
+  TEKNIK_EKSENLERI,
   ILHAM_EKSENLERI,
   KESIM_EKSENLERI,
   type Attempt,
@@ -15,6 +16,7 @@ import {
 } from "./types";
 import {
   buildCekimPrompt,
+  buildTeknikPrompt,
   buildIlhamPrompt,
   buildKesimPrompt,
   buildTuretilmisPrompt,
@@ -82,7 +84,8 @@ export async function runJob(id: string): Promise<void> {
     job.mod === "ilham" ||
     job.mod === "turetilmis" ||
     job.mod === "kesim" ||
-    job.mod === "cekim"
+    job.mod === "cekim" ||
+    job.mod === "teknik"
   ) {
     await ilhamKosusu(job);
     return;
@@ -392,6 +395,21 @@ async function ilhamKosusu(job: Job): Promise<void> {
       aspect: c.aspect,
       referans,
     }));
+  } else if (job.mod === "teknik") {
+    const tk = job.teknik;
+    if (!tk) return void (await basarisiz(id, "istek-yok", "İş kaydında teknik çizim isteği yok."));
+    /* Çekimden farkı: orada satır sayısını kullanıcı belirliyordu, burada
+       çıktı hep aynı ikili. Yuvalar bu yüzden istekten değil sabit
+       listeden geliyor ve sıra ön → arka. */
+    const dosya = await indir(tk.kaynakYol);
+    if (!dosya) {
+      return void (await basarisiz(id, "kaynak-okunamadi", "Giysi karesi okunamadı. Tekrar deneyin."));
+    }
+    const referans = { mimeType: dosya.mime, data: dosya.bayt.toString("base64") };
+    gorevler = [
+      { eksen: TEKNIK_EKSENLERI[0], prompt: buildTeknikPrompt("on", tk.metin), aspect: tk.aspect, referans },
+      { eksen: TEKNIK_EKSENLERI[1], prompt: buildTeknikPrompt("arka", tk.metin), aspect: tk.aspect, referans },
+    ];
   } else {
     const t = job.turetilmis;
     if (!t) return void (await basarisiz(id, "istek-yok", "İş kaydında türetme isteği yok."));
