@@ -27,6 +27,7 @@ import {
   zigzag,
   type Pt,
 } from "@/lib/geometry";
+import { giysiSiniriniOlc, type GiysiSiniri } from "@/lib/giysi-siniri";
 import { cn } from "@/lib/utils";
 import { TEKNIK_EKSENLERI, type Aspect, type TeknikEkseni } from "@/lib/ai/types";
 import type { StudyoTohum } from "@/lib/ai/tohum";
@@ -203,23 +204,111 @@ const ALTLIK_OPAKLIK = 0.45;
 const TEKNIK_ORAN: Aspect = "3:4";
 
 /**
- * Teknik çizimin varsayılan çerçevesi — KROKI_ALAN DEĞİL.
+ * Teknik çizimin YEDEK çerçevesi — ölçüm tutmadığında buraya oturuyor.
  *
- * Kroki alanı bütün figür: 180×668, yani ~1:3,7. 3:4'lük bir kareyi oraya
- * sığdırmak (`meet`) çizimi genişlikten oturtur ve 180×240'a düşürür —
- * çizim figürün ortasında ufacık kalır, üstünden çizilecek hâlde olmaz.
+ * TEK BAŞINA NEDEN YETMİYOR. Kare 3:4 geliyor ama giysinin o karenin
+ * içinde bıraktığı payı her koşuda model belirliyor; sabit bir kutu bu
+ * yüzden ancak yaklaşık tutuyordu — sahibinin bildirdiği hata buydu, omuz,
+ * etek ucu ve en mankene oturmuyordu. Asıl yol artık ÖLÇÜM: zemin saf
+ * beyaz olduğu için `giysiSiniriniOlc` beyaz olmayan pikselleri tarayıp
+ * giysinin sınırını buluyor, `zarfaOturt` onu aşağıdaki GIYSI_ZARFI'na
+ * oturtuyor. Burası ölçüm çöktüğünde (kare yüklenmedi, tuval okunamadı,
+ * sınır inandırıcı çıkmadı) kalan yedek: yanlış ama GÖRÜNEN bir altlık,
+ * hiç altlık olmamasından iyi — sürgüler zaten duruyor.
  *
- * Çerçeve bu yüzden GİYSİNİN oturduğu alandan türetildi. Ölçüler bu
- * dosyadaki örnek bluzdan: omuz y=106, etek ucu y=410, omuz ucu |x|=72
- * (croquis.tsx da aynısını söylüyor — omuz ucu 72/118, kalça çizgisi 400).
- * Giysi zarfı 144×304, merkezi (0, 258).
- *
- * Karedeki giysinin çerçeveyi payla doldurduğunu varsayıyoruz (~%85):
- * 304 / 0,85 ≈ 358 yükseklik, 3:4'te 268 genişlik. Kutu tam 3:4 olduğu
- * için `meet` ile `slice` çakışıyor — ne kırpma ne boşluk kalıyor.
- * Varsayım tutmazsa ölçek ve konum sürgüleri duruyor.
+ * Yedeğin ölçüsü şöyle çıkarılmıştı. Kroki alanı bütün figür: 180×668,
+ * yani ~1:3,7. 3:4'lük bir kareyi oraya sığdırmak (`meet`) çizimi
+ * genişlikten oturtur ve 180×240'a düşürür — çizim figürün ortasında
+ * ufacık kalır. Çerçeve bu yüzden GİYSİNİN alanından türetildi: bu
+ * dosyadaki örnek bluzdan omuz y=106, etek ucu y=410, omuz ucu |x|=72
+ * (croquis.tsx da aynısını söylüyor — omuz ucu 72/118, kalça çizgisi 400),
+ * giysi zarfı 144×304 ve merkezi (0, 258). Karedeki giysinin çerçeveyi
+ * ~%85 doldurduğu VARSAYILDI: 304 / 0,85 ≈ 358 yükseklik, 3:4'te 268
+ * genişlik. Kutu tam 3:4 olduğu için `meet` ile `slice` çakışıyor. Ölçüm
+ * tam da bu %85 varsayımını kaldırıyor.
  */
 const TEKNIK_ALAN: AltlikKutu = { x: -134, y: 79, w: 268, h: 358 };
+
+/* ------------------------------------------------------------------
+   GİYSİ ZARFI — teknik çizimin krokide oturması gereken alan.
+
+   Ölçüler components/croquis.tsx'in kendi geometrisinden okundu; o dosya
+   sabit bir vektör figür ve 4 birim = 1 cm:
+
+   · Omuz çizgisi boyun dibinden çıkıyor (`M ±13 100`), omuz ucuna kadar
+     hafifçe iniyor. Zarfın ÜST kenarı y=100. Yakaya pay bırakılmadı:
+     çizimin üst kenarı zaten yakanın tepesi ve onu omuz çizgisine
+     oturtmak, omuz dikişini bir yaka boyu aşağı kaydırmaktan iyi.
+   · Omuz ucu `±72 118` → zarfın eni 144 birim (36 cm).
+   · Kalça kılavuzu y=400 (croquis `guides`) ve gövde yanı orada en geniş
+     (`±58 400`). Ceket eteği kalçanın altına düşer: ALT kenar y=430, yani
+     kalça çizgisinden 30 birim (7,5 cm) aşağıda. Zarf boyu 330 birim.
+
+   Zarf x=0'a simetrik, çünkü kroki de öyle.
+   ------------------------------------------------------------------ */
+const GIYSI_ZARFI: AltlikKutu = { x: -72, y: 100, w: 144, h: 330 };
+
+/**
+ * Ölçülen altlığın en tavanı: omuz açıklığının 2,5 katı, yani 360 birim.
+ * Sayı ikinci bir yerden de doğrulanıyor — `fitView` ön/arka görünüm için
+ * tam 360 birimlik kadraj açıyor, yani tavan "kadrajı taşma" demek.
+ * Kolları çırpı gibi yatay çizilmiş bir kare boydan oturtulunca oraya
+ * varabiliyor; tavan onu içeride tutuyor.
+ */
+const EN_TAVANI = GIYSI_ZARFI.w * 2.5;
+
+/**
+ * Ölçülen giysi sınırını zarfa oturtur.
+ *
+ * Dönen kutu KARENİN TAMAMININ kutusu — SVG `image` bütün kareyi çiziyor,
+ * biz giysinin zarfa denk gelmesini istiyoruz. Kutu karenin kendi oranıyla
+ * kuruluyor, o yüzden `meet`, `slice` ve `none` çakışıyor: çizim hiçbir
+ * durumda esnemiyor, kırpılmıyor.
+ *
+ * BOYDAN OTURTULUYOR, sığdırarak değil. Çizimin dikey uzanımı giysinin
+ * kendisi: üstte yaka/omuz, altta etek ucu. Yatay uzanım ise kolların ne
+ * kadar yana açıldığına bağlı, o da modelin kararı. Boydan oturtunca omuz
+ * çizgisi ve etek ucu TAM yerine geliyor — bildirilen şikâyetin ikisi de —
+ * en ise çizimin kendi oranından çıkıyor. Sığdırılsaydı (`meet`) kolları
+ * açık bir çizim enden sıkışır, etek ucu göbekte kalırdı.
+ *
+ * TAVANA ÇARPARSA ölçek enden bağlanıyor ve kutu ÜST kenardan çakılıyor:
+ * omuz yine doğru yerde, etek ucu yukarıda kalıyor. Üst kenar iki durumda
+ * da sabit — omuz, yerine oturması en çok işe yarayan hat.
+ */
+function zarfaOturt(sinir: GiysiSiniri): AltlikKutu {
+  let kareBoy = GIYSI_ZARFI.h / sinir.h;
+  let kareEn = kareBoy * sinir.oran;
+  const giysiEn = sinir.w * kareEn;
+  if (giysiEn > EN_TAVANI) {
+    const kucult = EN_TAVANI / giysiEn;
+    kareBoy *= kucult;
+    kareEn *= kucult;
+  }
+  return {
+    x: -(sinir.w * kareEn) / 2 - sinir.x * kareEn,
+    y: GIYSI_ZARFI.y - sinir.y * kareBoy,
+    w: kareEn,
+    h: kareBoy,
+  };
+}
+
+const esitKutu = (a: AltlikKutu, b: AltlikKutu) =>
+  a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+
+/**
+ * Kutuya kullanıcı dokunmamış mı: ya yedek çerçevede duruyor ya da
+ * ÖLÇÜLMÜŞ bir çerçevede. Geç gelen bir ölçüm kutuyu ancak bu doğruysa
+ * yerine oturtuyor — sürgüyle kurulmuş bir ayar ölçüm yüzünden bozulmamalı.
+ *
+ * Ölçülmüşleri de saymak şart: ön görünümün ölçüsü oturduktan sonra arkaya
+ * geçilirse arkanınki de kendi çerçevesine oturabilsin. Aynı işten çıkan
+ * iki karenin payı birebir aynı değil ve kutu görünümler arasında ORTAK
+ * (bkz. TOHUM ALTLIĞI bloğu), yani en son ölçülen hangisiyse kutu onun.
+ */
+const dokunulmamisKutu = (k: AltlikKutu, olculenler: Map<string, AltlikKutu | null>) =>
+  esitKutu(k, TEKNIK_ALAN) ||
+  [...olculenler.values()].some((v) => v !== null && esitKutu(k, v));
 
 /** Hangi görünümün altlığı hangi yuvadan gelir. */
 const TEKNIK_YUVA: Record<AltlikGorunum, TeknikEkseni> = {
@@ -233,9 +322,17 @@ const TEKNIK_ETIKET: Record<AltlikGorunum, string> = {
   back: "Teknik arka",
 };
 
-/** Altlığın varsayılan çerçevesi; ölçek ve konum sürgüleri de buna göre okunuyor. */
-const varsayilanKutu = (altlik: Altlik | null): AltlikKutu =>
-  altlik?.tur === "teknik" ? TEKNIK_ALAN : KROKI_ALAN;
+/**
+ * Altlığın varsayılan çerçevesi; ölçek ve konum sürgüleri de buna göre
+ * okunuyor. Teknik çizimde ÖLÇÜLEN kutu varsa o kazanıyor: sürgülerin
+ * sıfır noktası ve panelin "sıfırla" düğmesi böylece kullanıcının gördüğü
+ * çerçeveyi gösteriyor, ölçümün çoktan geçtiği sabiti değil.
+ */
+const varsayilanKutu = (
+  altlik: Altlik | null,
+  olculenler: Record<string, AltlikKutu>,
+): AltlikKutu =>
+  altlik?.tur === "teknik" ? (olculenler[altlik.src] ?? TEKNIK_ALAN) : KROKI_ALAN;
 
 const YOKLAMA_MS = 2000;
 /** Bu süre sonunda yoklama bırakılır; sunucu kendi bekçisini işletiyor. */
@@ -368,10 +465,16 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      kutulara oturuyor ve ölçüler iki yerde yazılmamalı. Tek yuva dönmüş
      olsa bile kutu çizimin çerçevesine geçiyor — `teknikUygula` da öyle
      yapıyor, geri yüklenen çizim taze üretilenden ayırt edilmemeli.
-     Hiç çizim yoksa `null` gidiyor ve kutu KROKI_ALAN kalıyor. */
+     Hiç çizim yoksa `null` gidiyor ve kutu KROKI_ALAN kalıyor.
+     Açılışta ölçüm daha yapılmadığı için boş harita gidiyor: kutu
+     TEKNIK_ALAN'dan başlıyor, ölçüm gelince aşağıdaki etki oturtuyor. */
   const [altlikKutu, setAltlikKutu] = useState<AltlikKutu>(() =>
-    varsayilanKutu(kayitliTeknik.front ?? kayitliTeknik.back),
+    varsayilanKutu(kayitliTeknik.front ?? kayitliTeknik.back, {}),
   );
+  /* Ölçülmüş çerçeveler, kare ADRESİNE göre. Kare başına tutuluyor çünkü
+     her çizimin payı kendine: aynı işten çıkan ön ve arka bile birebir
+     aynı kadrajda değil. Bir kez ölçülen bir daha ölçülmüyor. */
+  const [olculenKutular, setOlculenKutular] = useState<Record<string, AltlikKutu>>({});
   /* Üretilen teknik çizimler altlıktan AYRI tutuluyor: kullanıcı altlığı
      fotoğrafa çevirdiğinde çizim şeritten düşmemeli, geri dönebilmeli.
      Kayıtlı çizimler de buraya giriyor — şeritte "Teknik ön/arka" diye
@@ -737,9 +840,11 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       front: on ? { src: on, tur: "teknik" } : a.front,
       back: arka ? { src: arka, tur: "teknik" } : a.back,
     }));
-    /* Kutu çizimin çerçevesine dönüyor: kullanıcının fotoğraf için
-       ayarladığı ölçek ve kaydırma başka bir kadraja göreydi, çizim ise
-       giysinin oturduğu alana gelmek üzere üretildi (bkz. TEKNIK_ALAN). */
+    /* Kutu çizimin YEDEK çerçevesine dönüyor: kullanıcının fotoğraf için
+       ayarladığı ölçek ve kaydırma başka bir kadraja göreydi. Taze gelen
+       kare henüz ölçülmedi — ölçüm aşağıdaki etkide, çizim ekrana çıktıktan
+       sonra yürüyüp kutuyu yerine oturtuyor. Geri yüklenen çizim de aynı
+       etkiden geçiyor; ikisi bu yüzden ayırt edilemiyor. */
     setAltlikKutu(TEKNIK_ALAN);
     setToast(
       on && arka
@@ -878,8 +983,56 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
        kroki'nin tamamı, teknik çizim çerçevesi giysinin alanı; ikisi aynı
        kutuya sığmıyor. Aynı tür içinde geçişte kullanıcının ayarı
        korunuyor: iki fotoğraf arasında gidip gelmek ayarı silmemeli. */
-    if (secim && secim.tur !== aktifAltlik?.tur) setAltlikKutu(varsayilanKutu(secim));
+    if (secim && secim.tur !== aktifAltlik?.tur) setAltlikKutu(varsayilanKutu(secim, olculenKutular));
   };
+
+  /* ---------- altlık ölçümü ---------- */
+  /* ÖLÇÜM EKRANI BEKLETMİYOR. Çizim geldiği anda TEKNIK_ALAN'a oturup
+     GÖRÜNÜYOR; ölçüm arkasından yürüyüp kutuyu yerine oturtuyor. Ters sıra
+     (önce ölç, sonra göster) ücretli bir çıktıyı bir indirme ve bir kare
+     taraması boyunca saklamak olurdu — hem taze üretimde hem sayfa
+     açılışında. Tarama zaten etkide, yani boyama bittikten sonra başlıyor
+     ve tuval işi ~0,25 megapiksele bağlanmış (bkz. TARAMA_KENARI).
+
+     Ölçüm başarısızsa hiçbir şey yapılmıyor: kutu yedek çerçevede kalıyor.
+
+     Sonuç kare adresine yazılıyor, kutuya değil; kutuyu ancak KULLANICI
+     DOKUNMAMIŞSA değiştiriyor. Dokunduysa ayarı ezilmiyor — panelin
+     "sıfırla" düğmesi artık ölçülen kutuya döndürdüğü için istediği an tek
+     tıkla alıyor.
+
+     Sonuçlar hem durumda hem REF'te: durum ekranı besliyor (sürgülerin
+     sıfır noktası, düğme adı), ref ise geç gelen bir ölçümün "kutuya
+     dokunuldu mu" testini — etkinin bağımlılığına girmeden, yani her yeni
+     ölçüm taramayı baştan kurdurmadan. */
+  const olculenlerRef = useRef<Map<string, AltlikKutu | null>>(new Map());
+  useEffect(() => {
+    /* YALNIZ TEKNİK ÇİZİM ölçülüyor. Fotoğraf altlıklarının (giysi
+       silueti, ilham kareleri) zemini beyaz değil; tarama onlarda karenin
+       tamamını döndürür, yani hiçbir şey söylemez. Davranışları aynı kaldı. */
+    if (aktifAltlik?.tur !== "teknik") return;
+    const src = aktifAltlik.src;
+    /* Bir kare bir kez deneniyor: `null` "denendi, ölçülemedi" demek ve
+       aynı kareye her dönüşte taramayı baştan başlatmayı engelliyor. */
+    if (olculenlerRef.current.has(src)) return;
+    olculenlerRef.current.set(src, null);
+
+    let iptal = false;
+    void (async () => {
+      const sinir = await giysiSiniriniOlc(src);
+      if (!sinir) return;
+      const kutu = zarfaOturt(sinir);
+      olculenlerRef.current.set(src, kutu);
+      setOlculenKutular((o) => ({ ...o, [src]: kutu }));
+      /* İptal, altlığın bu arada değişmesi demek: kutuyu artık başka bir
+         kare dolduruyor, ölçüm yalnız haritaya yazılıp bırakılıyor. */
+      if (iptal) return;
+      setAltlikKutu((k) => (dokunulmamisKutu(k, olculenlerRef.current) ? kutu : k));
+    })();
+    return () => {
+      iptal = true;
+    };
+  }, [aktifAltlik]);
 
   const teknikDugmesi = teknikCalisiyor
     ? teknikAdim?.startsWith("model-cagriliyor")
@@ -892,8 +1045,10 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
 
      Sıfır noktası AKTİF ALTLIĞIN çerçevesi: %100 ve 0 cm "geldiği gibi"
      demek. Ölçüyü hep kroki alanına bağlamak, teknik çizim seçiliyken
-     dokunulmamış bir kutuya "%149" dedirtirdi. */
-  const temelKutu = varsayilanKutu(aktifAltlik);
+     dokunulmamış bir kutuya "%149" dedirtirdi. Çizim ölçüldüyse sıfır
+     noktası ÖLÇÜLEN çerçeve oluyor — kullanıcının ekranda gördüğü kutuya
+     "%100" demeyen bir sürgü yalan söylerdi. */
+  const temelKutu = varsayilanKutu(aktifAltlik, olculenKutular);
   const altlikOlcek = Math.round((altlikKutu.w / temelKutu.w) * 100);
   const kutuMerkez = { x: altlikKutu.x + altlikKutu.w / 2, y: altlikKutu.y + altlikKutu.h / 2 };
   const temelMerkez = { x: temelKutu.x + temelKutu.w / 2, y: temelKutu.y + temelKutu.h / 2 };
@@ -979,7 +1134,13 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             yetiyor. Teknik çizim ise `meet` ile SIĞARAK yerleşiyor: kutu
             kroki gibi dar (180×668) ve çizim 3:4; `slice` olsaydı çizimin
             kolları kırpılırdı, yani üstünden çizilecek şeyin ta kendisi
-            kesilirdi. Fotoğrafta kırpma zararsız, çizimde değil. */}
+            kesilirdi. Fotoğrafta kırpma zararsız, çizimde değil.
+
+            Kutu ÖLÇÜLDÜYSE `meet` boşa çalışıyor ve kalması bilerek:
+            `zarfaOturt` kutuyu karenin kendi oranıyla kuruyor, sürgüler de
+            eni ile boyu birlikte ölçekliyor, yani meet ile slice çakışıyor.
+            Kalıyor çünkü ölçüm tutmadığında kutu 3:4'e zorlanmış yedek
+            çerçeveye düşüyor ve orada çizimi kırpılmaktan koruyan tek şey o. */}
         {view !== "detail" && aktifAltlik && (
           <image
             data-ui
@@ -1286,8 +1447,16 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                       onChange={(v) => altligiTasi("y", v)}
                     />
                     <div className="flex items-baseline justify-between gap-3">
+                      {/* Düğmenin adı hangi çerçeveye döneceğini söylüyor:
+                          ölçüm tuttuysa karenin KENDİ ölçüsüne, tutmadıysa
+                          giysi alanına — ikisi aynı şey değil ve "giysi
+                          alanı" demek ölçülmüş kutuyu gizlerdi. */}
                       <button type="button" onClick={() => setAltlikKutu(temelKutu)} className="eyebrow u-line text-ash hover:text-ink">
-                        {aktifAltlik.tur === "teknik" ? "Giysi alanına sıfırla" : "Kroki boyuna sıfırla"}
+                        {aktifAltlik.tur !== "teknik"
+                          ? "Kroki boyuna sıfırla"
+                          : olculenKutular[aktifAltlik.src]
+                            ? "Ölçülen çerçeveye sıfırla"
+                            : "Giysi alanına sıfırla"}
                       </button>
                       <button type="button" onClick={() => altligiSec(null)} className="eyebrow u-line text-ash hover:text-ink">
                         Altlığı kaldır

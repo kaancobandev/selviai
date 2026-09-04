@@ -451,9 +451,20 @@ export function buildCekimPrompt(crop: Crop, lighting: Lighting, istek: string):
    konuyordu ama o bir FOTOĞRAF — perspektifi, gölgesi, kırışığı var ve
    içinde beden var. Üstünden çizmek için kötü bir kılavuz.
 
-   İstenen şey endüstrinin flat'i: beyaz zeminde siyah çizgi, düz yatık,
-   simetrik, gölgesiz. Flat krokiyle doğal olarak hizalanıyor çünkü ikisi
+   İstenen şey endüstrinin flat'i: düz yatık, simetrik, gölgesiz, siyah
+   yapı çizgileriyle. Flat krokiyle doğal olarak hizalanıyor çünkü ikisi
    de önden ve simetrik.
+
+   RENK SONRADAN İSTENDİ. İlk sürüm saf çizgi resmiydi — "renk dolgusu
+   yok" açıkça yazılıydı — çünkü amaç üstünden çizilecek bir kılavuzdu.
+   Sahibi renkli olmasını istedi ve bu makul: endüstride RENKLİ FLAT
+   ayrı bir artefakt, line sheet'in kendisi. Çizgiler duruyor, altına
+   düz renk giriyor; yani hem kılavuz hem sunum işi görüyor.
+
+   ZEMİN BEYAZ KALMAK ZORUNDA ve bu artık yalnız estetik değil: arayüz
+   flat'i krokiye oturtmak için karedeki beyaz olmayan pikselleri tarayıp
+   giysinin sınırlarını buluyor (bkz. components/flat-sketch.tsx). Zemin
+   renklenirse o ölçüm çöker.
 
    REFERANS GİYSİ FOTOĞRAFI, İSTENEN ŞEY ONUN ÇİZİMİ. Yani bu bir
    "tasarla" işi değil, bir ÇEVİRİ işi: tasarım sabit, değişen yalnız
@@ -486,10 +497,16 @@ export function buildTeknikPrompt(gorunum: "on" | "arka", istek: string): string
     "  The garment is fixed. Same silhouette, same proportions, same length, same collar,",
     "  same closure, same pockets, same sleeve. Only the way it is DRAWN changes.",
     "",
-    "HOW A TECHNICAL FLAT LOOKS",
-    "  - Pure line drawing: solid black outlines on a plain pure white background.",
-    "  - NO colour fill, no grey shading, no gradient, no drop shadow, no fabric texture,",
-    "    no 3D rendering, no photographic element of any kind.",
+    "HOW A COLOURED TECHNICAL FLAT LOOKS",
+    "  - A line drawing WITH FLAT COLOUR: black construction lines drawn on top of even,",
+    "    solid colour fill. This is the industry's coloured flat, not a rendering.",
+    "  - The fill takes the garment's OWN colours from the reference. Every panel that is a",
+    "    different colour or a different material in the reference stays different here.",
+    "  - The colour is FLAT: one even tone per area. No shading, no gradient, no highlight,",
+    "    no drop shadow, no fabric photograph, no 3D rendering, no depth of any kind.",
+    "  - The black lines stay fully visible ON TOP of the colour — seams, topstitching and",
+    "    closures must read as clearly as they would on white.",
+    "  - The BACKGROUND stays pure white, edge to edge. Only the garment is coloured.",
     "  - The garment lies perfectly FLAT and SYMMETRIC, as if laid on a table, seen straight",
     "    on from directly above. Sleeves out to the sides, not folded.",
     "  - NOT on a body, NOT on a mannequin, NOT on a hanger, not worn. No human, no head,",
