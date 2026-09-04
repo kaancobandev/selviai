@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { ShootDesk } from "@/components/shoot-desk";
+import { CekimListesi } from "@/components/shoot-desk";
 import { tohumOku } from "@/lib/ai/tohum";
 
-/* Açıklama ekip / mekân / call sheet sayıyordu; üçü de kaldırıldı
-   (bkz. components/shoot-desk.tsx). Geriye çekimin yaratıcı kısmı kaldı. */
+/* Açıklama önce ekip / mekân / call sheet, sonra da ışık senaryosu ve
+   look–model eşleştirme sayıyordu; hiçbiri kalmadı. Araç artık tek bir
+   şey yapıyor (bkz. components/shoot-desk.tsx). */
 export const metadata: Metadata = {
-  title: "Shooting — Prodüksiyon masası",
-  description: "Işık senaryosu, tearsheet referansları, look–model eşleştirme ve prop listesi — tek ekranda çekim hazırlığı.",
+  title: "Shooting — Çekim listesi",
+  description: "Tasarladığınız giysiden çekilecek karelerin listesi: her satır bir kadraj, bir ışık senaryosu ve bir üretim.",
 };
 
 
 /* Tohum SUNUCUDA okunuyor: çalışma kaydı oturum çerezine bağlı.
-   Kayıt yoksa null döner ve araç eski varsayılanlarıyla açılır. */
+   Kayıt yoksa null döner; araç yine açılır ve önce tasarım gerektiğini
+   kendisi söyler. */
 export const dynamic = "force-dynamic";
 
 export default async function ShootingPage() {
   const tohum = await tohumOku();
-  return <ShootDesk tohum={tohum} />;
+  return <CekimListesi tohum={tohum} />;
 }

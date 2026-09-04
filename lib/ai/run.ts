@@ -5,6 +5,7 @@ import { getJob, patchJob } from "./jobs";
 import { cozGirdiler, girdiYollari } from "./resolve";
 import { depoAcikMi, depola, dosyaYukle, girdileriSil, indir } from "./storage";
 import {
+  CEKIM_EKSENLERI,
   ILHAM_EKSENLERI,
   KESIM_EKSENLERI,
   type Attempt,
@@ -12,7 +13,12 @@ import {
   type Job,
   type JobKare,
 } from "./types";
-import { buildIlhamPrompt, buildKesimPrompt, buildTuretilmisPrompt } from "./prompt";
+import {
+  buildCekimPrompt,
+  buildIlhamPrompt,
+  buildKesimPrompt,
+  buildTuretilmisPrompt,
+} from "./prompt";
 import { metinUret, MetinError } from "./metin";
 import { buildKulturPrompt } from "../kultur";
 
@@ -72,7 +78,12 @@ export async function runJob(id: string): Promise<void> {
      girdi çözme yok (görsel yok), kalite kapısı yok (karşılaştırılacak
      referans yok, hakemin rubriği "kare 4'ü kare 1-3'e karşı" puanlıyor)
      ve kazanan seçimi yok — dördü de kullanıcıya gidiyor. */
-  if (job.mod === "ilham" || job.mod === "turetilmis" || job.mod === "kesim") {
+  if (
+    job.mod === "ilham" ||
+    job.mod === "turetilmis" ||
+    job.mod === "kesim" ||
+    job.mod === "cekim"
+  ) {
     await ilhamKosusu(job);
     return;
   }
@@ -358,6 +369,29 @@ async function ilhamKosusu(job: Job): Promise<void> {
     if (!gorevler.length) {
       return void (await basarisiz(id, "kaynak-okunamadi", "Kesilecek kareler okunamadı."));
     }
+  } else if (job.mod === "cekim") {
+    const c = job.cekim;
+    if (!c?.kareler.length) {
+      return void (await basarisiz(id, "istek-yok", "İş kaydında çekilecek kare yok."));
+    }
+    /* Kesimden farkı: orada her parçanın kendi kaynağı vardı, burada TEK
+       referans — kullanıcının tasarladığı giysi — bütün satırlara gidiyor.
+       Değişen yalnız her satırın kadrajı ve ışığı, yani indirme döngünün
+       dışında, türetmedeki gibi. */
+    const dosya = await indir(c.kaynakYol);
+    if (!dosya) {
+      return void (await basarisiz(id, "kaynak-okunamadi", "Giysi karesi okunamadı. Tekrar deneyin."));
+    }
+    const referans = { mimeType: dosya.mime, data: dosya.bayt.toString("base64") };
+    gorevler = c.kareler.map((kare, i) => ({
+      /* Yuva adı İSTEK SIRASINDAN — kesimdeki gerekçenin aynısı: kuyruk
+         uzunluğuna bakılsaydı aradan düşen bir kare sonrakileri bir yuva
+         kaydırırdı ve istemci satırları yanlış kareyle eşleştirirdi. */
+      eksen: CEKIM_EKSENLERI[i],
+      prompt: buildCekimPrompt(kare.crop, kare.lighting, c.metin),
+      aspect: c.aspect,
+      referans,
+    }));
   } else {
     const t = job.turetilmis;
     if (!t) return void (await basarisiz(id, "istek-yok", "İş kaydında türetme isteği yok."));

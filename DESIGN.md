@@ -355,43 +355,55 @@ başlığı + kontroller (4/12), sağda "eser gibi" önizleme (8/12). Zemin bemb
   Şartnameye eklenen türler toplamı oluşturur; "Şartnameyi dışa aktar" prototip toast.
 - **Sahne** yüksekliği türe göre (7 / 14 / 12 cm), etiket sol üst köşede (cetvel boyutu okur).
 
-### H) Shooting — prodüksiyon masası `/hizmetler/shooting`
+### H) Shooting — çekim listesi `/hizmetler/shooting`
 
-**EKİP, LOKASYON VE CALL SHEET KALDIRILDI.** Gerekçe ürünün kendisi: Selvi tam da o insanlara
-ve o efora ihtiyaç kalmasın diye var; kendi ekranımızda rol listesi, mekân adayları ve gün
-planı tutmak bunun tersini söylüyordu. Gün ışığı şeridi de aynı turda gitti — içeriği (doğuş,
-batış, altın saat) saf lokasyon lojistiğiydi ve look tikleri call sheet dilimlerinden geliyordu,
-bırakılsaydı sessizce boşalırdı.
+**PRODÜKSİYON MASASI TAMAMEN KALKTI.** Ekip, lokasyon, call sheet, gün ışığı şeridi ve prop
+listesi bir önceki turda silinmişti; gerekçe ürünün kendisiydi: Selvi tam da o insanlara ve o
+efora ihtiyaç kalmasın diye var. Bu turda geriye kalan da gitti — mood seçici + tearsheet
+ızgarası + look–model tahtası birlikte bir iş yapmıyordu: ilk ikisi `moodboard-studio.tsx` ile
+belirgin biçimde örtüşüyordu, üçüncüsü ise akışın artık üretmediği bir şeyi (look listesi)
+örnek verilerle taklit ediyordu.
 
-Ayakta kalan araştırma izleri: **pull sheet / ödünç numune takibi** (Glam Observer), sahneye
-**model atama** ve bileşen bazlı mood board (Milanote, Format).
+Yerine konan şey aracı ürünün kendi önermesine bağlıyor: **çekim organize edilmiyor,
+üretiliyor.** Her satır, kullanıcının tasarladığı giysiden ÜRETİLECEK bir kare.
 
 ```
-│ SHOOTING · PRODÜKSİYON MASASI                            4/8 look atandı · 3 açık iş        │
-│ SS26 Kampanya — çekim günü        ← tohum varsa başlık kullanıcının kendi brief'i           │
-│ ── Sanat yönetimi ve ışık ──────────────────────────────── 5600 K · 09:00 – 15:30 ───────── │
-│ Gündüz · Altın saat · Gece · Stüdyo        seçilen mood'un notu (serif, tek cümle)          │
-│ Tearsheet · referanslar   ▣ ▣ ▣ ▣ + "Referans ekle"   tohum kareleri listenin başında       │
-│ ── Stilist çalışma alanı ──────────────────────── 4/8 look atandı · 3 açık iş ───────────── │
-│ [Atanmamış] [Model I] [Model II]           sürükle-bırak look kartları (sıra = çekim sırası)│
-│ Aksesuar ve prop listesi ☑ ☐ + Ödünç·İade  ödünç parçalarda kaynak ve iade tarihi           │
+│ SHOOTING · ÇEKİM LİSTESİ                                                      3/6 çekim     │
+│ <brief> — çekim listesi            ← tohum yoksa "SS26 Kampanya"                            │
+│ ── Kaynak kare ─────────────────────────────────────────────────────── Siluet ───────────── │
+│ ▣ Doğa ▣ Sanat ▣ Doku ▣ Mekân ▣ Moodboard ▣ Kumaş ▣ Marka ▣ Siluet·giysi   ← tek seçim      │
+│ Kare oranı [4:5 ▾]     Not [bütün satırlara ekleniyor…]                                     │
+│ ── Çekimler ──────────────────────────────────────────────────── 3/6 satır ──────────────── │
+│ 01 ▣  Kadraj [Tam boy  ▾]  Işık [Kaynağın ışığı ▾]  Değişmez              ↑ ↓ ×             │
+│ 02 ▣  Kadraj [Yarım boy▾]  Işık [Stüdyo        ▾]  5600 K                 ↑ ↓ ×             │
+│ 03 ▣  Kadraj [Detay    ▾]  Işık [Altın saat    ▾]  3400 K                 ↑ ↓ ×             │
+│ + Çekim ekle                                                                                │
+│ [3 KARE ÜRET]   Her satır bir üretim demek.        ← sol sütun: dönen karenin küçük hâli    │
 ```
 
-- **Pastel ton yalnızca burada, ve tek**: ödünç rozeti (kum). Onaylandı (adaçayı), call sheet
-  gönderildi (sis) ve model atanmadı (gül) tonları ait oldukları bölümlerle birlikte silindi.
-- **Işık**: mood seçimi K° ve pencere bilgisini değiştirir, notu serif tek cümle olarak yazar.
-- **Tearsheet**: 4 sütunlu referans ızgarası + "Referans ekle" (yerel dosya, blob URL).
-  Tohum varsa dört ilham karesi ve moodboard listenin başına giriyor; etiket **karenin
-  kendisinden** okunuyor (`tohum.kareler[].etiket`), sıradan değil — eksen adları
-  doğa/sanat/doku/mekân, tearsheet başlıklarına ışık/poz/gardırop/mekân diye eşleniyor.
-- **Look–model**: HTML5 sürükle-bırak + klavye/touch için "sonraki sütuna taşı" düğmesi.
-  Sütunlar artık kişi adı taşımıyor: "Atanmamış · Model I · Model II".
-- **Prop listesi**: üstü çizilebilir checklist, ödünç parçalarda kaynak ve iade tarihi, yeni
-  satır ekleme. **Aynı lojistik önermesinden geliyor** (steamer, dikiş kiti, "ödünç · iade
-  17 Eyl") ama silinmedi; kalıp kalmayacağı sahibinin kararı.
-- **Kalanın dürüst tarifi**: bu haliyle araç bir mood seçici + referans ızgarası, üstüne
-  look–model eşleştirme ve prop listesi. İlk ikisi `components/moodboard-studio.tsx` ile
-  belirgin biçimde örtüşüyor. Yerine yeni bir özellik konmadı — istenmedi.
+- **Tek uç, tek iş**: `POST /api/cekim` → `/api/jobs/:id` yoklaması (kolaj kesimiyle aynı
+  döngü: iptal bayrağı, 4 dk tavan). Listenin tamamı tek işte üretiliyor; oturumda tek iş
+  kilidi var, satır başına iş açmak ikinciden sonrasını 429'a düşürürdü.
+- **Kaynak kare listeye ait, satıra değil**: uç tek referans alıyor (`kaynak: {isId, sira}`),
+  istemci depo yolu göndermiyor — sahipliği sunucu doğruluyor (kesim ucundaki aynı desen).
+  Varsayılan **siluet**: türetilen dört çıktı içinde giysiyi gösteren tek kare.
+- **Yükleme yok**: `/api/compose` üç görsel şart koşuyor ve tohumda kişi fotoğrafı yok; satır
+  başına dosya istemek zaten kaldırılmak istenen eforun ta kendisi. Türetme ve kesimdeki
+  yerleşik desen kullanılıyor: tek referans + metin.
+- **Sözlük motorun sözlüğü** (`lib/shoot.ts`): kadrajlar `CROPS`, ışıklar `LIGHTINGS`; ikinci
+  bir kimlik seti tutulmuyor. Eski mood'lardan stüdyo / altın saat / gece metinleri ve
+  kelvinleri korundu; "Gündüz · Doğal ışık" `LIGHTINGS` içinde karşılıksız kaldığı için
+  `sahne` kendi metnini aldı ("kaynağın ışığı korunur"). Saat aralığı (`window`) silindi:
+  lokasyonda çekim yapan bir ekibin bilgisiydi.
+- **Sonuç satıra `eksen` ADIYLA düşüyor** ("cekim-3" → 3. satır), dizi sırasıyla değil: bir
+  kare üretilemezse sonrakiler bir satır kaymasın. `url ?? dataUrl` okunuyor — depoya
+  yüklenemeyen kare de üretilmiş ve parası ödenmiştir (bu yedeği okumamak kolajda gerçek bir
+  hataydı). Gelmeyen satır "Gelmedi" yazıyor, sessizce boş kalmıyor.
+- **Maliyet dürüst**: düğme kaç kare üretileceğini yazıyor ("3 kare üret"), tavan altı satır
+  (`CEKIM_EKSENLERI`). Açılış listesi üç satır — boş liste "ne yapacağım?" doğuruyor, altı
+  satır ise sormadan altı üretim demek olurdu.
+- **Tohumsuz açılış**: araç yine render ediliyor, önce bir tasarım gerektiğini kendisi söylüyor
+  ve ana sayfaya yolluyor; liste şimdiden kurulabiliyor, yalnız üretim düğmesi kapalı.
 
 ### I) Teknik Çizim — dijital kalıp ve çizim tuvali `/hizmetler/teknik-cizim`
 
@@ -451,7 +463,7 @@ components/
   label-studio.tsx    etiket tezgâhı: sekmeler, 1:1 sahne, şartname paneli, set özeti
   label-previews.tsx  dokuma / asma / bakım etiketi önizlemeleri (mm tabanlı)
   care-symbols.tsx    bakım sembolleri (1px SVG)
-  shoot-desk.tsx      prodüksiyon masası: mood/ışık, tearsheet, look–model DnD, prop listesi
+  shoot-desk.tsx      çekim listesi: kaynak kare, satır başına kadraj/ışık, tek işte üretim
   flat-sketch.tsx     teknik çizim tezgâhı: SVG tuval, araçlar, dikiş tipleri, kumaş dolgusu, katmanlar, görünümler
   croquis.tsx         9 baş oranlı ince çizgi manken silueti (ön/arka)
   ui/ruler.tsx        santimetre cetveli (Kumaş ve Etiket sayfalarında ortak)
@@ -467,7 +479,7 @@ lib/
   brand.ts            yazı tipi seçenekleri, renk presetleri, hex/parlaklık yardımcıları
   brand-fonts.ts      branding sayfasına özel ek Google fontları (Cormorant, Cinzel, Karla, Hanken)
   labels.ts           etiket türleri, seçenekler, varsayılanlar, tahmini fiyat
-  shoot.ts            çekim verisi: ekip adayları, mood'lar, tearsheet, look'lar, prop'lar, program
+  shoot.ts            çekim listesi verisi: kadraj/ışık metinleri, satır varsayılanları, kaynak kare
   geometry.ts         2B geometri: Catmull-Rom, örnekleme, zigzag/sürfile, nokta-çokgen, çokgen bölme
   utils.ts            cn(), formatTRY()
 ```

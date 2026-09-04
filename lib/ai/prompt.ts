@@ -360,6 +360,89 @@ export function buildKesimPrompt(istek: string): string {
   ].join("\n");
 }
 
+/* ------------------------------------------------------------------
+   ÇEKİM LİSTESİ
+
+   Ekli referans, kullanıcının TASARLADIĞI giysi: siluet karesi — düz
+   zeminde, önden, tek parça (bkz. buildTuretilmisPrompt/"siluet").
+   Buradaki görev onu YENİDEN TASARLAMAK değil, FOTOĞRAFLAMAK: bir
+   manken üzerinde, gerçek bir mekânda, istenen kadraj ve ışıkla.
+
+   Sadakat bu istemin tek en önemli kısıtı. Öteki türetilmiş çıktılarda
+   model referansı "açmakta" serbest; burada değil — kare kullanıcının
+   kendi tasarımının kampanya fotoğrafı, giysi değişirse çıktı yanlış.
+
+   KADRAJ VE IŞIK HARİTALARI YENİDEN YAZILMADI. Dosyanın başındaki
+   CROP_TEXT ve LIGHTING_TEXT tam bu kelime dağarcığı için yazılmıştı;
+   kırpma metni ölçümle sertleştirilmiş (bkz. oradaki yorum) ve ikinci
+   bir kopya ilk sapmada sessizce ayrışırdı. Tek fark: o metinler
+   "the product" diyor, burada ürün giysinin kendisi — istem bunu bir
+   satırda açıkça bağlıyor.
+   ------------------------------------------------------------------ */
+
+/**
+ * "sahne" ışığı BU ARAÇTA YOK.
+ *
+ * Değeri "IMAGE 3'ün ışığını birebir devral" demek ve burada üçüncü
+ * görsel yok: elimizdeki tek referans, giysinin DÜZ ZEMİNDEKİ yassı
+ * ışıkla çekilmiş karesi. Onu devralmak, editoryal kare isterken
+ * ürün fotoğrafının ışığını kopyalamak olurdu — yani seçeneğin
+ * vaadinin tam tersi.
+ *
+ * ARAYÜZ BU DEĞERİ SUNMAMALI: çekim masası yalnız stüdyo / altın /
+ * gece göstermeli (components/shoot-desk.tsx — o dosya bu ajanın
+ * kapsamı dışında, karar buraya yazılıyor). Uç yine de LIGHTINGS'e
+ * göre doğruladığı için "sahne" teknik olarak geçebilir; o zaman
+ * ücretli bir üretimi reddetmek yerine aşağıdaki gün ışığına düşüyor.
+ */
+const CEKIM_ISIK_YEDEK =
+  "Light it as honest natural daylight in the chosen setting: soft directional " +
+  "daylight, neutral colour temperature, gentle shadows with visible direction.";
+
+export function buildCekimPrompt(crop: Crop, lighting: Lighting, istek: string): string {
+  const brief = istek.trim().slice(0, 400);
+  const isik = lighting === "sahne" ? CEKIM_ISIK_YEDEK : LIGHTING_TEXT[lighting];
+
+  return [
+    "The attached image is a GARMENT the designer created, photographed alone on a",
+    "plain background. Your job is to shoot THAT EXACT GARMENT as a single editorial",
+    "fashion photograph: worn by a model, in a real setting, as a campaign frame.",
+    "",
+    "THE DIRECTION IT BELONGS TO",
+    `  ${brief}`,
+    "",
+    "GARMENT FIDELITY — THIS IS THE MOST IMPORTANT RULE",
+    "  The garment in the attached image is the design itself. Reproduce it exactly:",
+    "  same cut and silhouette, same colour, same fabric and surface, same seam lines,",
+    "  closures, collar, sleeve and hem, same proportions, same details and trim.",
+    "  Do not redesign, restyle, simplify, embellish or 'improve' it. Do not change",
+    "  its length, its neckline or its colour. It should be recognisable as the same",
+    "  piece, now worn instead of laid flat.",
+    "",
+    "THE SHOT",
+    "  One model wearing the garment, in a real location or set that suits the",
+    "  direction above. Natural pose, alive rather than posed like a mannequin.",
+    `  Framing: ${CROP_TEXT[crop]}. Here 'the product' means the garment itself.`,
+    `  Lighting: ${isik}`,
+    "",
+    "HARD CONSTRAINTS",
+    "  - Exactly two hands with five fingers each; two arms, two legs; no duplicated,",
+    "    missing or deformed limbs; correct joint anatomy.",
+    "  - Add no second garment that competes with it and no loud accessories; anything",
+    "    else in frame stays quiet and plausible.",
+    "  - No text, captions, labels, logos, watermarks, borders or frames anywhere.",
+    "  - No real brand marks and no imitation of an existing house's identity.",
+    "  - One single frame. No collage, no grid, no split panels, no second view,",
+    "    no before/after.",
+    "  - Respect the requested framing exactly. It outranks the instinct to show the",
+    "    whole look: if a close-up is asked for, deliver a close-up.",
+    "",
+    "OUTPUT",
+    "  One photorealistic editorial fashion photograph. Neutral colour grade,",
+    "  believable depth of field, the garment reading clearly at the requested framing.",
+  ].join("\n");
+}
+
 /**
  * Onarım geçişi: kabul edilmeyen karede sıfırdan üretmek yerine tek bir
  * düzeltme istemek hem ucuz hem daha isabetli. (Faz 3'te devreye girecek.)

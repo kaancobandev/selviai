@@ -124,11 +124,39 @@ export const KESIM_EKSENLERI = ["kesim-1", "kesim-2", "kesim-3", "kesim-4"] as c
 export type KesimEkseni = (typeof KESIM_EKSENLERI)[number];
 
 /**
+ * ÇEKİM KARELERİ — tasarlanan giysinin çekim listesi.
+ *
+ * Shooting masası eskiden ekip kartı, mekân, call sheet ve prop listesi
+ * tutuyordu; hepsi silindi çünkü ürün tam da o insanlara ve o efora
+ * gerek kalmasın diye var (bkz. lib/shoot.ts). Geriye kalan listenin
+ * her satırı artık üretilecek TEK bir kare: bir kadraj + bir ışık
+ * senaryosu. Çekim organize edilmiyor, ÜRETİLİYOR.
+ *
+ * SABİT YUVA ADLARI, KESİMDEKİ GEREKÇENİN AYNISI: kareler kovaya
+ * `<isId>/<eksen>.<uzanti>` yoluna yazılıyor ve aynı eksen adını taşıyan
+ * iki kare BİRBİRİNİN ÜSTÜNE yazardı. Yuvalar ayrı adlar veriyor.
+ *
+ * ALTI YUVA, DÖRT DEĞİL: çekim listesi kesim listesinden doğal olarak
+ * uzun — aynı giysinin portresi, tam boyu ve detayı, üstüne farklı ışık
+ * senaryoları ayrı satırlar demek. Yine de sert bir tavan şart: her
+ * satır ayrı bir ücretli üretim ve kota satır başına düşülüyor.
+ */
+export const CEKIM_EKSENLERI = [
+  "cekim-1",
+  "cekim-2",
+  "cekim-3",
+  "cekim-4",
+  "cekim-5",
+  "cekim-6",
+] as const;
+export type CekimEkseni = (typeof CEKIM_EKSENLERI)[number];
+
+/**
  * İş modu. Eskiden tek mod vardı ve kayıtta hiç yazmıyordu; alan
  * İSTEĞE BAĞLI çünkü yayındaki eski iş kayıtlarında yok — okunurken
  * boşsa "kompozisyon" sayılıyor.
  */
-export type IsModu = "kompozisyon" | "ilham" | "turetilmis" | "kultur" | "kesim";
+export type IsModu = "kompozisyon" | "ilham" | "turetilmis" | "kultur" | "kesim" | "cekim";
 
 /** Metinden dört kare üretimi — girdi görseli yok. */
 export type IlhamInput = {
@@ -175,6 +203,36 @@ export type KesimInput = {
   aspect: Aspect;
 };
 
+/** Çekim listesinin tek satırı: kadraj + ışık senaryosu. */
+export type CekimKare = { crop: Crop; lighting: Lighting };
+
+/**
+ * Çekim listesi — TEK REFERANS, ÇOK KARE.
+ *
+ * Referans, kullanıcının tasarladığı giysinin karesi (siluet): düz
+ * zeminde, önden, tek parça. Her satır o giysiyi kendi kadrajı ve ışık
+ * senaryosuyla gerçek bir sahneye taşıyor; giysi sabit kalıyor, değişen
+ * yalnız çekimin kendisi.
+ *
+ * `/api/compose` KASTEN KULLANILMIYOR. O uç ÜÇ YÜKLENMİŞ görsel istiyor
+ * (kişi, ürün, sahne) ve biri eksikse 400 dönüyor. Tohumda kişi
+ * fotoğrafı yok; kare başına yükleme istemek de ürünün ortadan
+ * kaldırmak için var olduğu eforun ta kendisi olurdu. Bu yüzden türetme
+ * ve kesimde oturmuş TEK REFERANS kalıbı: kovadaki kare + istem, sıfır
+ * yükleme.
+ *
+ * `aspect` KARE BAŞINA DEĞİL İŞ BAŞINA — türetmedeki gerekçenin aynısı:
+ * oranı satıra bağlamak bu tipi, uç doğrulamasını ve masadaki listeyi
+ * birlikte değiştirmek demekti.
+ */
+export type CekimInput = {
+  /** Giysi karesinin kovadaki yolu; istemci değil sunucu çözüyor. */
+  kaynakYol: string;
+  metin: string;
+  aspect: Aspect;
+  kareler: CekimKare[];
+};
+
 /**
  * Kültür analizi — depodaki tek METİN üreten iş.
  *
@@ -202,7 +260,7 @@ export type Analiz = {
  */
 export type JobKare = {
   /** Hangi eksenden/türden geldiği — arayüz bunu etiket olarak gösteriyor. */
-  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni;
+  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni | CekimEkseni;
   /** Kovadaki yol. Depo kapalıysa boş kalır ve dataUrl dolar. */
   imagePath?: string;
   dataUrl?: string;
@@ -277,6 +335,7 @@ export type Job = {
   turetilmis?: TuretilmisInput;
   kultur?: KulturInput;
   kesim?: KesimInput;
+  cekim?: CekimInput;
   /** Çok çıktılı işlerde kareler; kompozisyonda boş kalır. */
   kareler?: JobKare[];
   /** Yalnız kültür işlerinde dolar. */
@@ -314,7 +373,7 @@ export type JobMeta = {
  */
 /** İstemciye dönen tek kare — kovadaki yol DEĞİL, kendi ucumuz. */
 export type JobKareView = {
-  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni;
+  eksen: IlhamEkseni | TuretilmisTur | KesimEkseni | CekimEkseni;
   /** `/api/kare/<isId>/<sira>` — kova özel, yol dışarı verilmiyor. */
   url?: string;
   dataUrl?: string;
@@ -322,7 +381,15 @@ export type JobKareView = {
 
 export type JobView = Omit<
   Job,
-  "request" | "imagePath" | "meta" | "kareler" | "ilham" | "turetilmis" | "kultur" | "kesim"
+  | "request"
+  | "imagePath"
+  | "meta"
+  | "kareler"
+  | "ilham"
+  | "turetilmis"
+  | "kultur"
+  | "kesim"
+  | "cekim"
 > & {
   resultUrl?: string;
   kareler?: JobKareView[];
@@ -356,7 +423,12 @@ export function toJobView(job: Job): JobView {
       url: k.imagePath ? `/api/kare/${job.id}/${i}` : undefined,
       dataUrl: k.dataUrl,
     })),
-    istek: job.ilham?.metin ?? job.turetilmis?.metin ?? job.kesim?.metin ?? job.kultur?.brief,
+    istek:
+      job.ilham?.metin ??
+      job.turetilmis?.metin ??
+      job.kesim?.metin ??
+      job.cekim?.metin ??
+      job.kultur?.brief,
     analiz: job.analiz,
     meta: job.meta && {
       model: job.meta.model,
