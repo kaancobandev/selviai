@@ -74,8 +74,17 @@ export type ComposeInput = ComposeParams & {
    çıkardı. types dosyası yaprak kalmalı.
    ------------------------------------------------------------------ */
 
-/** Dört ilham karesinin her biri farklı bir eksenden yaklaşıyor. */
-export const ILHAM_EKSENLERI = ["siluet", "malzeme", "renk", "baglam"] as const;
+/**
+ * Dört ilham karesinin her biri farklı bir KAYNAK türünden geliyor.
+ *
+ * ESKİDEN GİYSİ ÜRETİYORDU VE YANLIŞTI: eksenler siluet/malzeme/renk/
+ * bağlam idi, yani dördü de tasarımın KENDİSİNİ dört ayrı kapıdan
+ * çiziyordu. Oysa "ilham" tasarım değil, tasarımın NEYDEN doğduğu —
+ * bir maymun, bir papatya, bir tablo. Kullanıcı dört giysi taslağı
+ * arasından seçmek istemiyor; hangi kaynaktan yola çıkacağını seçmek
+ * istiyor. Eksenler bu yüzden doğa / sanat / doku / mekân oldu.
+ */
+export const ILHAM_EKSENLERI = ["doga", "sanat", "doku", "mekan"] as const;
 export type IlhamEkseni = (typeof ILHAM_EKSENLERI)[number];
 
 /** Bugün yalnız "moda"; otomotiv ve yat sonra eklenecek. */

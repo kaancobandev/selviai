@@ -100,30 +100,45 @@ export function buildPrompt(req: ComposeRequest): string {
    moduna UYARLANAMAZ; o yüzden ayrı bir kurgu. Buradaki asıl tasarım
    sorunu "bir görsel üretmek" değil, DÖRT FARKLI görsel üretmek.
 
+   ÇIKTI TASARIM DEĞİL, İLHAM KAYNAĞI. İlk sürümde eksenler siluet /
+   malzeme / renk / bağlam idi ve dördü de GİYSİ çiziyordu — yani
+   kullanıcıya dört ayrı tasarım taslağı sunuluyordu. Yanlıştı: "ilham"
+   tasarımın kendisi değil, tasarımın NEYDEN doğduğu. Bir maymun, bir
+   papatya, bir tablo. Tasarımcı önce kaynağı seçer, giysi ondan sonra
+   gelir; zaten türetilmiş çıktılar (moodboard, kumaş, marka) seçilen
+   kaynaktan üretiliyor.
+
    Aynı prompt'u dört kez çağırmak dört benzer kare veriyor: model aynı
-   isteğe aynı yerden yaklaşıyor. Bu yüzden her varyanta AYRI BİR EKSEN
-   veriliyor — siluet, malzeme, renk, bağlam. Dördü de aynı fikri
-   anlatıyor ama farklı bir kapıdan giriyor, yani kullanıcının seçimi
-   gerçek bir seçim oluyor.
+   isteğe aynı yerden yaklaşıyor. Bu yüzden her varyanta AYRI BİR KAYNAK
+   TÜRÜ veriliyor — doğa, sanat, doku, mekân. Dördü de aynı isteğin
+   duygusunu taşıyor ama bambaşka yerlerden geliyor, yani kullanıcının
+   seçimi gerçek bir seçim oluyor.
    ================================================================== */
 
 const EKSEN_TEXT: Record<IlhamEkseni, string> = {
-  siluet:
-    "Lead with SILHOUETTE and proportion. Let the cut, volume and line of the " +
-    "garment carry the idea; keep colour and surface quiet so the shape reads first.",
-  malzeme:
-    "Lead with MATERIAL. Make fabric behaviour the subject: weave, drape, weight, " +
-    "sheen, transparency and how light sits in the surface. Frame close enough that texture is legible.",
-  renk:
-    "Lead with COLOUR. Build the frame around a decisive palette relationship; " +
-    "let hue and tonal contrast do the work, with a simple silhouette.",
-  baglam:
-    "Lead with CONTEXT and styling. Place the idea in a setting that explains who " +
-    "wears it and where; environment, layering and attitude carry the concept.",
+  doga:
+    "Draw from NATURE. A single living or natural subject that carries the brief's " +
+    "feeling: an animal, a plant, a mineral, a landscape, weather, water, light through " +
+    "leaves. Photographic, close and specific — one creature or one form, not a scene full " +
+    "of things.",
+  sanat:
+    "Draw from ART. An original artwork in the spirit of a painting, print or sculpture " +
+    "whose mood matches the brief — brush, ink, pigment, canvas grain, chisel marks. " +
+    "Evoke a movement or a technique; do NOT reproduce or closely imitate any specific " +
+    "existing artwork or any living artist's signature style. This one is a made image, " +
+    "not a photograph.",
+  doku:
+    "Draw from MATTER. A macro study of a surface that holds the brief's feeling: stone, " +
+    "rust, bark, cracked glaze, woven fibre, wet asphalt, oxidised metal, paper. Fill the " +
+    "frame with the surface so structure and patina are legible. No object, no scene.",
+  mekan:
+    "Draw from PLACE. An architectural or man-made subject that sets the brief's mood: a " +
+    "doorway, a stair, an interior corner, a street surface, a piece of hardware or a tool. " +
+    "Light and material tell the story. No people.",
 };
 
 const KATEGORI_TEXT: Record<IlhamKategori, string> = {
-  moda: "a fashion design concept — garments, textiles and styling",
+  moda: "will later become a fashion design — garments, textiles and styling",
 };
 
 export function buildIlhamPrompt(
@@ -132,23 +147,34 @@ export function buildIlhamPrompt(
   eksen: IlhamEkseni,
 ): string {
   return [
-    `You are producing ONE reference image that explores ${KATEGORI_TEXT[kategori]}.`,
+    "You are producing ONE INSPIRATION IMAGE: the thing a designer would pin to a wall",
+    `BEFORE designing. The work that ${KATEGORI_TEXT[kategori]} comes later, from this.`,
     "",
-    "THE BRIEF",
+    "WHAT THE DESIGNER ASKED FOR",
     `  ${istek.trim().slice(0, 600)}`,
     "",
-    "HOW TO APPROACH IT",
+    "READ THE REQUEST FOR ITS FEELING, NOT ITS OBJECTS.",
+    "  Take its mood, palette, weather, material and story — then find a SUBJECT FROM THE",
+    "  WORLD that carries that same feeling. If the request describes a navy jacket in the",
+    "  rain, the inspiration might be a crow's wet wing, a storm over slate, an ink wash,",
+    "  or rain on cobblestone — never the jacket itself.",
+    "",
+    "WHERE TO LOOK",
     `  ${EKSEN_TEXT[eksen]}`,
     "",
     "HARD CONSTRAINTS",
+    "  - DO NOT show clothing, garments, outfits, fashion models or styled people.",
+    "    This is the single most important rule: the image is the SOURCE, not the design.",
+    "  - No people at all unless the chosen subject genuinely is a person's hand or form,",
+    "    and even then never as a fashion or clothing shot.",
     "  - One single frame. No collage, no grid, no split panels, no before/after.",
     "  - No text, captions, labels, logos, watermarks or borders anywhere in the image.",
-    "  - If a person appears: correct anatomy, exactly two hands with five fingers each.",
-    "  - Do not imitate a living designer's signature look or a real brand's identity.",
+    "  - Do not reproduce a specific existing artwork, a real brand's identity, or a",
+    "    living artist's or designer's signature look.",
     "",
     "OUTPUT",
-    "  One photorealistic image with the quality of an editorial reference shot.",
-    "  Neutral colour grade. Nothing illustrative or rendered-looking.",
+    "  One rich, specific image with the quality of a reference plate: strong subject,",
+    "  honest light, a palette a designer could lift straight into a collection.",
   ].join("\n");
 }
 
@@ -170,13 +196,15 @@ export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string
     "",
     "HARD CONSTRAINTS",
     "  - Stay faithful to the reference image's palette, mood and material language.",
-    "  - Do not introduce a different garment, a different season or a different attitude.",
+    "  - Do not drift to a different palette, season or attitude.",
     "  - No real brand marks, no imitation of an existing house's identity.",
   ];
 
   if (tur === "moodboard") {
     return [
-      "The attached image is an approved design direction.",
+      "The attached image is the INSPIRATION the designer chose — a source from the",
+      "world (nature, art, a surface, a place), not a garment. Translate its palette,",
+      "texture and mood into fashion work.",
       "Produce a MOODBOARD that expands it into a working reference sheet.",
       "",
       "THE BRIEF BEHIND IT",
@@ -196,7 +224,9 @@ export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string
 
   if (tur === "kumas") {
     return [
-      "The attached image is an approved design direction.",
+      "The attached image is the INSPIRATION the designer chose — a source from the",
+      "world (nature, art, a surface, a place), not a garment. Translate its palette,",
+      "texture and mood into fashion work.",
       "Produce a FABRIC STUDY for it.",
       "",
       "THE BRIEF BEHIND IT",
@@ -216,7 +246,9 @@ export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string
   }
 
   return [
-    "The attached image is an approved design direction.",
+    "The attached image is the INSPIRATION the designer chose — a source from the",
+      "world (nature, art, a surface, a place), not a garment. Translate its palette,",
+      "texture and mood into fashion work.",
     "Produce a BRAND IDENTITY SHEET that could belong to it.",
     "",
     "THE BRIEF BEHIND IT",

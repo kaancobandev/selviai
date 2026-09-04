@@ -33,10 +33,12 @@ type IsGorunum = {
 };
 
 const EKSEN_ADI: Record<string, string> = {
-  siluet: "Siluet",
-  malzeme: "Malzeme",
-  renk: "Renk",
-  baglam: "Bağlam",
+  // İlham kaynakları — dört kare bunlardan geliyor.
+  doga: "Doğa",
+  sanat: "Sanat",
+  doku: "Doku",
+  mekan: "Mekân",
+  // Seçilen kaynaktan türetilenler.
   moodboard: "Moodboard",
   kumas: "Kumaş",
   branding: "Marka",
@@ -357,8 +359,10 @@ export function IlhamAkisi() {
               <>
             {/* Vurgu rengi (lila) ve Bodoni burada YOK: pencere Archivo ile
                 ve tek renkle yazılıyor. */}
-            <h2 className="mt-14 max-w-[24ch] text-2xl font-medium leading-snug md:text-3xl">
-              Dört yorum. <span className="text-fog">Birini seçin.</span>
+            {/* "Dört yorum" DEĞİL: kareler artık tasarımın dört yorumu değil,
+                tasarımın doğabileceği dört ayrı kaynak. */}
+            <h2 className="mt-14 max-w-[28ch] text-2xl font-medium leading-snug md:text-3xl">
+              Dört ilham kaynağı. <span className="text-fog">Birini seçin.</span>
             </h2>
 
             {/* ── Dört ilham karesi ──
