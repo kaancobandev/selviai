@@ -289,8 +289,8 @@ export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string
 
   return [
     "The attached image is the INSPIRATION the designer chose — a source from the",
-      "world (nature, art, a surface, a place), not a garment. Translate its palette,",
-      "texture and mood into fashion work.",
+    "world (nature, art, a surface, a place), not a garment. Translate its palette,",
+    "texture and mood into fashion work.",
     "Produce a BRAND IDENTITY SHEET that could belong to it.",
     "",
     "THE BRIEF BEHIND IT",
