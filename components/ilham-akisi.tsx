@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
    İLHAM AKIŞI — hero'nun altında, ana sayfada.
 
    Akış: metin + çip → 4 ilham karesi → biri seçilir → seçilenden
-   moodboard + kumaş + marka.
+   moodboard + kumaş + marka + giysi silueti.
 
    NEDEN HERO'YU SARIYOR. `app/page.tsx` bir SUNUCU bileşeni; hero ise
    istemci. Sonuçların hero'nun formuyla aynı state'i paylaşması
@@ -42,6 +42,9 @@ const EKSEN_ADI: Record<string, string> = {
   moodboard: "Moodboard",
   kumas: "Kumaş",
   branding: "Marka",
+  /* Dördün içinde giysi çizen tek çıktı; adı da bunu söylesin — "Siluet"
+     tek başına ilham eksenlerinden biri sanılabilirdi. */
+  siluet: "Giysi siluet",
 };
 
 /** Çipin brief'e kattığı yönelim. Metnin yerine geçmiyor, ekleniyor. */
@@ -220,6 +223,10 @@ export function IlhamAkisi() {
           metin: istek.trim(),
           kaynakIs: ilhamIs,
           kaynakSira: sira,
+          /* Oran DÖRDÜ İÇİN BİRDEN: iş kaydı tek `aspect` taşıyor. Giysi
+             silueti dikey karede daha iyi okunurdu ama tür başına oran
+             hem tipi hem bu ızgarayı bölerdi; istem giysiyi kareye
+             sığdırmayı ayrıca istiyor. */
           aspect: "1:1",
         }),
       });
@@ -456,12 +463,15 @@ export function IlhamAkisi() {
               <Reveal className="mt-20">
                 <p className="eyebrow text-fog">Seçilenden</p>
                 <h3 className="mt-6 max-w-[24ch] font-display text-3xl leading-[1.08] md:text-4xl">
-                  Moodboard, kumaş ve marka.
+                  Moodboard, kumaş, marka ve giysi silueti.
                 </h3>
 
-                {/* İlham şeridiyle aynı dil: boşluk + yuvarlak köşe. */}
-                <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                  {(turetKareler.length ? turetKareler : Array.from({ length: 3 })).map((k, i) => {
+                {/* İlham şeridiyle aynı dil: boşluk + yuvarlak köşe.
+                    Sütun sayısı ilham şeridiyle de aynı oldu — türetilmiş
+                    çıktı dörde çıktı (siluet eklendi), üçlü ızgara birini
+                    tek başına alt satıra düşürüyordu. */}
+                <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {(turetKareler.length ? turetKareler : Array.from({ length: 4 })).map((k, i) => {
                     const kare = k as Kare | undefined;
                     const kaynak = kare?.url ?? kare?.dataUrl;
                     return (
@@ -473,7 +483,7 @@ export function IlhamAkisi() {
                               alt=""
                               fill
                               unoptimized
-                              sizes="(min-width: 640px) 33vw, 100vw"
+                              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
                               className="object-cover"
                             />
                           ) : (
@@ -503,7 +513,7 @@ export function IlhamAkisi() {
                       Stüdyoda aç
                     </Button>
                     <p className="text-[15px] leading-7 text-fog">
-                      Seçtiğiniz kare ve üç çıktı stüdyodaki araçlara aktarıldı.
+                      Seçtiğiniz kare ve dört çıktı stüdyodaki araçlara aktarıldı.
                     </p>
                   </div>
                 )}

@@ -5,25 +5,21 @@
    kendisi: Selvi tam da o insanlara ve o efora ihtiyaç kalmasın diye
    var. Rol listesi (aday portreleri, call saatleri, onay durumları),
    mekân adayları, gün planı ve gün ışığı verisi bu yüzden silindi.
+
+   PROP LİSTESİ DE AYNI GEREKÇEYLE GİTTİ: steamer, dikiş kiti, ödünç
+   alınan bot ve iade tarihleri hazırlık lojistiğiydi. Onunla birlikte
+   `Status`/`statusMeta` de silindi — pastel rozeti ayakta tutan tek
+   kullanıcı ödünç parçalardı, listeden sonra dosyada tek üyeli ve
+   çağrısız bir birlik kalıyordu.
+
    Geriye çekimin yaratıcı kısmı kaldı: ışık senaryosu, referans
-   kareleri, look–model eşleştirme ve prop listesi.
+   kareleri ve look–model eşleştirme.
    ------------------------------------------------------------------ */
 const u = (id: string, w = 400) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 /** Tohum yokken başlıkta duran örnek iş adı — araç tek başına da anlaşılır olmalı. */
 export const ORNEK_BASLIK = "SS26 Kampanya";
-
-/* ---------------- ödünç rozeti — arayüzdeki tek pastel ton ----------------
-   Eskiden üç durum vardı: onaylandı (adaçayı), bekliyor (kum), call sheet
-   gönderildi (sis). İlki ve sonuncusu ekip kartlarına aitti, ekiple
-   birlikte gittiler. Prop listesindeki "ödünç" rozeti ayakta olduğu için
-   kum tonu duruyor; tek üyeli birlik bilerek bırakıldı, çağrı yerinin
-   `tone` yazması etiketi hangi tonun boyadığını görünür tutuyor. */
-export type Status = "pending";
-export const statusMeta: Record<Status, { bg: string; fg: string }> = {
-  pending: { bg: "#F2EBDD", fg: "#6E5A3A" },
-};
 
 /* ---------------- sanat yönetimi ve ışık ---------------- */
 export type MoodId = "daylight" | "golden" | "night" | "studio";
@@ -83,21 +79,3 @@ export const defaultAssignment: Assignment = {
   l7: null,
   l8: null,
 };
-
-export type Prop = {
-  id: string;
-  name: string;
-  owner: string;
-  done: boolean;
-  borrowed?: { from: string; returnBy: string };
-};
-export const props: Prop[] = [
-  { id: "p1", name: "Gümüş halka küpe (2 çift)", owner: "Stilist", done: true, borrowed: { from: "Monom", returnBy: "18 Eyl" } },
-  { id: "p2", name: "İnce deri kemer, siyah", owner: "Stilist", done: true },
-  { id: "p3", name: "Topuklu bot 38", owner: "Stilist", done: false, borrowed: { from: "Manu Atelier", returnBy: "17 Eyl" } },
-  { id: "p4", name: "Keten bere, ham", owner: "Stilist", done: false },
-  { id: "p5", name: "Eski film kamerası (prop)", owner: "Sanat yön.", done: true, borrowed: { from: "Arşiv", returnBy: "20 Eyl" } },
-  { id: "p6", name: "Beyaz buket, 12 dal", owner: "Asistan", done: false },
-  { id: "p7", name: "Steamer + yedek su", owner: "Asistan", done: true },
-  { id: "p8", name: "Dikiş kiti, çift taraflı bant", owner: "Stilist", done: true },
-];

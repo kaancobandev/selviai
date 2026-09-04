@@ -7,20 +7,15 @@ import {
   looks,
   moods,
   ORNEK_BASLIK,
-  props as initialProps,
-  statusMeta,
   tearsheets as initialTears,
   type Assignment,
   type MoodId,
-  type Prop,
-  type Status,
   type Tearsheet,
   type TearTag,
 } from "@/lib/shoot";
 import { cn } from "@/lib/utils";
 import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Arrow } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/field";
 
 type ModelCol = "model1" | "model2" | null;
 const COLS: ModelCol[] = [null, "model1", "model2"];
@@ -35,6 +30,13 @@ const colKey = (c: ModelCol) => c ?? "none";
  * gitti — içeriği (doğuş, batış, altın saat) saf lokasyon lojistiğiydi
  * ve tikleri call sheet dilimlerinden geliyordu, kalsaydı sessizce
  * boşalırdı.
+ *
+ * PROP/AKSESUAR LİSTESİ DE AYNI GEREKÇEYLE KALKTI: steamer ve yedek su,
+ * dikiş kiti, "Ödünç · Manu Atelier · İade 17 Eyl", sahibi stilist ya da
+ * asistan olan satırlar — hepsi çekim gününün lojistiğiydi, yaratıcı iş
+ * değil. Ödünç rozeti (Pill) ve onu boyayan `statusMeta` listenin tek
+ * kullanıcısıydı, üçü birlikte gitti. Başlıktaki "açık iş" sayacı da
+ * tikleri buradan sayıyordu.
  */
 
 /**
@@ -100,8 +102,6 @@ export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [mood, setMood] = useState<MoodId>("daylight");
   const [tears, setTears] = useState<Tearsheet[]>(() => tohumdanTears(tohum, initialTears));
   const [assign, setAssign] = useState<Assignment>(defaultAssignment);
-  const [propList, setPropList] = useState<Prop[]>(initialProps);
-  const [newProp, setNewProp] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -126,7 +126,6 @@ export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      izin veriliyor. */
   const baslik = tohum?.brief.trim() || ORNEK_BASLIK;
   const assignedCount = Object.values(assign).filter(Boolean).length;
-  const openTasks = propList.filter((p) => !p.done).length;
   const currentMood = moods.find((m) => m.id === mood) ?? moods[0];
   const looksIn = (col: ModelCol) => looks.filter((l) => (assign[l.id] ?? null) === col);
 
@@ -150,15 +149,6 @@ export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     if (id) move(id, col);
     setDragId(null);
     setOver(null);
-  }
-  function toggleProp(id: string) {
-    setPropList((l) => l.map((p) => (p.id === id ? { ...p, done: !p.done } : p)));
-  }
-  function addProp() {
-    const name = newProp.trim();
-    if (!name) return;
-    setPropList((l) => [...l, { id: `p${Date.now()}`, name, owner: "Stilist", done: false }]);
-    setNewProp("");
   }
   function addTears(list: FileList | null) {
     if (!list) return;
@@ -184,7 +174,7 @@ export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <h1 className="mt-3 max-w-[24ch] font-display text-2xl leading-tight md:text-3xl">{baslik} — çekim günü</h1>
         </div>
         <span className="eyebrow tabular-nums text-fog">
-          {assignedCount}/{looks.length} look atandı · {openTasks} açık iş
+          {assignedCount}/{looks.length} look atandı
         </span>
       </header>
 
@@ -265,7 +255,7 @@ export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         </Section>
 
         {/* B — Stilist çalışma alanı */}
-        <Section title="Stilist çalışma alanı" meta={`${assignedCount}/${looks.length} look atandı · ${openTasks} açık iş`}>
+        <Section title="Stilist çalışma alanı" meta={`${assignedCount}/${looks.length} look atandı`}>
           <p className="eyebrow text-fog">Look — model eşleştirme</p>
           <p className="mt-2 text-[11px] leading-4 text-fog">Look&apos;ları sütunlar arasında sürükleyin; sıra, çekim sırasıdır.</p>
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -340,57 +330,6 @@ export function ShootDesk({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               );
             })}
           </div>
-
-          <div className="mt-12">
-            <div className="flex items-baseline justify-between">
-              <p className="eyebrow text-fog">Aksesuar ve prop listesi</p>
-              <span className="eyebrow tabular-nums text-fog">
-                {propList.filter((p) => p.done).length}/{propList.length} hazır
-              </span>
-            </div>
-            <ul className="mt-4 divide-y divide-hair border-y border-hair">
-              {propList.map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
-                  <Checkbox
-                    id={`prop-${p.id}`}
-                    checked={p.done}
-                    onChange={() => toggleProp(p.id)}
-                    label={
-                      <span className={cn("text-[13.5px] transition-colors", p.done ? "text-fog line-through decoration-kalem/40" : "text-kalem")}>
-                        {p.name}
-                      </span>
-                    }
-                  />
-                  <span className="ml-auto flex items-center gap-3">
-                    {p.borrowed && (
-                      <Pill tone="pending">
-                        Ödünç · {p.borrowed.from} · İade {p.borrowed.returnBy}
-                      </Pill>
-                    )}
-                    <span className="hidden eyebrow text-fog sm:inline">{p.owner}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <form
-              className="mt-3 flex items-end gap-6"
-              onSubmit={(e) => {
-                e.preventDefault();
-                addProp();
-              }}
-            >
-              <input
-                value={newProp}
-                onChange={(e) => setNewProp(e.target.value)}
-                placeholder="Yeni parça ya da prop…"
-                aria-label="Yeni parça"
-                className="w-full max-w-sm border-b border-hair bg-transparent py-2.5 text-[13.5px] outline-none transition-colors focus:border-kalem"
-              />
-              <button type="submit" className="eyebrow u-line pb-3">
-                Ekle
-              </button>
-            </form>
-          </div>
         </Section>
       </div>
     </div>
@@ -410,18 +349,5 @@ function Section({ title, meta, className, children }: { title: string; meta?: s
       </div>
       <div className="mt-7">{children}</div>
     </section>
-  );
-}
-
-/* Geriye tek ton kaldı. "risk" (model atanmadı) call sheet zaman
-   çizelgesine, "confirmed" ve "sent" ekip kartlarına aitti; üçü de
-   bölümleriyle birlikte gitti. Rozeti bugün yalnızca prop listesindeki
-   ödünç parçalar kullanıyor. */
-function Pill({ tone, children }: { tone: Status; children: ReactNode }) {
-  const m = statusMeta[tone];
-  return (
-    <span className="whitespace-nowrap px-2 py-1 text-[9.5px] uppercase tracking-[0.14em]" style={{ background: m.bg, color: m.fg }}>
-      {children}
-    </span>
   );
 }

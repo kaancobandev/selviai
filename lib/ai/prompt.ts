@@ -105,8 +105,9 @@ export function buildPrompt(req: ComposeRequest): string {
    kullanıcıya dört ayrı tasarım taslağı sunuluyordu. Yanlıştı: "ilham"
    tasarımın kendisi değil, tasarımın NEYDEN doğduğu. Bir maymun, bir
    papatya, bir tablo. Tasarımcı önce kaynağı seçer, giysi ondan sonra
-   gelir; zaten türetilmiş çıktılar (moodboard, kumaş, marka) seçilen
-   kaynaktan üretiliyor.
+   gelir; zaten türetilmiş çıktılar (moodboard, kumaş, marka ve giysi
+   silueti) seçilen kaynaktan üretiliyor. Giysiyi çizen tek yer orası —
+   burada yasak olması onun için, ona rağmen değil.
 
    Aynı prompt'u dört kez çağırmak dört benzer kare veriyor: model aynı
    isteğe aynı yerden yaklaşıyor. Bu yüzden her varyanta AYRI BİR KAYNAK
@@ -188,6 +189,18 @@ export function buildIlhamPrompt(
 
    Moodboard'da kolaj YASAĞI bilerek kaldırıldı — kompozisyon şablonunda
    kolaj bir kusurdu, burada istenen çıktının ta kendisi.
+
+   SİLUET ÖTEKİLERDEN BAŞKA BİR ŞEY İSTİYOR. Üçü referansı AÇIYOR (aynı
+   dünyanın başka nesneleri), siluet ise ondan bir giysi TASARLAMAK
+   zorunda: referans bir karga, bir doku, bir kapı eşiği — ortada
+   kopyalanacak giysi yok. Bu yüzden istem "bunu çevir" değil "bundan bir
+   giysi tasarla ve yalnız onu göster" diye kuruluyor.
+
+   KARE ORAN KALDI (1:1). Dikey kare siluet için daha iyi okunurdu ama
+   oran iş kaydında TEK alan (TuretilmisInput.aspect) ve dördü de onunla
+   üretiliyor; türe bağlamak tipi, uç doğrulamasını ve pencerenin kare
+   ızgarasını birlikte değiştirmek olurdu. Bedeli istemde ödeniyor:
+   giysinin tamamı kenarlarda pay bırakarak kareye sığmak zorunda.
    ------------------------------------------------------------------ */
 
 export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string {
@@ -242,6 +255,35 @@ export function buildTuretilmisPrompt(tur: TuretilmisTur, istek: string): string
       "",
       "OUTPUT",
       "  One photorealistic overhead shot. Raking light so texture reads.",
+    ].join("\n");
+  }
+
+  if (tur === "siluet") {
+    return [
+      "The attached image is the INSPIRATION the designer chose — a source from the",
+      "world (nature, art, a surface, a place), not a garment. It is NOT a thing to",
+      "photograph again: DESIGN ONE GARMENT out of it and show that garment alone.",
+      "",
+      "THE BRIEF BEHIND IT",
+      `  ${brief}`,
+      "",
+      "WHAT TO PRODUCE",
+      "  A SINGLE garment, seen straight from the front, centred, filling most of the",
+      "  frame. Either laid perfectly flat or worn on an invisible mannequin — cut,",
+      "  seam lines, proportion and the way the cloth falls must all read clearly.",
+      "  Background: one plain, evenly lit, single flat colour, so the outline of the",
+      "  garment separates from it cleanly. No set, no surface texture, no props.",
+      "  Palette, material feeling and mood come from the reference; the shapes are",
+      "  yours — this is the design the reference leads to.",
+      ...ortak,
+      "  - No human model, no face, no hands, no hair, no skin anywhere in the frame.",
+      "  - One garment only: no second piece, no shoes, no accessories, no hanger.",
+      "  - No text, no logos, no labels, no collage, no grid, no second view.",
+      "",
+      "OUTPUT",
+      "  One photorealistic garment shot on a plain ground. The WHOLE garment inside",
+      "  the frame with a margin on every side — nothing cropped at shoulder, sleeve",
+      "  or hem. Even, soft light; minimal shadow.",
     ].join("\n");
   }
 

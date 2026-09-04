@@ -110,17 +110,22 @@ const initialDoc: Doc = {
 /* ------------------------------------------------------------------
    TOHUM ALTLIĞI — ana sayfada üretilen kare, çizimin arkasında
 
-   NE OLMADIĞI ÖNEMLİ: bu, mankene GİYDİRİLMİŞ BİR GİYSİ DEĞİL. Öyle bir
-   kare bugün yok: dört ilham karesi doğa / sanat / doku / mekân kaynağı
-   ve ilham istemi giysiyi açıkça yasaklıyor; üç türetilmiş çıktı da düz
-   yatık görsel. Bir doğa fotoğrafına "ürettiğimiz giysi" demek,
-   üretmediğimiz şeyi üretmiş gibi göstermek olurdu.
+   HANGİ KARE VARSAYILAN OLUYOR. Türetilmiş çıktılara GİYSİ SİLUETİ
+   eklendi (bkz. TURETILMIS_TURLER) ve altlık artık öncelikle onu alıyor:
+   dördün içinde giysiyi gösteren tek kare o, yani kroki'nin arkasında
+   üstünden çizilecek şeyin ta kendisi. Yoksa moodboard'a, o da yoksa
+   seçilen ilham karesine düşüyor — ikisi de giysi değil, ama palet ve
+   malzeme referansı olarak hâlâ işe yarıyorlar.
 
-   Bugün yapılabilecek ve dürüst olan: kareyi kroki'nin ARKASINA,
-   ayarlanabilir opaklıkta bir REFERANS ALTLIK olarak koymak — tasarımcı
-   üstünden çizer. Kutu panelden ayarlanıyor, tuvalden sürüklenerek
-   değil: altlık `pointer-events-none` olmak ZORUNDA, aksi hâlde vuruş
-   testi, kalem ve makas sessizce ölür.
+   ESKİDEN ÖYLE BİR KARE YOKTU: ilham karelerinde giysi açıkça yasak ve
+   kalan üç çıktı düz yatık görseldi; bir doğa fotoğrafına "ürettiğimiz
+   giysi" demek üretmediğimiz şeyi üretmiş gibi göstermek olurdu. Şimdi
+   siluet gerçekten üretiliyor, o yüzden adıyla anılabiliyor.
+
+   Kare kroki'nin ARKASINA, ayarlanabilir opaklıkta bir REFERANS ALTLIK
+   olarak konuyor — tasarımcı üstünden çizer. Kutu panelden ayarlanıyor,
+   tuvalden sürüklenerek değil: altlık `pointer-events-none` olmak
+   ZORUNDA, aksi hâlde vuruş testi, kalem ve makas sessizce ölür.
    ------------------------------------------------------------------ */
 type AltlikKutu = { x: number; y: number; w: number; h: number };
 
@@ -139,6 +144,9 @@ const EKSEN_ADI: Record<string, string> = {
   moodboard: "Moodboard",
   kumas: "Kumaş",
   branding: "Marka",
+  /* "Siluet" değil "Giysi siluet": şeritteki öteki yedi kare giysi değil,
+     ayrımı etiket söylemeli. */
+  siluet: "Giysi siluet",
 };
 
 /**
@@ -204,11 +212,12 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [spaceDown, setSpaceDown] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  /* Altlık: moodboard varsa o, yoksa seçilen ilham karesi. Moodboard önce
-     çünkü üçü içinde tasarıma en yakın duran o; kullanıcı panelden
+  /* Altlık sırası: giysi silueti → moodboard → seçilen ilham karesi.
+     Siluet önce çünkü tek GİYSİ olan o; ötekiler tasarımın kaynağı ya da
+     özeti, üstünden kalıp çizilecek şey değil. Kullanıcı panelden
      istediğine geçebiliyor. Tohum yalnız ilk kurulumda okunuyor. */
   const [altlik, setAltlik] = useState<string | null>(
-    () => tohum?.turetilmis.moodboard ?? tohum?.secilen ?? null,
+    () => tohum?.turetilmis.siluet ?? tohum?.turetilmis.moodboard ?? tohum?.secilen ?? null,
   );
   const [altlikOpaklik, setAltlikOpaklik] = useState(ALTLIK_OPAKLIK);
   const [altlikKutu, setAltlikKutu] = useState<AltlikKutu>(KROKI_ALAN);
@@ -820,8 +829,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <div className="flex-1 overflow-y-auto px-4 py-4 [scrollbar-width:thin]">
             {/* Referans — ana sayfada üretilen kareler.
                 Etiketler tohumun kendi eksen adlarından geliyor (doğa,
-                sanat, doku, mekân, moodboard, kumaş, marka); hiçbiri
-                "giysi" ya da "manken" demiyor çünkü değiller. */}
+                sanat, doku, mekân, moodboard, kumaş, marka, giysi
+                siluet). Yalnız sonuncusu giysi; ötekiler ne "giysi" ne
+                "manken" diyor çünkü değiller. */}
             {referanslar.length > 0 && (
               <section className="mb-7">
                 <div className="flex items-baseline justify-between">
@@ -829,8 +839,8 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                   <span className="eyebrow text-ash">Ana sayfadan</span>
                 </div>
                 <p className="mt-2 text-[11px] leading-4 text-fog">
-                  Üretilen kareler giysi değil, ilham kaynağı ve düz yatık çıktı. Biri kroki&apos;nin
-                  arkasına altlık olarak konuyor, üstünden çiziyorsunuz.
+                  Giysi silueti dışındakiler giysi değil; ilham kaynağı ve düz yatık çıktı. Biri
+                  kroki&apos;nin arkasına altlık olarak konuyor, üstünden çiziyorsunuz.
                 </p>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {referanslar.map((r) => {

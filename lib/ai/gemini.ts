@@ -249,9 +249,9 @@ export async function generateComposite(
  * öğesiydi ve `responseModalities: ["IMAGE"]` ile en-boy ayarı yerindeydi.
  * Eksik olan tek şey görselleri ZORUNLU kılan gövdeydi.
  *
- * İsteğe bağlı `referans`: seçilen ilham karesinden moodboard/kumaş/branding
- * türetirken kullanılıyor — o zaman istek "metinden" değil "tek referanstan"
- * oluyor ama makine aynı.
+ * İsteğe bağlı `referans`: seçilen ilham karesinden türetilmiş çıktıları
+ * (moodboard, kumaş, marka, giysi silueti) üretirken kullanılıyor — o zaman
+ * istek "metinden" değil "tek referanstan" oluyor ama makine aynı.
  */
 export async function generateFromText(
   prompt: string,

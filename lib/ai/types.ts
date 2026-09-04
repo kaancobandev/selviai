@@ -91,8 +91,23 @@ export type IlhamEkseni = (typeof ILHAM_EKSENLERI)[number];
 export const ILHAM_KATEGORILERI = ["moda"] as const;
 export type IlhamKategori = (typeof ILHAM_KATEGORILERI)[number];
 
-/** Seçilen kareden türetilenler. */
-export const TURETILMIS_TURLER = ["moodboard", "kumas", "branding"] as const;
+/**
+ * Seçilen kareden türetilenler.
+ *
+ * "siluet" DÖRDÜN İÇİNDE TEK BAŞINA DURUYOR: öteki üçü düz yatık çıktı
+ * (pano, kumaş parçaları, marka nesneleri), siluet ise GİYSİNİN KENDİSİNİ
+ * gösteren tek kare. İhtiyaç teknik çizimden geldi — kroki'nin arkasına
+ * konacak bir giysi görseli akışın hiçbir yerinde yoktu; ilham karelerinde
+ * giysi zaten açıkça YASAK (bkz. buildIlhamPrompt), çünkü onlar tasarımın
+ * kendisi değil kaynağı. Altlık bu yüzden bir doğa fotoğrafına düşüyordu.
+ *
+ * Bedeli kabul edildi: türetme başına üç yerine dört kare, yani koşu
+ * başına %33 daha fazla üretim ve kota.
+ *
+ * SONA EKLENDİ, araya değil: sıra hem penceredeki ızgarayı hem lookbook
+ * sayfa düzenini belirliyor ve mevcut sırayı kaydırmanın bir faydası yok.
+ */
+export const TURETILMIS_TURLER = ["moodboard", "kumas", "branding", "siluet"] as const;
 export type TuretilmisTur = (typeof TURETILMIS_TURLER)[number];
 
 /**
@@ -125,10 +140,16 @@ export type IlhamInput = {
 /**
  * Seçilen kareden türetilenler — TEK İŞ, ÇOK ÇIKTI.
  *
- * Üçünü ayrı iş yapmak doğal görünüyordu ama oturum kilidine çarpıyor:
+ * Her türü ayrı iş yapmak doğal görünüyordu ama oturum kilidine çarpıyor:
  * `/api/compose` aynı oturumda süren iş varken 429 dönüyor, yani ikinci
- * ve üçüncü türetme reddedilirdi. Tek işte üç kare üretmek hem kilidi
- * hem üç ayrı yoklama döngüsünü ortadan kaldırıyor.
+ * ve sonraki türetmeler reddedilirdi. Tek işte hepsini üretmek hem kilidi
+ * hem tür sayısı kadar yoklama döngüsünü ortadan kaldırıyor.
+ *
+ * `aspect` TÜR BAŞINA DEĞİL İŞ BAŞINA: kayıt tek bir oran taşıyor ve
+ * dördü de onunla üretiliyor. Siluet dikey karede daha iyi okunurdu ama
+ * oranı türe bağlamak bu tipi, uç doğrulamasını ve penceredeki ızgarayı
+ * birlikte değiştirmek demekti; prompt bunun yerine giysiyi kareye
+ * sığdırmayı açıkça istiyor (bkz. buildTuretilmisPrompt).
  */
 export type TuretilmisInput = {
   turler: TuretilmisTur[];
@@ -192,7 +213,7 @@ export type JobKare = {
 /**
  * ÇALIŞMA — ana sayfadaki akışın stüdyoya taşınan hâli.
  *
- * Ana sayfa İKİ iş üretiyor (dört ilham karesi, sonra seçilenden üç
+ * Ana sayfa İKİ iş üretiyor (dört ilham karesi, sonra seçilenden dört
  * türetilmiş çıktı) ve stüdyonun ikisine de ihtiyacı var. Tek tek iş
  * kimliği taşımak yerine oturum başına tek bir kayıt tutuluyor: en son
  * üzerinde çalışılan set.

@@ -329,7 +329,7 @@ async function ilhamKosusu(job: Job): Promise<void> {
     if (!k?.yollar.length) {
       return void (await basarisiz(id, "istek-yok", "İş kaydında kesilecek kare yok."));
     }
-    /* Türetmeden farkı: orada TEK referans üç göreve gidiyor, burada
+    /* Türetmeden farkı: orada TEK referans bütün görevlere gidiyor, burada
        HER görevin kendi referansı var — her parça ayrı kareden kesiliyor.
        Bu yüzden indirme döngü içinde. */
     const dosyalar = await Promise.all(k.yollar.map((yol) => indir(yol)));
@@ -368,8 +368,10 @@ async function ilhamKosusu(job: Job): Promise<void> {
     if (!dosya) {
       return void (await basarisiz(id, "kaynak-okunamadi", "Seçilen kare okunamadı. Tekrar deneyin."));
     }
-    /* Referans BİR KEZ indirilip üç göreve de veriliyor — moodboard,
-       kumaş ve branding aynı kareden türüyor. */
+    /* Referans BİR KEZ indirilip her göreve veriliyor — moodboard, kumaş,
+       branding ve siluet aynı kareden türüyor. Siluet ötekilerden farklı
+       olarak o kareyi AÇMIYOR, ondan bir giysi tasarlıyor; fark istemde,
+       burada değil. */
     const referans = { mimeType: dosya.mime, data: dosya.bayt.toString("base64") };
     gorevler = t.turler.map((tur) => ({
       eksen: tur,

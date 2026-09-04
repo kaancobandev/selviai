@@ -70,8 +70,8 @@ export const ornekLookbook: Lookbook = {
  * dört yorumdan onu seçti, kitabın yüzü o olmalı. Ardından bir sunuş
  * sayfasında kendi yazdığı brief duruyor; alıcı önce niyeti okuyor.
  * Sonra kalan üç ilham karesi (seçilen tekrar edilmiyor), en sonda
- * türetilmiş çıktılar: moodboard, kumaş, marka. Yani kitap "fikir →
- * varyasyon → malzeme ve kimlik" diye ilerliyor.
+ * türetilmiş çıktılar: moodboard, kumaş, marka, giysi silueti. Yani kitap
+ * "fikir → varyasyon → malzeme ve kimlik → giysi" diye ilerliyor.
  */
 export function tohumdanLookbook(tohum: StudyoTohum): Lookbook {
   const baslik = ilkCumle(tohum.brief) || "Koleksiyon";
@@ -104,10 +104,13 @@ export function tohumdanLookbook(tohum: StudyoTohum): Lookbook {
     });
   }
 
+  /* Sıra TURETILMIS_TURLER ile aynı; siluet sonda çünkü kitabın kapanış
+     sayfası giysinin kendisi olsun — ondan öncekiler ona giden yol. */
   const turetilmisSira: [keyof StudyoTohum["turetilmis"], string][] = [
     ["moodboard", "Moodboard"],
     ["kumas", "Kumaş"],
     ["branding", "Marka"],
+    ["siluet", "Giysi siluet"],
   ];
   for (const [anahtar, etiket] of turetilmisSira) {
     const src = tohum.turetilmis[anahtar];

@@ -23,7 +23,7 @@ import {
    paylaşılıyor — kopyalanan tek şey yok.
 
    · mod "ilham"      → metinden DÖRT kare (girdi görseli yok)
-   · mod "turetilmis" → seçilen kareden moodboard + kumaş + branding
+   · mod "turetilmis" → seçilen kareden moodboard + kumaş + branding + siluet
 
    İkisi de TEK İŞ üretiyor. Ayrı işler oturum kilidine çarpardı:
    aynı oturumda süren iş varken ikincisi 429 alır.
@@ -139,7 +139,7 @@ function sec<T extends readonly string[]>(value: unknown, allowed: T): T[number]
     : null;
 }
 
-/** Boş/geçersiz gelirse üçünü de üret — akışın varsayılanı bu. */
+/** Boş/geçersiz gelirse hepsini üret — akışın varsayılanı bu. */
 function tureleriSec(value: unknown): TuretilmisTur[] {
   if (!Array.isArray(value)) return [...TURETILMIS_TURLER];
   const secilen = value.filter(
