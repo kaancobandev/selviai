@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { putJob, sonIsiYaz } from "@/lib/ai/jobs";
 import { runJob } from "@/lib/ai/run";
-import { acikIsiBul, arkaPlandaBaslat } from "@/lib/ai/kuyruk";
+import { acikIsiBul, arkaPlandaBaslat, kotaAyir } from "@/lib/ai/kuyruk";
 import { girdiYollari } from "@/lib/ai/resolve";
 import { girdileriSil } from "@/lib/ai/storage";
 import { depoOneki, oturumAlVeyaOlustur } from "@/lib/ai/session";
@@ -65,6 +65,16 @@ export async function POST(request: Request) {
       { error: "Bir üretiminiz sürüyor. Bitmesini bekleyin.", jobId: acikIs },
       { status: 429 },
     );
+  }
+
+  /* Kompozisyon kalite kapısında bir kez yükseltebiliyor, yani en kötü
+     hâlde iki üretim. Kotadan ikisi birden düşülüyor: sonradan düşmek,
+     tam da engellemek istediğimiz patlamada geç kalmak olurdu. */
+  const kota = await kotaAyir(request, 2);
+  if (!kota.ok) {
+    // Yüklenen girdiler öksüz kalmasın — iş hiç açılmayacak.
+    await girdileriSil(girdiYollari(composeRequest));
+    return NextResponse.json({ error: kota.sebep }, { status: 429 });
   }
 
   const job: Job = {

@@ -151,6 +151,43 @@ export async function calismaOku(sessionId: string): Promise<Calisma | null> {
   return calismalar().get(sessionId) ?? null;
 }
 
+/* ------------------------------------------------------------------
+   SAYAÇ — kota için küçük bir tamsayı deposu.
+
+   Aynı bellek/Blobs ikiliğini üçüncü kez yazmamak için buraya kondu.
+   YAKLAŞIKTIR ve öyle olduğu bilinerek kullanılıyor: Netlify Blobs
+   karşılaştır-ve-değiştir sunmuyor, dolayısıyla oku-artır-yaz arasına
+   giren eşzamanlı istekler sayılmadan geçebilir. Bir patlama tavanı
+   biraz aşabilir; yaklaşık bir tavan, hiç tavan olmamasından
+   kıyaslanamayacak kadar iyidir. Kesin sayım Postgres'e taşınınca gelir.
+   ------------------------------------------------------------------ */
+declare global {
+  var __composeSayac: Map<string, number> | undefined;
+}
+
+function sayaclar(): Map<string, number> {
+  globalThis.__composeSayac ??= new Map<string, number>();
+  return globalThis.__composeSayac;
+}
+
+export async function sayacOku(anahtar: string): Promise<number> {
+  const store = await blobStore();
+  if (store) {
+    const v = (await store.get(anahtar, { type: "json" })) as { n?: unknown } | null;
+    return typeof v?.n === "number" && Number.isFinite(v.n) ? v.n : 0;
+  }
+  return sayaclar().get(anahtar) ?? 0;
+}
+
+export async function sayacYaz(anahtar: string, deger: number): Promise<void> {
+  const store = await blobStore();
+  if (store) {
+    await store.setJSON(anahtar, { n: deger });
+    return;
+  }
+  sayaclar().set(anahtar, deger);
+}
+
 export async function dropJob(id: string): Promise<void> {
   const store = await blobStore();
   if (store) {

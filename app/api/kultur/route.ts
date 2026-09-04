@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { putJob, sonIsiYaz } from "@/lib/ai/jobs";
-import { acikIsiBul, arkaPlandaBaslat } from "@/lib/ai/kuyruk";
+import { acikIsiBul, arkaPlandaBaslat, kotaAyir } from "@/lib/ai/kuyruk";
 import { runJob } from "@/lib/ai/run";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
 import type { Job } from "@/lib/ai/types";
@@ -72,6 +72,11 @@ export async function POST(request: Request) {
     mod: "kultur",
     kultur: { brief },
   };
+
+  /* Metin işi; görsel üretmiyor ama arama temellendirmeli çağrı yine
+     kaynak tüketiyor. Aynı havuzdan tek hak düşülüyor. */
+  const kota = await kotaAyir(request, 1);
+  if (!kota.ok) return NextResponse.json({ error: kota.sebep }, { status: 429 });
 
   await putJob(job);
   await sonIsiYaz(sessionId, job.id);

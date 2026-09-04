@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getJob, putJob, sonIsiYaz } from "@/lib/ai/jobs";
-import { acikIsiBul, arkaPlandaBaslat } from "@/lib/ai/kuyruk";
+import { acikIsiBul, arkaPlandaBaslat, kotaAyir } from "@/lib/ai/kuyruk";
 import { runJob } from "@/lib/ai/run";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
 import {
   ASPECTS,
+  ILHAM_EKSENLERI,
   ILHAM_KATEGORILERI,
   TURETILMIS_TURLER,
   type Aspect,
@@ -97,6 +98,12 @@ export async function POST(request: Request) {
     job.mod = "ilham";
     job.ilham = { metin, kategori, aspect };
   }
+
+  /* Kota, iş kaydı YAZILMADAN önce ayrılıyor: reddedilen bir istek
+     depoda iz bırakmamalı. İlham dört kare üretiyor, türetme ise
+     istenen tür sayısı kadar. */
+  const kota = await kotaAyir(request, job.ilham ? ILHAM_EKSENLERI.length : (job.turetilmis?.turler.length ?? 1));
+  if (!kota.ok) return NextResponse.json({ error: kota.sebep }, { status: 429 });
 
   await putJob(job);
   await sonIsiYaz(sessionId, job.id);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getJob, putJob, sonIsiYaz } from "@/lib/ai/jobs";
-import { acikIsiBul, arkaPlandaBaslat } from "@/lib/ai/kuyruk";
+import { acikIsiBul, arkaPlandaBaslat, kotaAyir } from "@/lib/ai/kuyruk";
 import { runJob } from "@/lib/ai/run";
 import { oturumAlVeyaOlustur } from "@/lib/ai/session";
 import { ASPECTS, KESIM_EKSENLERI, type Aspect, type Job } from "@/lib/ai/types";
@@ -84,6 +84,10 @@ export async function POST(request: Request) {
     mod: "kesim",
     kesim: { yollar, metin, aspect },
   };
+
+  // Her seçilen kare bir üretim demek.
+  const kota = await kotaAyir(request, secimler.length);
+  if (!kota.ok) return NextResponse.json({ error: kota.sebep }, { status: 429 });
 
   await putJob(job);
   await sonIsiYaz(sessionId, job.id);

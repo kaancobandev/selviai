@@ -1,4 +1,4 @@
-import { getJob, patchJob, sonIsiOku } from "./jobs";
+import { getJob, patchJob, sayacOku, sayacYaz, sonIsiOku } from "./jobs";
 import { imzala, INVOKE_HEADER } from "./invoke";
 
 /* ------------------------------------------------------------------
@@ -157,6 +157,85 @@ function tanidikKonak(konak: string): boolean {
     }
   }
   return false;
+}
+
+/* ------------------------------------------------------------------
+   GÜNLÜK IP KOTASI.
+
+   NEDEN GEREKLİ. Depodaki tek fren `acikIsiBul` idi ve o, oturum
+   çerezine bağlı. `oturumAlVeyaOlustur` çerez yoksa REDDETMİYOR, yeni
+   bir kimlik basıp devam ediyor — yani çerezi hiç saklamayan bir
+   istemci için kilit hiç devreye girmiyor. Kimliği isteyenin kendisi
+   seçebiliyorsa o kimlik kota olamaz.
+
+   NEDEN NETLIFY'IN KENDİ HIZ SINIRI KULLANILMADI. `rateLimit` ayarı
+   Netlify FONKSİYONUNUN kendi config'inde yaşıyor (@netlify/functions,
+   BaseConfig.rateLimit). Üretim uçlarımız Next.js route handler'ları ve
+   OpenNext hepsini tek bir sunucu fonksiyonuna paketliyor; tek tek
+   config veremiyoruz. Arka plan fonksiyonuna konsaydı da `aggregateBy:
+   "ip"` bizim KENDİ sunucumuzun adresini görürdü — çağrıyı o yapıyor —
+   ve bütün meşru trafiği boğardı.
+
+   IP MÜKEMMEL DEĞİL, ama çerezin aksine isteyenin seçemediği tek şey.
+   Kurumsal NAT ya da mobil operatör arkasındaki kullanıcılar tek IP
+   paylaşabilir; tavan bu yüzden cömert tutuldu. Gerçek çözüm hesap +
+   kredi (Faz 4); bu, o gelene kadar "sınırsız"ı "sınırlı" yapan en
+   küçük değişiklik.
+
+   SAYAÇ YAKLAŞIKTIR: Blobs'ta karşılaştır-ve-değiştir yok (bkz.
+   lib/ai/jobs.ts). Eşzamanlı bir patlama tavanı biraz aşabilir.
+   ------------------------------------------------------------------ */
+
+/** Bir IP'nin bir günde tetikleyebileceği üretim sayısı (kare bazında). */
+export const GUNLUK_KARE_TAVANI = Number(process.env.GUNLUK_KARE_TAVANI) || 40;
+
+/**
+ * İstemci adresi. Netlify kendi başlığını veriyor; arkasına düşülen
+ * `x-forwarded-for` ilk kayıt istemcidir.
+ *
+ * Adres bulunamazsa kota UYGULANMIYOR (bkz. kotaAyir). Gerekçe: adres
+ * yalnız bizim ortamımızda kaybolur (yerel geliştirme), saldırganın
+ * kaybettirme yolu yok — başlığı silmek elinde değil, ekleyeceği sahte
+ * bir değer de aşağıda ilk sıradaki gerçek başlığı geçemiyor.
+ */
+function istemciIp(request: Request): string | null {
+  const h = request.headers;
+  const aday =
+    h.get("x-nf-client-connection-ip")?.trim() ||
+    h.get("x-forwarded-for")?.split(",")[0].trim() ||
+    "";
+  return aday || null;
+}
+
+/** Anahtar UTC gününe göre; gün dönünce sayaç kendiliğinden sıfırlanır. */
+function kotaAnahtari(ip: string): string {
+  return `gunluk:${ip}:${new Date().toISOString().slice(0, 10)}`;
+}
+
+/**
+ * Kotadan `kare` adet ayırır. Yer varsa sayacı artırıp true döner.
+ *
+ * ÖNCEDEN ayrılıyor, üretimden sonra değil: iş kuyruğa girdikten sonra
+ * saymak, tam da durdurmak istediğimiz patlamada geç kalmak olurdu.
+ */
+export async function kotaAyir(
+  request: Request,
+  kare: number,
+): Promise<{ ok: true } | { ok: false; sebep: string }> {
+  const ip = istemciIp(request);
+  if (!ip) return { ok: true };
+
+  const anahtar = kotaAnahtari(ip);
+  const mevcut = await sayacOku(anahtar);
+  if (mevcut + kare > GUNLUK_KARE_TAVANI) {
+    console.warn(`kotaAyir: günlük tavan aşıldı (${anahtar}: ${mevcut}+${kare})`);
+    return {
+      ok: false,
+      sebep: "Bugünkü üretim hakkınız doldu. Yarın tekrar deneyebilirsiniz.",
+    };
+  }
+  await sayacYaz(anahtar, mevcut + kare);
+  return { ok: true };
 }
 
 /**
