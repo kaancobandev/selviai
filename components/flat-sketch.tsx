@@ -73,7 +73,37 @@ type Shape = {
   visible: boolean;
   kalinlik: Kalinlik;
 };
-type Measure = { id: string; a: Pt; b: Pt };
+/**
+ * ÖLÇÜM NOKTASI (POM — point of measure).
+ *
+ * Mezura bugüne kadar yalnız "iki nokta arası kaç cm" diyordu. Atölyenin
+ * sorduğu soru ise başka: HANGİ ölçü bu, numune bedende kaç olmalı ve
+ * ne kadar sapma kabul edilir. Adı olmayan bir ölçü tabloya giremiyor,
+ * toleransı olmayan bir ölçüyle kalite kontrol yapılamıyor — numune
+ * reddi tartışmaya dönüyor.
+ *
+ * DEĞER ÖLÇÜLÜYOR, GİRİLMİYOR: çizimdeki iki nokta arası zaten mesafe
+ * veriyor. Elle girilseydi çizimle tablo birbirinden ayrı düşerdi ve
+ * hangisinin doğru olduğu belirsiz kalırdı.
+ */
+type Measure = { id: string; a: Pt; b: Pt; ad?: string; tolerans?: number };
+
+/** Tech pack'lerde yaygın ölçüm noktaları — adlandırma hızlansın diye. */
+const POM_ONERILERI = [
+  "Göğüs genişliği",
+  "Bel genişliği",
+  "Etek ucu genişliği",
+  "Omuz genişliği",
+  "Ön boy",
+  "Arka boy",
+  "Kol boyu",
+  "Kol ağzı",
+  "Yaka genişliği",
+  "Yaka derinliği",
+  "Manşet yüksekliği",
+  "Cep genişliği",
+];
+const VARSAYILAN_TOLERANS = 1;
 /**
  * NOT / AÇIKLAMA BALONU (callout).
  *
@@ -223,7 +253,11 @@ function belgeyiOnar(ham: unknown): Doc | null {
       shapes: shapes
         .filter((x): x is Shape => !!x && Array.isArray((x as Shape).points))
         .map((x) => ({ ...x, kalinlik: x.kalinlik ?? "orta", visible: x.visible !== false })),
-      measures: measures as Measure[],
+      /* Eski kayıtlarda ad ve tolerans yok; varsayılan tolerans veriliyor,
+         ad boş kalıyor (adsız satır tabloda "Adsız ölçü" diye görünüyor
+         ve kullanıcıyı adlandırmaya çağırıyor — uydurma bir ad koymak
+         ölçüyü yanlış tanımlamak olurdu). */
+      measures: (measures as Measure[]).map((m) => ({ ...m, tolerans: m.tolerans ?? VARSAYILAN_TOLERANS })),
       /* Eski kayıtlarda `notlar` yok; sürüm anahtarını değiştirmek yerine
          burada boşa düşürüyoruz — kullanıcının çizimini bir alan eklendi
          diye atmanın gerekçesi olmaz. */
@@ -772,6 +806,14 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     }
     setEkSecim((e) => (e.includes(id) ? e.filter((x) => x !== id) : [...e, id]));
   };
+  const olcumGuncelle = (id: string, yama: Partial<Measure>, kaydet = true) => {
+    const uygula = (d: ViewDoc): ViewDoc => ({ ...d, measures: d.measures.map((m) => (m.id === id ? { ...m, ...yama } : m)) });
+    if (kaydet) commit(uygula);
+    else setDoc((d) => ({ ...d, [view]: uygula(d[view]) }));
+  };
+  const olcumSil = (id: string) =>
+    commit((d) => ({ ...d, measures: d.measures.filter((m) => m.id !== id) }));
+
   const selectedSimge = cur.simgeler.find((x) => x.id === selectedId) ?? null;
   const simgeGuncelle = (id: string, yama: Partial<Simge>, kaydet = true) => {
     const uygula = (d: ViewDoc): ViewDoc => ({ ...d, simgeler: d.simgeler.map((x) => (x.id === id ? { ...x, ...yama } : x)) });
@@ -1409,7 +1451,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     } else if (drag.kind === "measure") {
       if (dist(drag.a, p) > 6 / vp.zoom) {
         const id = uid();
-        commit((d) => ({ ...d, measures: [...d.measures, { id, a: drag.a, b: p }] }));
+        commit((d) => ({ ...d, measures: [...d.measures, { id, a: drag.a, b: p, tolerans: VARSAYILAN_TOLERANS }] }));
         setSelectedId(id);
       }
     } else if (drag.kind === "cut") {
@@ -1768,6 +1810,50 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       okuyucu.onerror = () => hata(okuyucu.error ?? new Error("okunamadı"));
       okuyucu.readAsDataURL(blob);
     });
+  }
+
+  /* ÖLÇÜ TABLOSU CSV — üretici tarafı tabloyu Excel'de istiyor.
+
+     ÜÇ GÖRÜNÜM BİRDEN gidiyor: ön, arka ve detay aynı giysinin
+     parçaları ve üretici tek dosya bekliyor. Görünüm sütunu numaranın
+     hangi sayfaya ait olduğunu söylüyor — numaralar her görünümde
+     birden başlıyor, çünkü çizimdeki daireler de öyle.
+
+     Ayırıcı noktalı virgül ve başta BOM: Türkçe Excel virgülü ondalık
+     ayırıcı sayıyor ve BOM olmadan Türkçe karakterleri bozuk açıyor. */
+  function pomCsv() {
+    const basliklar = ["Görünüm", "No", "Ölçüm noktası", "Numune (cm)", "Tolerans (±cm)"];
+    const satirlar: string[][] = [];
+    for (const v of VIEWS) {
+      doc[v.id].measures.forEach((m, i) => {
+        satirlar.push([
+          v.label,
+          String(i + 1),
+          m.ad?.trim() || "Adsız ölçü",
+          toCm(dist(m.a, m.b)).toFixed(1),
+          (m.tolerans ?? VARSAYILAN_TOLERANS).toFixed(1),
+        ]);
+      });
+    }
+    if (!satirlar.length) {
+      setToast("Ölçü yok — mezurayla (M) iki nokta arasını sürükleyin");
+      return;
+    }
+    const kacir = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const govde = [basliklar, ...satirlar].map((r) => r.map(kacir).join(";")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + govde], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "olcu-tablosu.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const adsiz = satirlar.filter((r) => r[2] === "Adsız ölçü").length;
+    setToast(
+      adsiz
+        ? `CSV indirildi — ${satirlar.length} ölçü, ${adsiz} tanesi adsız`
+        : `CSV indirildi — ${satirlar.length} ölçü`,
+    );
   }
 
   async function exportSvg() {
@@ -2160,8 +2246,8 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         })}
 
         {/* ölçüler */}
-        {cur.measures.map((m) => (
-          <MeasureMark key={m.id} a={m.a} b={m.b} zoom={vp.zoom} selected={m.id === selectedId} onSelect={() => { setSelectedId(m.id); setEkSecim([]); }} />
+        {cur.measures.map((m, i) => (
+          <MeasureMark key={m.id} a={m.a} b={m.b} no={i + 1} zoom={vp.zoom} selected={m.id === selectedId} onSelect={() => { setSelectedId(m.id); setEkSecim([]); }} />
         ))}
 
         {/* giysi simgeleri */}
@@ -2884,6 +2970,72 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               })}
               {cur.shapes.length === 0 && <li className="py-3 text-[11px] text-ash">Bu görünümde parça yok — kalemle çizin.</li>}
             </ul>
+
+            {/* ÖLÇÜ TABLOSU (POM).
+
+                Satırın DEĞERİ yazılmıyor, ÖLÇÜLÜYOR: çizimdeki iki nokta
+                arası zaten mesafe veriyor. Elle girilseydi çizimle tablo
+                birbirinden ayrı düşer ve hangisinin doğru olduğu belirsiz
+                kalırdı — tech pack'lerdeki en sık uyuşmazlık bu.
+
+                Satır numarası tuvaldeki daireyle aynı; tabloyu çizime
+                bağlayan tek şey o. */}
+            <div className="mt-7 flex items-baseline justify-between">
+              <p className="eyebrow text-ash">Ölçü tablosu · {VIEWS.find((v) => v.id === view)?.label}</p>
+              <span className="eyebrow tabular-nums text-ash">{cur.measures.length}</span>
+            </div>
+            <datalist id="pom-onerileri">
+              {POM_ONERILERI.map((x) => (
+                <option key={x} value={x} />
+              ))}
+            </datalist>
+            <ul className="mt-3 divide-y divide-mist border-y border-mist">
+              {cur.measures.map((m, i) => (
+                <li key={m.id} className={cn("py-2.5", m.id === selectedId && "bg-ink/[0.03]")}>
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      aria-hidden
+                      className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-ink/30 text-[10px] tabular-nums text-smoke"
+                    >
+                      {i + 1}
+                    </span>
+                    <input
+                      value={m.ad ?? ""}
+                      list="pom-onerileri"
+                      placeholder="Ölçü adı"
+                      aria-label={`${i + 1}. ölçünün adı`}
+                      onChange={(e) => olcumGuncelle(m.id, { ad: e.target.value }, false)}
+                      onFocus={() => { setSelectedId(m.id); setEkSecim([]); }}
+                      className="min-w-0 flex-1 border-b border-transparent bg-transparent py-0.5 text-[12.5px] outline-none placeholder:text-ash focus:border-ink"
+                    />
+                    <span className="shrink-0 text-[12.5px] tabular-nums">{fmtCm(dist(m.a, m.b))}</span>
+                    <span className="shrink-0 text-[11px] text-ash">±</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={m.tolerans ?? VARSAYILAN_TOLERANS}
+                      aria-label={`${i + 1}. ölçünün toleransı`}
+                      onChange={(e) => olcumGuncelle(m.id, { tolerans: Math.max(0, Number(e.target.value) || 0) }, false)}
+                      className="w-10 shrink-0 border-b border-transparent bg-transparent py-0.5 text-right text-[12px] tabular-nums outline-none focus:border-ink"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => olcumSil(m.id)}
+                      aria-label={`${i + 1}. ölçüyü sil`}
+                      className="shrink-0 text-ash transition-colors hover:text-ink"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {cur.measures.length === 0 && (
+                <li className="py-3 text-[11px] leading-4 text-ash">
+                  Ölçü yok — mezurayla (M) iki nokta arasını sürükleyin. Her ölçü tabloya bir satır olarak düşer.
+                </li>
+              )}
+            </ul>
           </div>
           <div className="flex items-center gap-5 border-t border-ink/10 px-4 py-3">
             <button
@@ -2896,6 +3048,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             </button>
             <button type="button" onClick={() => window.print()} className="eyebrow u-line">
               PDF olarak yazdır
+            </button>
+            <button type="button" onClick={pomCsv} className="eyebrow u-line">
+              Ölçü tablosu · CSV
             </button>
           </div>
         </Glass>
@@ -3201,16 +3356,52 @@ function BaskiSayfa({
         {g.simgeler.map((x) => (
           <SimgeIsareti key={x.id} simge={x} selected={false} onDown={() => {}} />
         ))}
-        {g.measures.map((m) => (
-          <g key={m.id}>
-            <line x1={m.a.x} y1={m.a.y} x2={m.b.x} y2={m.b.y} stroke={INK} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-            <MeasureLabel a={m.a} b={m.b} zoom={baskiZoom} />
-          </g>
+        {/* Tuvaldeki işaretin AYNISI: numara, uç çentikleri ve cm etiketi.
+            Baskı için ayrı bir çizim yazsaydık numaralandırma iki yerde
+            yaşar ve biri kayınca tablo çizimi göstermez olurdu. */}
+        {g.measures.map((m, i) => (
+          <MeasureMark key={m.id} a={m.a} b={m.b} no={i + 1} zoom={baskiZoom} selected={false} onSelect={() => {}} />
         ))}
         {g.notlar.map((n) => (
           <NotIsareti key={n.id} not={n} zoom={baskiZoom} selected={false} onDown={() => {}} />
         ))}
       </svg>
+      {/* ÖLÇÜ TABLOSU sayfanın altında, çizimle AYNI sayfada. Ayrı bir
+          sayfaya konsa atölye numarayı aramak için kâğıt çevirirdi. */}
+      {g.measures.length > 0 && (
+        <table style={{ width: "calc(100% - 24mm)", margin: "0 12mm", borderCollapse: "collapse", fontSize: "2.7mm" }}>
+          <tbody>
+            <tr style={{ borderBottom: "0.2mm solid #1a1a1a" }}>
+              {["No", "Ölçüm noktası", "Numune (cm)", "Tolerans"].map((h, i) => (
+                <td
+                  key={h}
+                  style={{
+                    padding: "1.2mm 2mm",
+                    fontSize: "2.4mm",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#55525c",
+                    textAlign: i >= 2 ? "right" : "left",
+                    width: i === 0 ? "10mm" : i >= 2 ? "26mm" : undefined,
+                  }}
+                >
+                  {h}
+                </td>
+              ))}
+            </tr>
+            {g.measures.map((m, i) => (
+              <tr key={m.id} style={{ borderBottom: "0.12mm solid #d8d6dc" }}>
+                <td style={{ padding: "1.2mm 2mm", fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
+                <td style={{ padding: "1.2mm 2mm" }}>{m.ad?.trim() || "Adsız ölçü"}</td>
+                <td style={{ padding: "1.2mm 2mm", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCm(dist(m.a, m.b))}</td>
+                <td style={{ padding: "1.2mm 2mm", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                  ± {(m.tolerans ?? VARSAYILAN_TOLERANS).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       <div
         style={{
           display: "flex",
@@ -3445,15 +3636,54 @@ function MeasureLabel({ a, b, zoom }: { a: Pt; b: Pt; zoom: number }) {
   );
 }
 
-function MeasureMark({ a, b, zoom, selected, onSelect }: { a: Pt; b: Pt; zoom: number; selected: boolean; onSelect: () => void }) {
+/**
+ * Ölçüm işareti — çizgi, uç çentikleri, cm etiketi ve SIRA NUMARASI.
+ *
+ * Numara POM tablosunun çizime bağlandığı yer. Onsuz tabloda "Göğüs
+ * genişliği 36,0 cm" yazıyor ama atölye o ölçünün çizimde nereden
+ * alındığını bilmiyor — tech pack'i tech pack yapan bağ tam olarak bu.
+ * Numara `a` ucunda duruyor, cm etiketi ortada: ikisi aynı yere konsa
+ * kısa ölçülerde üst üste binerdi.
+ */
+function MeasureMark({
+  a,
+  b,
+  no,
+  zoom,
+  selected,
+  onSelect,
+}: {
+  a: Pt;
+  b: Pt;
+  no: number;
+  zoom: number;
+  selected: boolean;
+  onSelect: () => void;
+}) {
   const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
   const nx = (-dy / len) * (5 / zoom), ny = (dx / len) * (5 / zoom);
   const stroke = selected ? SELECT : INK;
+  const r = 6.5 / zoom;
+  /* Numara çizginin dışına, `a` ucundan geriye doğru kaydırılıyor;
+     üstüne binerse ölçü çizgisinin ucu okunmaz oluyor. */
+  const ux = dx / len, uy = dy / len;
+  const cx = a.x - ux * (r * 1.6), cy = a.y - uy * (r * 1.6);
   return (
     <g onPointerDown={(e) => { e.stopPropagation(); onSelect(); }} style={{ cursor: "pointer" }}>
       <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={stroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
       <line x1={a.x - nx} y1={a.y - ny} x2={a.x + nx} y2={a.y + ny} stroke={stroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
       <line x1={b.x - nx} y1={b.y - ny} x2={b.x + nx} y2={b.y + ny} stroke={stroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      <circle cx={cx} cy={cy} r={r} fill="#fff" stroke={stroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      <text
+        x={cx}
+        y={cy + r * 0.36}
+        textAnchor="middle"
+        fontSize={r * 1.1}
+        fontFamily="var(--font-sans)"
+        fill={stroke}
+      >
+        {no}
+      </text>
       <MeasureLabel a={a} b={b} zoom={zoom} />
     </g>
   );
