@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DotField } from "@/components/dot-field";
@@ -41,6 +42,11 @@ import { cn } from "@/lib/utils";
  */
 const SEKTOR = "Moda";
 
+/** Liste ile başlık/görünüm kenarı arasında bırakılan nefes payı. */
+const PAY = 12;
+/** Boşluk çok genişse liste yine de bir yerde durmalı; okunacak bir menü, sayfa değil. */
+const EN_COK_YUKSEKLIK = 420;
+
 const BASLIK = "Learn Create Sell";
 
 /**
@@ -70,7 +76,71 @@ export function Hero({ istek: disIstek, onIstek, onGonder, mesgul = false }: Her
   const yazildi = onIstek ?? setIcIstek;
 
   const [listeAcik, setListeAcik] = useState(false);
+  /* İKİ REFERANS: sarmalayıcı (düğme) ve panelin kendisi. Panel artık
+     gövdeye taşındığı için sarmalayıcının içinde DEĞİL; dışarı-tıklama
+     kontrolü ikisini de saymazsa panele tıklamak "dışarı" sayılır,
+     `pointerdown` paneli kaldırır ve seçeneğin `click`i hiç ateşlenmez —
+     yani seçim sessizce kaybolur. */
   const listeRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  /* YERLEŞİM ÖLÇÜLEREK KURULUYOR VE GÜVENLİ ALANA KELEPÇELENİYOR.
+
+     İki tur bu yüzden kaybedildi, ikisi de ölçümle çıktı:
+
+     1. Liste her zaman YUKARI açılıyordu, sabit tavanla (60vh/420px).
+        720px'lik görünümde panelin üstü -84'e düştü — görünümün dışına
+        taşıp site başlığını geçti. Oysa düğmenin altında 344px, üstünde
+        263px boşluk vardı; sabit yön yanlış tarafı seçmişti.
+     2. Yön ölçüye bağlanınca da yetmedi: kısa görünümde İKİ taraf da dar
+        kalıyor ve koyduğum alt sınır (160px) gerçek boşluğu eziyordu,
+        panel yine başlığın altına giriyordu.
+
+     Doğrusu düğmeye çıpalamayı bırakmak: panel `fixed` ve önce GÜVENLİ
+     ALAN hesaplanıyor (başlığın altından görünümün altına). Yükseklik o
+     alana sığdırılıyor, tercih edilen konum düğmenin altı/üstü oluyor,
+     sonra bu konum güvenli alanın içine kelepçeleniyor. Popover
+     kitaplıklarının "flip + shift" dediği şey; hiçbir ekranda ne başlığa
+     girer ne görünümden taşar, çünkü taşabileceği yer kalmıyor. */
+  const [yerlesim, setYerlesim] = useState<{ ust: number; sol: number; yukseklik: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!listeAcik) return;
+    const olc = () => {
+      const kap = listeRef.current;
+      if (!kap) return;
+      const d = kap.getBoundingClientRect();
+      /* Başlık `fixed` ve listenin üstünde duruyor. Yüksekliği sorulan
+         yerden okunuyor, sabit yazılmıyor — başlık ölçüsü değişirse
+         burası kendiliğinden uyar. */
+      const basligAlti = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      const guvenliUst = basligAlti + PAY;
+      const guvenliAlt = window.innerHeight - PAY;
+      const alan = Math.max(0, guvenliAlt - guvenliUst);
+
+      const yukseklik = Math.min(EN_COK_YUKSEKLIK, alan);
+      const altaSigar = window.innerHeight - d.bottom - PAY >= yukseklik;
+      const tercih = altaSigar ? d.bottom + PAY : d.top - PAY - yukseklik;
+      const ust = Math.min(Math.max(tercih, guvenliUst), guvenliAlt - yukseklik);
+
+      const genislik = Math.min(window.innerWidth * 0.88, 520);
+      const sol = Math.min(Math.max(d.left, PAY), window.innerWidth - genislik - PAY);
+
+      setYerlesim({ ust, sol, yukseklik });
+    };
+    olc();
+    /* Panel `fixed`, yani sayfa kayarsa düğmeden kopar. Kaydırma da
+       dinleniyor; kapatmak yerine yeniden konumlamak yeğ, çünkü liste
+       uzun ve kullanıcı okurken sayfayı kaydırabiliyor. */
+    window.addEventListener("resize", olc);
+    window.addEventListener("scroll", olc, { passive: true });
+    return () => {
+      window.removeEventListener("resize", olc);
+      window.removeEventListener("scroll", olc);
+    };
+  }, [listeAcik]);
 
   /* Liste dışarı tıklamayla ve Escape ile kapanıyor — açılır bir katmanın
      iki temel çıkışı. Dinleyici yalnız liste AÇIKKEN bağlanıyor; kapalıyken
@@ -82,7 +152,9 @@ export function Hero({ istek: disIstek, onIstek, onGonder, mesgul = false }: Her
     if (!listeAcik) return;
     const disari = (olay: PointerEvent) => {
       const hedef = olay.target as Node;
-      if (listeRef.current && !listeRef.current.contains(hedef)) setListeAcik(false);
+      const iceride =
+        listeRef.current?.contains(hedef) || panelRef.current?.contains(hedef);
+      if (!iceride) setListeAcik(false);
     };
     const tus = (olay: KeyboardEvent) => {
       if (olay.key === "Escape") setListeAcik(false);
@@ -193,13 +265,41 @@ export function Hero({ istek: disIstek, onIstek, onGonder, mesgul = false }: Her
                 Bana prompt ver
               </button>
 
-              {listeAcik && (
+              {/* PANEL GÖVDEYE TAŞINIYOR (portal) — süs değil zorunluluk.
+                  Prompt kutusunda `backdrop-blur` var ve `backdrop-filter`
+                  taşıyan bir ata, `fixed` torunları için İÇEREN BLOK oluyor.
+                  Yani panel kutunun içinde kaldığı sürece `fixed` görünüme
+                  değil kutuya göre çözülüyordu: ölçüm `top: 93` diyordu,
+                  panel 471'e düşüyor ve görünümün altından taşıyordu.
+                  Gövdeye taşınınca `fixed` yeniden görünüme bağlanıyor.
+
+                  Portalın SSR sorunu yok: liste ancak kullanıcı tıklayınca
+                  açılıyor, yani `document` her zaman var. */}
+              {listeAcik &&
+                createPortal(
                 <div
+                  ref={panelRef}
                   role="listbox"
                   aria-label="Hazır promptlar"
-                  /* Kutunun ÜSTÜNE açılıyor: prompt kutusu ekranın ortasında
-                     ve altında yer yok; aşağı açılsa liste görünümden taşardı. */
-                  className="absolute bottom-full left-0 z-20 mb-2 max-h-[min(60vh,420px)] w-[min(88vw,520px)] overflow-y-auto rounded-2xl border border-kalem/15 bg-zemin/95 p-1.5 shadow-[0_18px_48px_rgb(0_0_0/0.35)] backdrop-blur-xl"
+                  style={{
+                    top: yerlesim?.ust,
+                    left: yerlesim?.sol,
+                    maxHeight: yerlesim?.yukseklik,
+                    /* Ölçüm ilk boyamadan SONRA geliyor; o ana kadar panel
+                       gizli. Ölçüsüz bir kare görünüp sonra yerine
+                       zıplaması, doğru yere bir anda oturmasından kötü. */
+                    visibility: yerlesim ? "visible" : "hidden",
+                  }}
+                  /* CAM AMA OKUNUR. Zemin zaten %95 opaktı; sorun opaklık
+                     değil, 24px bulanıklığın arkadaki DEV başlığı eritmeye
+                     yetmemesiydi — harfler panelin altından okunuyordu ve
+                     listeyi okumayı zorlaştırıyordu. Bulanıklık 64px'e
+                     çıkarıldı: bu ölçekte harf biçimleri tamamen dağılıp
+                     düz bir parlaklığa dönüşüyor, cam etkisi de kalıyor.
+                     `saturate` buzlu camın rengi soldurmasını telafi ediyor. */
+                  /* z-[60]: gövde çocuğu olduğu için artık site başlığıyla
+                     (z-50) aynı yığında; altında kalmamalı. */
+                  className="fixed z-[60] w-[min(88vw,520px)] overflow-y-auto rounded-2xl border border-kalem/15 bg-zemin/95 p-1.5 shadow-[0_18px_48px_rgb(0_0_0/0.45)] backdrop-blur-[64px] backdrop-saturate-150"
                 >
                   {HAZIR_PROMPTLAR.map((p) => (
                     <button
@@ -216,7 +316,8 @@ export function Hero({ istek: disIstek, onIstek, onGonder, mesgul = false }: Her
                       {p}
                     </button>
                   ))}
-                </div>
+                </div>,
+                document.body,
               )}
             </div>
 
