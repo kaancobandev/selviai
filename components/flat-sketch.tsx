@@ -77,7 +77,7 @@ type ViewDoc = { shapes: Shape[]; measures: Measure[] };
 type Doc = Record<ViewId, ViewDoc>;
 
 const TOOLS: { id: Tool; label: string; key: string; hint: string }[] = [
-  { id: "select", label: "Seç", key: "V", hint: "Parçaya tıkla · sürükle taşı · çapaları çek" },
+  { id: "select", label: "Seç", key: "V", hint: "Tıkla seç · Shift çoğaltır · çift tık nokta ekler · Alt+çapa siler" },
   { id: "pen", label: "Kalem", key: "P", hint: "Tıkla nokta ekle · ilk noktaya dön kapat · Enter bitir" },
   { id: "measure", label: "Mezura", key: "M", hint: "İki nokta arasını sürükle · cm" },
   { id: "cut", label: "Makas", key: "C", hint: "Parçanın üzerinden bir çizgi çek · ikiye böler" },
@@ -497,7 +497,12 @@ function kayitliTeknikCizimler(
 
 type Drag =
   | { kind: "pan"; startClient: Pt; startView: Pt }
-  | { kind: "move"; id: string; start: Pt; orig: Pt[]; recorded: boolean }
+  /* Taşıma artık BİRDEN ÇOK parçayı kapsıyor: `orij` her seçili parçanın
+     başlangıç noktalarını kimliğine göre tutuyor. Tek tek `updateShape`
+     çağırmak yerine başlangıcı saklamanın sebebi, sürükleme boyunca
+     birikimli hata olmaması — her karede kaynak noktalardan yeniden
+     hesaplanıyor. */
+  | { kind: "move"; ids: string[]; start: Pt; orij: Record<string, Pt[]>; recorded: boolean }
   | { kind: "anchor"; id: string; index: number }
   | { kind: "measure"; a: Pt }
   | { kind: "cut"; a: Pt };
@@ -532,7 +537,13 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [kalinlik, setKalinlik] = useState<Kalinlik>("orta");
   const [smooth, setSmooth] = useState(true);
   const [stitchOpen, setStitchOpen] = useState(false);
+  /* SEÇİM İKİ PARÇALI: bir BİRİNCİL parça (`selectedId`) ve Shift ile
+     eklenenler (`ekSecim`). Tek bir dizi tutmak daha basit görünüyordu ama
+     yanlış olurdu: panel tek bir parçanın adını, dikişini ve kalınlığını
+     düzenliyor; "hangisinin ayarları gösteriliyor" sorusunun bir cevabı
+     olmak zorunda. Vektör araçlarındaki "etkin nesne" kavramı da bu. */
   const [selectedId, setSelectedId] = useState<string | null>("s-front");
+  const [ekSecim, setEkSecim] = useState<string[]>([]);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [hover, setHover] = useState<Pt | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -657,6 +668,33 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   /* ---------- doküman yardımcıları ---------- */
   const cur = doc[view];
   const selected = cur.shapes.find((s) => s.id === selectedId) ?? null;
+  const secimIdleri = selectedId ? [selectedId, ...ekSecim.filter((x) => x !== selectedId)] : ekSecim;
+  /* Sıra BELGEDEKİ sıra, seçim sırası değil: hizalama ve dağıtma soldan
+     sağa çalışıyor ve seçim sırasına bağlı olsaydı aynı seçim iki farklı
+     sonuç verirdi. */
+  const secililer = cur.shapes.filter((s) => secimIdleri.includes(s.id));
+  const cokluSecim = secililer.length > 1;
+
+  const secimeAl = (id: string, ekle: boolean) => {
+    if (!ekle) {
+      setSelectedId(id);
+      setEkSecim([]);
+      return;
+    }
+    if (id === selectedId) {
+      /* Birincil parça Shift ile tıklanınca seçimden düşüyor ve yerine
+         ek seçimin ilki birincil oluyor — yoksa seçim başsız kalırdı. */
+      const [yeni, ...kalan] = ekSecim;
+      setSelectedId(yeni ?? null);
+      setEkSecim(kalan);
+      return;
+    }
+    setEkSecim((e) => (e.includes(id) ? e.filter((x) => x !== id) : [...e, id]));
+  };
+  const secimiTemizle = () => {
+    setSelectedId(null);
+    setEkSecim([]);
+  };
   const commit = (mutate: (d: ViewDoc) => ViewDoc) => {
     setUndo((u) => [...u.slice(-29), doc]);
     /* Yeni bir iş, ileri al yığınını geçersiz kılıyor: geri gidip başka
@@ -682,9 +720,13 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     setRedo(redo.slice(0, -1));
   };
   const removeSelected = () => {
-    if (!selectedId) return;
-    commit((d) => ({ ...d, shapes: d.shapes.filter((s) => s.id !== selectedId), measures: d.measures.filter((m) => m.id !== selectedId) }));
-    setSelectedId(null);
+    if (!secimIdleri.length) return;
+    commit((d) => ({
+      ...d,
+      shapes: d.shapes.filter((s) => !secimIdleri.includes(s.id)),
+      measures: d.measures.filter((m) => !secimIdleri.includes(m.id)),
+    }));
+    secimiTemizle();
   };
   const hitTest = (p: Pt): Shape | null => {
     const tol = 6 / vp.zoom;
@@ -774,6 +816,114 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       const oge = d.shapes[i];
       return { ...d, shapes: yon === "on" ? [...kalan, oge] : [oge, ...kalan] };
     });
+  };
+
+  /* ---------- hizalama ve dağıtma ----------
+
+     HEDEF SEÇİMİN KUTUSU, "anahtar nesne" DEĞİL. Illustrator seçilen son
+     nesneyi çıpa yapabiliyor; burada kasten seçim kutusuna hizalıyoruz,
+     çünkü tıklama sırası ekranda görünmüyor — görünmeyen bir duruma bağlı
+     sonuç, aynı seçimde iki farklı davranış demek olurdu.
+
+     Parçalar KUTULARIYLA taşınıyor, noktalarıyla değil: bir cebin sol
+     kenarı hizalanırken cebin kendi biçimi değişmemeli. */
+  const secimKutusu = () => bbox(secililer.flatMap((s) => s.points));
+
+  const secimiTasi = (kaydir: (s: Shape) => Pt) =>
+    commit((d) => ({
+      ...d,
+      shapes: d.shapes.map((s) => {
+        if (!secimIdleri.includes(s.id)) return s;
+        const k = kaydir(s);
+        if (!k.x && !k.y) return s;
+        return { ...s, points: s.points.map((q) => ({ x: q.x + k.x, y: q.y + k.y })) };
+      }),
+    }));
+
+  type Hiza = "sol" | "yatayOrta" | "sag" | "ust" | "dikeyOrta" | "alt";
+  const hizala = (kenar: Hiza) => {
+    if (secililer.length < 2) return;
+    const h = secimKutusu();
+    secimiTasi((s) => {
+      const k = bbox(s.points);
+      switch (kenar) {
+        case "sol": return { x: h.minX - k.minX, y: 0 };
+        case "sag": return { x: h.maxX - k.maxX, y: 0 };
+        case "yatayOrta": return { x: h.minX + h.w / 2 - (k.minX + k.w / 2), y: 0 };
+        case "ust": return { x: 0, y: h.minY - k.minY };
+        case "alt": return { x: 0, y: h.maxY - k.maxY };
+        case "dikeyOrta": return { x: 0, y: h.minY + h.h / 2 - (k.minY + k.h / 2) };
+      }
+    });
+  };
+
+  /* Dağıtma MERKEZLERİ eşitliyor, boşlukları değil. İkisi de meşru ama
+     merkez daha öngörülebilir: farklı genişlikte parçalarda boşluk eşitleme
+     görsel olarak "kaymış" duruyor. En baştaki ve en sondaki parça yerinde
+     kalıyor — dağıtmanın seçimi büyütmemesi gerekiyor. */
+  const dagit = (eksen: "yatay" | "dikey") => {
+    if (secililer.length < 3) return;
+    const merkez = (s: Shape) => {
+      const k = bbox(s.points);
+      return eksen === "yatay" ? k.minX + k.w / 2 : k.minY + k.h / 2;
+    };
+    const sirali = [...secililer].sort((a, b) => merkez(a) - merkez(b));
+    const ilk = merkez(sirali[0]);
+    const adim = (merkez(sirali[sirali.length - 1]) - ilk) / (sirali.length - 1);
+    const hedef = new Map(sirali.map((s, i) => [s.id, ilk + adim * i]));
+    secimiTasi((s) => {
+      const d = (hedef.get(s.id) ?? merkez(s)) - merkez(s);
+      return eksen === "yatay" ? { x: d, y: 0 } : { x: 0, y: d };
+    });
+  };
+
+  /* ---------- yola nokta ekleme / silme ----------
+
+     Eğri motorumuz "az noktayla köşe, çok noktayla eğri" kuralına dayanıyor
+     (bkz. lib/geometry.ts). Yani kullanıcının en çok ihtiyaç duyduğu
+     düzeltme aracı nokta EKLEMEK — ve bugüne kadar yalnız çizerken
+     mümkündü, çizim bitince yol donuyordu.
+
+     Eklenen nokta tıklanan yere değil, en yakın kontrol kenarına DÜŞÜRÜLEN
+     dik izdüşüme konuyor: tıklama eğrinin üstüne isabet ediyor ama eğri
+     kontrol çokgeninin dışında geziyor, tıklanan noktayı olduğu gibi
+     eklemek parçayı oraya doğru şişirirdi. İzdüşüm ise biçimi neredeyse
+     hiç değiştirmiyor. */
+  const enYakinKenar = (s: Shape, p: Pt) => {
+    const n = s.points.length;
+    const kenarSayisi = s.closed ? n : n - 1;
+    let enIyi = { indeks: 0, nokta: p, uzaklik: Infinity };
+    for (let i = 0; i < kenarSayisi; i++) {
+      const a = s.points[i], b = s.points[(i + 1) % n];
+      const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
+      const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2));
+      const q = { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+      const u = dist(p, q);
+      if (u < enIyi.uzaklik) enIyi = { indeks: i, nokta: q, uzaklik: u };
+    }
+    return enIyi;
+  };
+
+  const noktaEkle = (p: Pt) => {
+    const hedef = hitTest(p) ?? selected;
+    if (!hedef) return;
+    const { indeks, nokta } = enYakinKenar(hedef, p);
+    updateShape(hedef.id, { points: [...hedef.points.slice(0, indeks + 1), nokta, ...hedef.points.slice(indeks + 1)] });
+    setSelectedId(hedef.id);
+    setEkSecim([]);
+  };
+
+  const noktaSil = (id: string, indeks: number) => {
+    const hedef = cur.shapes.find((x) => x.id === id);
+    if (!hedef) return;
+    /* Alt sınır: kapalı parça üçgenden aşağı inemez, açık yol doğrudan.
+       Altına inmek parçayı çizilemez hâle getirirdi. */
+    const enAz = hedef.closed ? 3 : 2;
+    if (hedef.points.length <= enAz) {
+      setToast(hedef.closed ? "Kapalı parça en az üç nokta ister" : "Yol en az iki nokta ister");
+      return;
+    }
+    updateShape(id, { points: hedef.points.filter((_, i) => i !== indeks) });
   };
 
   const applyFabric = (shapeId: string, fabricId: string | null) => {
@@ -909,10 +1059,26 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     if (tool === "select") {
       const hit = hitTest(p);
       if (hit) {
-        setSelectedId(hit.id);
-        setDrag({ kind: "move", id: hit.id, start: p, orig: hit.points, recorded: false });
-      } else {
-        setSelectedId(null);
+        /* Zaten seçili bir parçaya Shift'siz basmak seçimi BOZMUYOR:
+           birden çok parça seçip birlikte taşımanın tek yolu bu. Shift'siz
+           tıklama yalnız seçimin DIŞINDAKİ bir parçaya basıldığında
+           seçimi tekilleştiriyor. */
+        const zatenSecili = secimIdleri.includes(hit.id);
+        if (e.shiftKey) secimeAl(hit.id, true);
+        else if (!zatenSecili) secimeAl(hit.id, false);
+        else setSelectedId(hit.id);
+
+        const tasinacak = e.shiftKey ? [] : zatenSecili ? secimIdleri : [hit.id];
+        if (tasinacak.length) {
+          const orij: Record<string, Pt[]> = {};
+          for (const sid of tasinacak) {
+            const parca = cur.shapes.find((x) => x.id === sid);
+            if (parca) orij[sid] = parca.points;
+          }
+          setDrag({ kind: "move", ids: Object.keys(orij), start: p, orij, recorded: false });
+        }
+      } else if (!e.shiftKey) {
+        secimiTemizle();
       }
     } else if (tool === "pen") {
       if (draft.length >= 3 && dist(p, draft[0]) < 8 / vp.zoom) {
@@ -944,7 +1110,15 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         setUndo((u) => [...u.slice(-29), doc]);
         setDrag({ ...drag, recorded: true });
       }
-      updateShape(drag.id, { points: drag.orig.map((q) => ({ x: q.x + dx, y: q.y + dy })) }, false);
+      setDoc((d) => ({
+        ...d,
+        [view]: {
+          ...d[view],
+          shapes: d[view].shapes.map((s) =>
+            drag.orij[s.id] ? { ...s, points: drag.orij[s.id].map((q) => ({ x: q.x + dx, y: q.y + dy })) } : s,
+          ),
+        },
+      }));
     } else if (drag.kind === "anchor") {
       setDoc((d) => ({
         ...d,
@@ -985,7 +1159,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         }
         if (pieces) {
           commit((d) => ({ ...d, shapes: next }));
-          setSelectedId(null);
+          secimiTemizle();
         }
         setToast(pieces ? `${pieces} parça ikiye bölündü` : "Kesim çizgisi bir parçadan geçmedi");
       }
@@ -997,9 +1171,31 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   function onAnchorDown(e: ReactPointerEvent<SVGRectElement>, id: string, index: number) {
     if (tool !== "select") return;
     e.stopPropagation();
+    /* Alt ile çapaya basmak noktayı SİLİYOR — vektör araçlarının ortak
+       kısayolu. Sürüklemeden önce bakılıyor, yoksa silinen noktanın
+       ardından bir sürükleme başlar ve komşu nokta yerinden oynardı. */
+    if (e.altKey) {
+      noktaSil(id, index);
+      return;
+    }
     svgRef.current?.setPointerCapture(e.pointerId);
     setUndo((u) => [...u.slice(-29), doc]);
     setDrag({ kind: "anchor", id, index });
+  }
+
+  /**
+   * Çift tıklama — araca göre iki ayrı iş.
+   *
+   * Kalemde açık yolu bitiriyor (eskiden beri böyle), seçim aracında yola
+   * NOKTA EKLİYOR. Tek işleyicide birleşiyorlar çünkü SVG'ye ikinci bir
+   * `onDoubleClick` yazmak sessizce ilkini eziyordu.
+   */
+  function onDoubleClick(e: ReactPointerEvent<SVGSVGElement>) {
+    if (tool === "pen") {
+      if (draft.length >= 2) finishDraft(false);
+      return;
+    }
+    if (tool === "select") noktaEkle(toCanvas(e.clientX, e.clientY));
   }
 
   /* ---------- kumaş sürükle-bırak ---------- */
@@ -1322,12 +1518,10 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         style={{ cursor }}
         viewBox={`${vp.x} ${vp.y} ${size.w / vp.zoom} ${size.h / vp.zoom}`}
         onPointerDown={onPointerDown}
+        onDoubleClick={onDoubleClick}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={() => setHover(null)}
-        onDoubleClick={() => {
-          if (tool === "pen" && draft.length >= 2) finishDraft(false);
-        }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDropFabric}
         role="application"
@@ -1410,7 +1604,13 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           if (!s.visible) return null;
           const d = s.smooth ? smoothPath(s.points, s.closed) : polyPath(s.points, s.closed);
           const sampled = s.stitch === "zigzag" || s.stitch === "surfile" ? samplePath(s.points, s.closed, s.smooth, 4) : [];
-          const isSel = s.id === selectedId;
+          const isSel = secimIdleri.includes(s.id);
+          /* ÇAPALAR YALNIZ TEK SEÇİMDE. Çoklu seçimde her parçanın
+             noktalarını basmak tuvali okunmaz hâle getiriyor ve nokta
+             sürüklerken yanlış parçayı yakalamak kolaylaşıyor. Seçim
+             çizgisi yine hepsinde görünüyor, yani neyin seçili olduğu
+             belirsiz kalmıyor. */
+          const capaliGoster = s.id === selectedId && !cokluSecim;
           return (
             <g key={s.id}>
               <path
@@ -1435,7 +1635,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               {isSel && (
                 <g data-ui>
                   <path d={d} fill="none" stroke={SELECT} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                  {s.points.map((q, i) => (
+                  {capaliGoster && s.points.map((q, i) => (
                     <rect
                       key={i}
                       x={q.x - 3 / vp.zoom}
@@ -1457,7 +1657,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
 
         {/* ölçüler */}
         {cur.measures.map((m) => (
-          <MeasureMark key={m.id} a={m.a} b={m.b} zoom={vp.zoom} selected={m.id === selectedId} onSelect={() => setSelectedId(m.id)} />
+          <MeasureMark key={m.id} a={m.a} b={m.b} zoom={vp.zoom} selected={m.id === selectedId} onSelect={() => { setSelectedId(m.id); setEkSecim([]); }} />
         ))}
 
         {/* geçici ölçü / kesim */}
@@ -1748,7 +1948,66 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             )}
 
             {/* Seçim */}
-            <p className="eyebrow text-ash">Seçim</p>
+            <div className="flex items-baseline justify-between">
+              <p className="eyebrow text-ash">Seçim</p>
+              <span className="eyebrow text-ash">{cokluSecim ? `${secililer.length} parça` : "Shift ile çoğalt"}</span>
+            </div>
+
+            {/* HİZALAMA YALNIZ ÇOKLU SEÇİMDE. Tek parçada hizalayacak bir
+                referans yok; düğmeleri hep göstermek "neye göre hizalıyor"
+                sorusunu cevapsız bırakırdı. */}
+            {cokluSecim && (
+              <div className="mt-3 space-y-2 text-[12px] leading-4">
+                <Row k="Hizala">
+                  <span className="inline-flex items-center gap-1">
+                    {([
+                      ["sol", "Sol kenar", "M4 3v18M8 8h11M8 16h7"],
+                      ["yatayOrta", "Yatay orta", "M12 3v18M6 8h12M8 16h8"],
+                      ["sag", "Sağ kenar", "M20 3v18M5 8h11M9 16h7"],
+                      ["ust", "Üst kenar", "M3 4h18M8 8v11M16 8v7"],
+                      ["dikeyOrta", "Dikey orta", "M3 12h18M8 6v12M16 8v8"],
+                      ["alt", "Alt kenar", "M3 20h18M8 5v11M16 9v7"],
+                    ] as [Hiza, string, string][]).map(([id, ad, yol]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => hizala(id)}
+                        title={ad}
+                        aria-label={ad}
+                        className="flex h-6 w-6 items-center justify-center border border-mist text-smoke transition-colors hover:border-ink/40 hover:text-ink"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                          <path d={yol} />
+                        </svg>
+                      </button>
+                    ))}
+                  </span>
+                </Row>
+                <Row k="Dağıt">
+                  <span className="inline-flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => dagit("yatay")}
+                      disabled={secililer.length < 3}
+                      title="Merkezleri yatayda eşitle — en az üç parça"
+                      className="eyebrow text-ash u-line hover:text-ink disabled:opacity-40 disabled:hover:text-ash"
+                    >
+                      Yatay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => dagit("dikey")}
+                      disabled={secililer.length < 3}
+                      title="Merkezleri dikeyde eşitle — en az üç parça"
+                      className="eyebrow text-ash u-line hover:text-ink disabled:opacity-40 disabled:hover:text-ash"
+                    >
+                      Dikey
+                    </button>
+                  </span>
+                </Row>
+              </div>
+            )}
+
             {selected ? (
               <div className="mt-3 space-y-2 text-[12px] leading-4">
                 <input
@@ -1855,10 +2114,15 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             </div>
             <ul className="mt-3 divide-y divide-mist border-y border-mist">
               {[...cur.shapes].reverse().map((s) => {
-                const isSel = s.id === selectedId;
+                const isSel = secimIdleri.includes(s.id);
                 return (
                   <li key={s.id} className={cn("flex items-center gap-2 py-2", !s.visible && "opacity-50")}>
-                    <button type="button" onClick={() => setSelectedId(s.id)} className={cn("flex min-w-0 flex-1 items-center gap-2.5 text-left", isSel ? "text-ink" : "text-smoke hover:text-ink")}>
+                    <button
+                      type="button"
+                      onClick={(e) => secimeAl(s.id, e.shiftKey)}
+                      title="Shift ile birden çok parça seçilir"
+                      className={cn("flex min-w-0 flex-1 items-center gap-2.5 text-left", isSel ? "text-ink" : "text-smoke hover:text-ink")}
+                    >
                       <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0", isSel ? "bg-[#6B7C93]" : "border border-ink/30")} />
                       <span className="truncate text-[12.5px]">{s.name}</span>
                       <span className="ml-auto shrink-0 eyebrow text-ash">{STITCHES.find((x) => x.id === s.stitch)?.label.split(" ")[0]}</span>
