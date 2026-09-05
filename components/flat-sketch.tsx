@@ -41,6 +41,26 @@ type Tool = "select" | "pen" | "measure" | "cut" | "hand";
 type Stitch = "duz" | "ust" | "zigzag" | "surfile";
 type ViewId = "front" | "back" | "detail";
 
+/**
+ * ÇİZGİ KALINLIĞI — teknik çizimin okunma dili.
+ *
+ * Bir flat'te kalınlık süs değil, ANLAM: dış hat kalın (parçanın sınırı),
+ * yapısal hatlar orta, dikiş ve detay ince. Sanayi bu ayrımla okuyor;
+ * tek kalınlıkta çizilmiş bir flat'te atölye neyin kenar neyin dikiş
+ * olduğunu ayırt edemiyor. Eskiden tuvaldeki her yol `strokeWidth="1"`
+ * idi — yani çizimimizin söyleyebileceği tek bir şey vardı.
+ *
+ * Değerler `vectorEffect="non-scaling-stroke"` ile piksel cinsinden
+ * sabit kalıyor: yakınlaştırınca kalınlık hiyerarşisi bozulmuyor.
+ */
+type Kalinlik = "ince" | "orta" | "kalin";
+const KALINLIKLAR: { id: Kalinlik; label: string; px: number }[] = [
+  { id: "ince", label: "İnce", px: 0.75 },
+  { id: "orta", label: "Orta", px: 1.25 },
+  { id: "kalin", label: "Kalın", px: 2 },
+];
+const kalinlikPx = (k: Kalinlik) => KALINLIKLAR.find((x) => x.id === k)?.px ?? 1.25;
+
 type Shape = {
   id: string;
   name: string;
@@ -50,6 +70,7 @@ type Shape = {
   stitch: Stitch;
   fabricId: string | null;
   visible: boolean;
+  kalinlik: Kalinlik;
 };
 type Measure = { id: string; a: Pt; b: Pt };
 type ViewDoc = { shapes: Shape[]; measures: Measure[] };
@@ -99,23 +120,88 @@ const blouse = (neck: number): Pt[] => [
 const initialDoc: Doc = {
   front: {
     shapes: [
-      { id: "s-front", name: "Ön beden", points: blouse(130), closed: true, smooth: true, stitch: "ust", fabricId: "organik-keten", visible: true },
-      { id: "s-sleeve", name: "Kol", points: [P(150, 124), P(181, 104), P(212, 124), P(206, 250), P(196, 332), P(166, 332), P(156, 250)], closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true },
+      { id: "s-front", name: "Ön beden", points: blouse(130), closed: true, smooth: true, stitch: "ust", fabricId: "organik-keten", visible: true, kalinlik: "kalin" },
+      { id: "s-sleeve", name: "Kol", points: [P(150, 124), P(181, 104), P(212, 124), P(206, 250), P(196, 332), P(166, 332), P(156, 250)], closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin" },
     ],
     measures: [{ id: "m1", a: P(-72, 122), b: P(72, 122) }],
   },
   back: {
-    shapes: [{ id: "s-back", name: "Arka beden", points: blouse(112), closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true }],
+    shapes: [{ id: "s-back", name: "Arka beden", points: blouse(112), closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin" }],
     measures: [],
   },
   detail: {
     shapes: [
-      { id: "s-cuff", name: "Manşet", points: [P(-80, 0), P(80, 0), P(80, 40), P(-80, 40)], closed: true, smooth: false, stitch: "surfile", fabricId: "organik-keten", visible: true },
-      { id: "s-pocket", name: "Cep", points: [P(120, 0), P(180, 0), P(180, 60), P(150, 72), P(120, 60)], closed: true, smooth: false, stitch: "zigzag", fabricId: "denim", visible: true },
+      { id: "s-cuff", name: "Manşet", points: [P(-80, 0), P(80, 0), P(80, 40), P(-80, 40)], closed: true, smooth: false, stitch: "surfile", fabricId: "organik-keten", visible: true, kalinlik: "orta" },
+      { id: "s-pocket", name: "Cep", points: [P(120, 0), P(180, 0), P(180, 60), P(150, 72), P(120, 60)], closed: true, smooth: false, stitch: "zigzag", fabricId: "denim", visible: true, kalinlik: "orta" },
     ],
     measures: [{ id: "m2", a: P(-80, 52), b: P(80, 52) }],
   },
 };
+
+/* ------------------------------------------------------------------
+   ÇİZİMİN KAYDEDİLMESİ
+
+   Belge eskiden yalnız React durumundaydı: sayfa yenilenince kullanıcının
+   çizdiği her şey gidiyordu. Kod bunu ÜCRETLİ çıktı için zaten fark edip
+   düzeltmişti (`kayitliTeknikCizimler` — üretilen altlıklar iş kaydından
+   geri geliyor); kullanıcının KENDİ emeği için düzeltilmemişti. Yani araç,
+   makinenin ürettiğini saklayıp insanın çizdiğini atıyordu.
+
+   NEDEN localStorage, NEDEN SUNUCU DEĞİL. Sunucu kaydı hesaba bağlı ve
+   ayrı bir karar (`/api/calisma`); o gelene kadar çizimin yenilemede
+   yaşaması tek başına büyük fark. Sınırı da açıkça söylemek gerekiyor:
+   bu kayıt TARAYICIYA ait — başka cihazda, gizli sekmede ya da site
+   verisi silinince yok. Arayüzdeki etiket bu yüzden "Bu tarayıcıya
+   kaydedildi" diyor, "kaydedildi" değil: `brand-studio.tsx`'teki
+   "Otomatik kaydedildi" yazısı hiçbir kalıcılık olmadan yazıldığı için
+   düpedüz yanlış, aynı hatayı burada tekrarlamıyoruz.
+
+   SÜRÜM ANAHTARI: `Shape` alanı değiştiğinde eski kayıt okunamaz hâle
+   gelir. Anahtarın sonundaki sürüm bunu sessiz bir çökme yerine temiz bir
+   "kayıt yok" durumuna çeviriyor.
+   ------------------------------------------------------------------ */
+const KAYIT_ANAHTARI = "selvi-teknik-cizim-v1";
+
+/** Okunan belgeyi bugünkü şekle uydurur — eksik alan çökme sebebi olmasın. */
+function belgeyiOnar(ham: unknown): Doc | null {
+  if (!ham || typeof ham !== "object") return null;
+  const kaynak = ham as Partial<Record<ViewId, unknown>>;
+  const cikti = {} as Doc;
+  for (const v of VIEWS) {
+    const g = kaynak[v.id] as { shapes?: unknown; measures?: unknown } | undefined;
+    if (!g) return null;
+    const shapes = Array.isArray(g.shapes) ? g.shapes : [];
+    const measures = Array.isArray(g.measures) ? g.measures : [];
+    cikti[v.id] = {
+      shapes: shapes
+        .filter((x): x is Shape => !!x && Array.isArray((x as Shape).points))
+        .map((x) => ({ ...x, kalinlik: x.kalinlik ?? "orta", visible: x.visible !== false })),
+      measures: measures as Measure[],
+    };
+  }
+  return cikti;
+}
+
+function belgeOku(): Doc | null {
+  /* try/catch ŞART: gizli sekmede ve site verisi kapalıyken erişimin
+     KENDİSİ fırlatıyor — okumak değil, `localStorage`'a dokunmak. */
+  try {
+    const ham = window.localStorage.getItem(KAYIT_ANAHTARI);
+    return ham ? belgeyiOnar(JSON.parse(ham)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function belgeYaz(doc: Doc): void {
+  try {
+    window.localStorage.setItem(KAYIT_ANAHTARI, JSON.stringify(doc));
+  } catch {
+    /* Kota dolu ya da depolama kapalı. Sessiz geçiyoruz: kaydedememek
+       çizimi kaybettirmez, kullanıcıyı uyarı yağmuruna tutmak ise
+       çizimin ortasında dikkat dağıtır. */
+  }
+}
 
 /* ------------------------------------------------------------------
    TOHUM ALTLIĞI — ana sayfada üretilen kare, çizimin arkasında
@@ -429,9 +515,21 @@ type Drag =
 export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [doc, setDoc] = useState<Doc>(initialDoc);
   const [undo, setUndo] = useState<Doc[]>([]);
+  /* İLERİ AL. Geri al varken ileri alın olmaması, kullanıcıyı bir adım
+     geri gittiği anda cezalandırıyordu: dönüş yolu yoktu. */
+  const [redo, setRedo] = useState<Doc[]>([]);
+  /* Pano — kopyalanan parça. Tarayıcı panosu DEĞİL, bilerek: sistem
+     panosuna yazmak izin istiyor ve başka uygulamalardan gelen içerikle
+     karışıyor; buradaki kopyala yalnız bu tuval içinde anlamlı. */
+  const [pano, setPano] = useState<Shape | null>(null);
+  const [kayitDurumu, setKayitDurumu] = useState<"bos" | "yuklendi" | "yazildi">("bos");
   const [view, setView] = useState<ViewId>("front");
   const [tool, setTool] = useState<Tool>("select");
   const [stitch, setStitch] = useState<Stitch>("duz");
+  /* Aktif kalınlık — dikiş tipi ve eğri anahtarıyla aynı desen: araç
+     çubuğunda seçilen değer YENİ parçaya varsayılan oluyor, seçili parça
+     varsa ona da uygulanıyor. */
+  const [kalinlik, setKalinlik] = useState<Kalinlik>("orta");
   const [smooth, setSmooth] = useState(true);
   const [stitchOpen, setStitchOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>("s-front");
@@ -561,6 +659,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const selected = cur.shapes.find((s) => s.id === selectedId) ?? null;
   const commit = (mutate: (d: ViewDoc) => ViewDoc) => {
     setUndo((u) => [...u.slice(-29), doc]);
+    /* Yeni bir iş, ileri al yığınını geçersiz kılıyor: geri gidip başka
+       bir yol seçtikten sonra eski dalın ileri alınması anlamsız. */
+    setRedo([]);
     setDoc((d) => ({ ...d, [view]: mutate(d[view]) }));
   };
   const updateShape = (id: string, patch: Partial<Shape>, record = true) => {
@@ -570,8 +671,15 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   };
   const undoLast = () => {
     if (undo.length === 0) return;
+    setRedo((r) => [...r.slice(-29), doc]);
     setDoc(undo[undo.length - 1]);
     setUndo(undo.slice(0, -1));
+  };
+  const redoLast = () => {
+    if (redo.length === 0) return;
+    setUndo((u) => [...u.slice(-29), doc]);
+    setDoc(redo[redo.length - 1]);
+    setRedo(redo.slice(0, -1));
   };
   const removeSelected = () => {
     if (!selectedId) return;
@@ -596,18 +704,124 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       const n = cur.shapes.length + 1;
       commit((d) => ({
         ...d,
-        shapes: [...d.shapes, { id, name: `Parça ${n}`, points: pts, closed: close, smooth, stitch, fabricId: null, visible: true }],
+        shapes: [...d.shapes, { id, name: `Parça ${n}`, points: pts, closed: close, smooth, stitch, fabricId: null, visible: true, kalinlik }],
       }));
       setSelectedId(id);
     }
     setDraft([]);
   };
+  /* ---------- parça işlemleri ----------
+
+     AYNALAMA, flat çiziminin ilk hamlesi: giysi simetriktir, tasarımcı
+     yarısını çizip karşısını üretir. İki ayrı ihtiyaç var ve ikisi de
+     gerçek — bu yüzden iki işlem:
+
+       · `aynala`      — parçayı KENDİ ekseninde çevirir (ters duran bir
+                         cebi düzeltmek, sağ kolu sola çevirmek).
+       · `karsiYari`   — parçayı tuvalin ORTA ÇİZGİSİNE (x=0, kroki de
+                         oraya simetrik) göre yansıtıp KOPYA üretir; yani
+                         "yarısını çizdim, öbür yarısını ver".
+
+     NOKTA SIRASI TERSİNİYOR. Yansıma sarım yönünü çeviriyor; zigzag ve
+     sürfile ise dikişi segmentin normaline göre çiziyor. Sıra
+     terslenmezse aynalanan parçanın dikişleri içeri düşerdi — görünen
+     hata küçük ama teknik çizimde dikişin hangi tarafta olduğu bilgidir. */
+  const yansit = (s: Shape, eksenX: number): Pt[] =>
+    s.points.map((p) => ({ x: 2 * eksenX - p.x, y: p.y })).reverse();
+
+  const aynala = () => {
+    if (!selected) return;
+    const k = bbox(selected.points);
+    const merkez = k.minX + k.w / 2;
+    updateShape(selected.id, { points: yansit(selected, merkez) });
+  };
+
+  const karsiYari = () => {
+    if (!selected) return;
+    const id = uid();
+    const kopya: Shape = { ...selected, id, name: `${selected.name} · karşı`, points: yansit(selected, 0) };
+    commit((d) => ({ ...d, shapes: [...d.shapes, kopya] }));
+    setSelectedId(id);
+    setToast("Karşı yarı üretildi");
+  };
+
+  /* Çoğaltma kaydırılarak konuyor: üst üste bindirilseydi kullanıcı yeni
+     parçanın oluştuğunu göremez, iki kez basıp üç kopya biriktirirdi.
+     12 birim = 3 cm — fark edilecek kadar büyük, yerini kaybettirmeyecek
+     kadar küçük. */
+  const KAYDIRMA = 12;
+  const cogalt = (kaynak: Shape | null = selected) => {
+    if (!kaynak) return;
+    const id = uid();
+    const kopya: Shape = {
+      ...kaynak,
+      id,
+      name: `${kaynak.name} kopya`,
+      points: kaynak.points.map((p) => ({ x: p.x + KAYDIRMA, y: p.y + KAYDIRMA })),
+    };
+    commit((d) => ({ ...d, shapes: [...d.shapes, kopya] }));
+    setSelectedId(id);
+  };
+
+  /* Katman sırası. Dizinin SONU en üstte çiziliyor (SVG boyama sırası),
+     o yüzden "öne getir" sona taşımak demek. */
+  const katmanaTasi = (yon: "on" | "arka") => {
+    if (!selectedId) return;
+    commit((d) => {
+      const i = d.shapes.findIndex((x) => x.id === selectedId);
+      if (i < 0) return d;
+      const kalan = d.shapes.filter((x) => x.id !== selectedId);
+      const oge = d.shapes[i];
+      return { ...d, shapes: yon === "on" ? [...kalan, oge] : [oge, ...kalan] };
+    });
+  };
+
   const applyFabric = (shapeId: string, fabricId: string | null) => {
     updateShape(shapeId, { fabricId });
     /* Ad `kumasAdi()` üzerinden: tohum kumaşı kartelada olmadığı için
        `fabrics.find()` onda sessizce hiçbir şey söylemezdi. */
     if (fabricId) setToast(`${kumasAdi(fabricId)} uygulandı`);
   };
+
+  /* ---------- kayıt ----------
+
+     İKİ ETKİ, BİR BAYRAK. Yükleme yalnız bir kez çalışıyor; yazma ise her
+     değişiklikte. `hazirRef` ikisinin çarpışmasını önlüyor: yükleme
+     bitmeden yazma çalışırsa, kayıtlı belge daha okunmadan demo belgesiyle
+     ÜZERİNE YAZILIRDI — yani kaydın kendisi kaydı silerdi.
+
+     Yükleme neden `useState` başlatıcısında değil: `localStorage` sunucuda
+     yok. Başlatıcıda okunsaydı sunucu demo belgesini, istemci kayıtlı
+     belgeyi üretir ve hidrasyon uyuşmazlığı çıkardı. */
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    const kayit = belgeOku();
+    if (kayit) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect --
+         Kural haklı ama bu durum onun hedefi değil. Etki BİR KEZ çalışıyor
+         (boş bağımlılık) ve tek bir ek çizim yaptırıyor; "basamaklı render"
+         diye bir şey doğmuyor. Alternatifleri denedim ve ikisi de daha
+         kötü: `useState` başlatıcısında okumak sunucuda `localStorage`
+         olmadığı için hidrasyon uyuşmazlığı verir, `useSyncExternalStore`
+         ise belgeyi türetilmiş değere çevirip `setDoc`'u imkânsızlaştırır.
+         Aynı desen depoda tema anahtarında da var (tema-anahtari.tsx). */
+      setDoc(kayit);
+      setKayitDurumu("yuklendi");
+    }
+    hazirRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hazirRef.current) return;
+    /* Gecikme ŞART: nokta sürüklerken `updateShape(..., false)` her
+       karede çalışıyor. Geciktirilmezse saniyede altmış kez JSON
+       üretilip diske yazılırdı. */
+    const zaman = window.setTimeout(() => {
+      belgeYaz(doc);
+      setKayitDurumu("yazildi");
+    }, 400);
+    return () => window.clearTimeout(zaman);
+  }, [doc]);
 
   /* ---------- klavye ---------- */
   useEffect(() => {
@@ -619,12 +833,38 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         e.preventDefault();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+      const komut = e.ctrlKey || e.metaKey;
+      if (komut && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        undoLast();
+        /* Shift+Ctrl+Z ileri al — Ctrl+Y değil: Ctrl+Y tarayıcıda geçmişi
+           açıyor ve vektör araçlarının tamamı Shift'li biçimi kullanıyor. */
+        if (e.shiftKey) redoLast();
+        else undoLast();
+        return;
+      }
+      if (komut && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        cogalt();
+        return;
+      }
+      if (komut && e.key.toLowerCase() === "c") {
+        if (selected) setPano(selected);
+        return;
+      }
+      if (komut && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        cogalt(pano);
         return;
       }
       const k = e.key.toLowerCase();
+      if (k === "]") {
+        katmanaTasi("on");
+        return;
+      }
+      if (k === "[") {
+        katmanaTasi("arka");
+        return;
+      }
       if (k === "v") setTool("select");
       else if (k === "p") setTool("pen");
       else if (k === "m") setTool("measure");
@@ -1179,15 +1419,19 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 fillOpacity={s.fabricId ? 0.95 : 1}
                 stroke={INK}
                 strokeOpacity={s.stitch === "zigzag" ? 0.45 : 1}
-                strokeWidth="1"
+                strokeWidth={kalinlikPx(s.kalinlik)}
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
               />
+              {/* DİKİŞLER HER ZAMAN İNCE. Kalınlık seçimi parçanın DIŞ
+                  HATTINA ait; dikiş, üst dikiş ve sürfile sanayi kuralı
+                  gereği ondan ince çiziliyor. Dikişi de kalınlaştırmak
+                  hiyerarşiyi yok eder ve kalınlık seçimini süse çevirirdi. */}
               {s.stitch === "ust" && s.closed && (
-                <path d={s.smooth ? smoothPath(inset(s.points, 4), true) : polyPath(inset(s.points, 4), true)} fill="none" stroke={INK} strokeWidth="1" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+                <path d={s.smooth ? smoothPath(inset(s.points, 4), true) : polyPath(inset(s.points, 4), true)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
               )}
-              {s.stitch === "zigzag" && <path d={zigzag(sampled, s.closed, 2)} fill="none" stroke={INK} strokeWidth="1" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
-              {s.stitch === "surfile" && <path d={overlockTicks(sampled, s.closed, 3.5)} fill="none" stroke={INK} strokeWidth="1" vectorEffect="non-scaling-stroke" />}
+              {s.stitch === "zigzag" && <path d={zigzag(sampled, s.closed, 2)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
+              {s.stitch === "surfile" && <path d={overlockTicks(sampled, s.closed, 3.5)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} vectorEffect="non-scaling-stroke" />}
               {isSel && (
                 <g data-ui>
                   <path d={d} fill="none" stroke={SELECT} strokeWidth="1" vectorEffect="non-scaling-stroke" />
@@ -1298,6 +1542,20 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <ToolButton label="Geri al · Ctrl+Z" onClick={undoLast} disabled={undo.length === 0}>
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M8 7L4 11l4 4" /><path d="M4 11h10a5 5 0 0 1 0 10h-3" /></svg>
           </ToolButton>
+          <ToolButton label="İleri al · Shift+Ctrl+Z" onClick={redoLast} disabled={redo.length === 0}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M16 7l4 4-4 4" /><path d="M20 11H10a5 5 0 0 0 0 10h3" /></svg>
+          </ToolButton>
+          <Sep />
+          <ToolButton label="Aynala — parçayı kendi ekseninde çevirir" onClick={aynala} disabled={!selected}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18" strokeDasharray="2 2" /><path d="M9 7L4 12l5 5z" /><path d="M15 7l5 5-5 5z" /></svg>
+          </ToolButton>
+          <ToolButton label="Karşı yarıyı üret — orta çizgiye göre yansıtır" onClick={karsiYari} disabled={!selected}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20" strokeDasharray="2 2" /><path d="M10 6H5l-2 6 2 6h5z" /><path d="M14 6h5l2 6-2 6h-5" strokeDasharray="3 2" /></svg>
+          </ToolButton>
+          <ToolButton label="Çoğalt · Ctrl+D" onClick={() => cogalt()} disabled={!selected}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"><rect x="4" y="4" width="12" height="12" /><path d="M8 20h12V8" /></svg>
+          </ToolButton>
+          <Sep />
           <ToolButton label="Sil · Delete" onClick={removeSelected} disabled={!selectedId}>
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" /></svg>
           </ToolButton>
@@ -1307,7 +1565,17 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <span className="eyebrow max-w-[42ch] truncate text-ink" title={baslik}>
             Teknik çizim · {baslik}
           </span>
-          <span className="eyebrow shrink-0 text-ash">Taslak</span>
+          {/* Kayıt durumu OLDUĞU GİBİ yazılıyor. Kayıt TARAYICIYA ait;
+              düz "kaydedildi" demek başka cihazda da duracağını ima ederdi.
+              (brand-studio'daki "Otomatik kaydedildi" yazısı hiçbir
+              kalıcılık olmadan duruyor — o hatayı burada tekrarlamıyoruz.)
+
+              Koşul saklanacak bir İŞ olmasına bakıyor: demo belgesi de
+              diske yazılıyor ama daha hiçbir şey çizmemiş kullanıcıya
+              "kaydedildi" demek doğru olsa bile gürültü. */}
+          <span className="eyebrow shrink-0 text-ash">
+            {kayitDurumu === "yuklendi" || undo.length > 0 ? "Bu tarayıcıya kaydedildi" : "Taslak"}
+          </span>
         </Glass>
       </div>
 
@@ -1492,6 +1760,42 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 <Row k="Boyut">{selBox ? `${fmtCm(selBox.w)} × ${fmtCm(selBox.h)} cm` : "—"}</Row>
                 <Row k="Nokta">{selected.points.length}{selected.closed ? " · kapalı" : " · açık"}</Row>
                 <Row k="Dikiş">{STITCHES.find((s) => s.id === selected.stitch)?.label}</Row>
+                <Row k="Kalınlık">
+                  <span className="inline-flex items-center gap-1">
+                    {KALINLIKLAR.map((x) => (
+                      <button
+                        key={x.id}
+                        type="button"
+                        onClick={() => {
+                          setKalinlik(x.id);
+                          updateShape(selected.id, { kalinlik: x.id });
+                        }}
+                        aria-pressed={selected.kalinlik === x.id}
+                        title={`${x.label} — dış hat`}
+                        className={cn(
+                          "flex h-5 w-7 items-center justify-center border transition-colors",
+                          selected.kalinlik === x.id ? "border-ink text-ink" : "border-mist text-smoke hover:border-ink/40",
+                        )}
+                      >
+                        {/* Örnek çizgi, kalınlığın kendisiyle çiziliyor:
+                            etiket okumadan seçilebilsin. */}
+                        <svg viewBox="0 0 20 6" className="h-1.5 w-4" aria-hidden>
+                          <line x1="1" y1="3" x2="19" y2="3" stroke="currentColor" strokeWidth={x.px} />
+                        </svg>
+                      </button>
+                    ))}
+                  </span>
+                </Row>
+                <Row k="Sıra">
+                  <span className="inline-flex items-center gap-3">
+                    <button type="button" onClick={() => katmanaTasi("on")} className="eyebrow text-ash u-line hover:text-ink" title="Öne getir · ]">
+                      Öne
+                    </button>
+                    <button type="button" onClick={() => katmanaTasi("arka")} className="eyebrow text-ash u-line hover:text-ink" title="Arkaya gönder · [">
+                      Arkaya
+                    </button>
+                  </span>
+                </Row>
                 <Row k="Kumaş">
                   {kumasAdi(selected.fabricId)}
                   {selected.fabricId && (

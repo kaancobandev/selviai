@@ -1,0 +1,328 @@
+## Teknik Çizim — üretim dosyası (çizimden sonrası: POM, gradasyon, BOM, dikiş payı, colorway, dışa aktarım, kalıp)
+Teknik çizim modülümüz gerçek bir vektör tuvali ama çizimden sonrası tamamen boş: kod okundu, `Shape` tipinde renk/kalınlık/metin alanı yok, `Measure` yalnız iki nokta tutuyor, `Doc` sadece React state'te duruyor ve tek çıktı canlı SVG düğümünün kopyası — buna karşılık `lib/geometry.ts` içindeki `inset()` (dikiş payı), `lib/fabrics.ts` içindeki kompozisyon/gramaj/en/fiyat alanları (BOM) ve `app/globals.css`'teki çalışan `@media print` hattı (PDF) sayesinde en pahalı görünen dört eksikliğin üçü aslında bizde ucuz.
+
+- Tech pack / teknik çizim PDF çıktısı (çok sayfalı, fabrikaya gönderilebilir)
+  kim: Techpacker (tek tıkla PDF), The New Black AI Tech Pack (sayfa sayfa dizilmiş, tarayıcı print dialog'u değil), Refabric (
+  neden: Fabrikanın, üreticinin ve okuldaki jürinin ortak dili PDF. İncelenen 17 flat aracının ve 12 tech pack ürününün istisnasız hepsinde var; onsuz üretilen dosya kimseye gönderilemiyor. Hem öğrenci (teslim
+  bizde: Hiç yok. `components/flat-sketch.tsx:911-933` exportSvg yalnız canlı SVG düğümünün kopyasını indiriyor. AMA: `app/global
+  maliyet=kucuk etki=yuksek kredi=False
+- Çizimin kaydedilmesi (belge kalıcılığı) ve stil kaydı
+  kim: Techpacker (bulut), Backbone PLM, Onbrand, Centric PLM, Illustrator (.ai), Affinity, CorelDRAW, Inkscape (.svg), Lectra 
+  neden: Sayfa yenilenince çizim gidiyor — incelenen 17 flat ve 12 tech pack ürününün HİÇBİRİNDE bu durum yok, tek örneğiz. Üretim dosyasının tanımı zaten "sonra tekrar açılan belge"; POM, BOM, gradasyon, colo
+  bizde: Hiç yok. `Doc = Record<ViewId, ViewDoc>` yalnız `useState` içinde (flat-sketch.tsx:431 civarı `undo` dizisi de öyle). Su
+  maliyet=orta etki=yuksek kredi=False
+- Ölçü tablosu (POM) — ölçüm noktası adı, numune beden değeri, tol(+)/tol(-) tolerans sütunları ve çizim üzerinde numaralı callout eşleşmesi
+  kim: Techpacker (kesir 12 1/2 inç veya ondalık, tolerans gradasyona dahil edilmiyor), CLO-SET Web Tech Pack (hedef değerli PO
+  neden: Atölyenin "kaç santim" sorusunun tek cevabı. Tolerans olmadan kalite kontrol yapılamıyor, numune reddi tartışmaya dönüyor. Profesyonel için zorunlu, öğrenci için tech pack dersinin çekirdeği.
+  bizde: Yarım var ve doğru yerden yarım. Mezura aracı çalışıyor, `Measure = { id, a, b }` ve `fmtCm` iki nokta arasını cm veriyo
+  maliyet=orta etki=yuksek kredi=False
+- Beden serisi / gradasyon — numune beden seçimi, grade rule girişi, kalan bedenlerin otomatik hesaplanması
+  kim: Techpacker (bir bedene artış girip TAB'a basınca tüm seri doluyor, numune bedenin altına negatif -1/4), The New Black (c
+  neden: Tek bedenlik çizim ürün değil, numunedir. Koleksiyon üretimine geçişin eşiği. Saf aritmetik: POM tablosu varsa gradasyon neredeyse bedava geliyor, o yüzden POM'un hemen ardına konulmalı.
+  bizde: Hiç yok. Kodda beden, seri, grade rule ya da tolerans geçen tek satır yok (grep doğrulandı; `beden` kelimesi yalnız parç
+  maliyet=orta etki=yuksek kredi=False
+- Malzeme listesi (BOM) — bileşen, kompozisyon, gramaj, en, renk/Pantone, tedarikçi, miktar, birim fiyat
+  kim: Refabric (13 bölümlü tech pack'in BOM'u), Techpacker (BOM kütüphaneleri, colorway başına BOM), The New Black (tedarikçi,
+  neden: Maliyet ve satın alma buradan çıkıyor; tech pack'i olan her üründe var. Bizde en ucuz kazanılacak eksik: veri zaten modelde duruyor ve kimse elle girmek zorunda kalmayacak.
+  bizde: Hiç yok — ama veri hazır. `lib/fabrics.ts` içindeki `Fabric` tipi composition, weave, weight (g/m²), width (cm), price (
+  maliyet=kucuk etki=yuksek kredi=False
+- Dikiş payı (seam allowance) — parça çevresine sayısal payla ikinci hat
+  kim: CLO 3D (custom seam allowance + köşe seçenekleri), Seamly2D, Optitex, Gerber AccuMark, Freesewing, TUKAcad
+  neden: Kalıba geçişin ilk adımı ve teknik çizimin üretime bakan yüzü. Kesim payı yazılmamış bir dosya atölyede kesilemez. Bizde neredeyse yazılmış durumda.
+  bizde: Hiç yok ama geometrisi hazır: `lib/geometry.ts` içindeki `inset(pts, amount)` merkeze doğru offset poligon üretiyor ve ü
+  maliyet=kucuk etki=yuksek kredi=False
+- Renk varyantı (colorway) — parça bazlı renk ve varyant sayfası
+  kim: Raspberry AI (sınırsız colorway, Pantone Connect + Coloro), Vizcom Color Variation (.ASE paleti), Illustrator Recolor Ar
+  neden: Koleksiyon işinin belkemiği; bir stil dört renkte satılıyor. Bizde Branding modülünde gömülü Pantone eşleşmeleri zaten var, o veri buraya taşınabilir.
+  bizde: Hiç yok ve tipte yeri de yok. `Shape` tipi id, name, points, closed, smooth, stitch, fabricId, visible taşıyor — RENK AL
+  maliyet=orta etki=yuksek kredi=False
+- Çizim üzerine açıklama balonu (callout), metin ve ölçülendirme oku
+  kim: The New Black (annotated flats: serbest tuvalde eskizi yerleştirip callout ile etiketleme), Illustrator (Dimension tool 
+  neden: Flat üzerinde konstrüksiyonu anlatmanın tek yolu; POM numaralarının çizime bağlandığı yer de burası. Callout olmadan tech pack'in en kalabalık sayfası (konstrüksiyon detayı) kurulamıyor.
+  bizde: Hiç yok. Tuvalde tek metin `MeasureLabel` — sabit "x cm" etiketi, düzenlenemiyor. Kullanıcının yazabileceği tek alan par
+  maliyet=orta etki=yuksek kredi=False
+- Çok sayfalı tech pack dizilimi (kapak / stil no / konstrüksiyon / BOM / POM / graded spec / colorway / proto review)
+  kim: Refabric (13 bölüm: sipariş bilgisi, BOM, ön-arka yerleşim kılavuzu, flat, kalıp bloğu, beden tablosu, kumaşlar, trimler
+  neden: Tek tek alanlar (POM, BOM, colorway) ancak bir belgede birleşince ürün oluyor. Selvi'nin ayrıştığı yer de burada olabilir: AI ile üretilmiş renkli flat + kroki ölçümü zaten var, eksik olan yalnız dizg
+  bizde: Hiç yok. Üç görünüm sekmesi (Ön/Arka/Detay) var ve her biri ayrı belge, ama bunlar tuval sekmesi; kapak, stil numarası, 
+  maliyet=orta etki=yuksek kredi=False
+- Çizgi kalınlığı seçimi ve kalınlık hiyerarşisi (dış hat kalın, iç dikiş ince — örn. 0,15 pt)
+  kim: Illustrator Stroke paneli + Width Tool, Affinity Designer, CorelDRAW, Inkscape (kontur ölçeklenirken kesik deseninin de 
+  neden: Flat'in okunma dilinin kendisi. Tek kalınlıkta çizilmiş bir teknik çizim sanayi standardına uymuyor ve atölyede dış hat ile iç dikiş ayırt edilemiyor. Beş vektör editörünün beşinde de var.
+  bizde: Hiç yok, kod düzeyinde sabit. Tuvaldeki her yol `strokeWidth="1"` + `vectorEffect="non-scaling-stroke"` (flat-sketch.tsx
+  maliyet=kucuk etki=yuksek kredi=False
+- Kendi kendine yeten SVG (görsellerin dosyaya gömülmesi) ve PNG/yüksek çözünürlük çıktısı
+  kim: Illustrator, Affinity Designer (toplu dışa aktarım, baskıya hazır önayarlar), Inkscape, CorelDRAW, Kittl (vektör ve şeff
+  neden: Şu an indirilen dosya kısmen bozuk çıkıyor ve bunu kullanıcıya toast ile itiraf ediyoruz. Bir üretim dosyasının en temel şartı, gönderildiği yerde aynı görünmesi.
+  bizde: Kusurlu var. `exportSvg` görselleri BAĞLANTI olarak bırakıyor; kartela kumaşları mutlak Unsplash adresi taşıdığı için aç
+  maliyet=kucuk etki=yuksek kredi=False
+- Kertik (notch), dokuma yönü (grainline), pile, büzgü ve katlama hattı simgeleri
+  kim: Seamly2D (dikiş payı + kertik + grainline), Optitex (L-notch'ların DXF'e gerçek L biçiminde aktarımı), Gerber AccuMark, 
+  neden: Parçaların hangi yönde kesileceğini ve nerede birleşeceğini söyleyen tek işaret. Grainline olmadan kesim yapılamaz. Basit çizgi/işaret geometrisi — bizim tuvale doğrudan oturuyor.
+  bizde: Hiç yok. Tuvalde çizilebilen tek şey kapalı/açık poligon ve dört sabit dikiş tipi (düz, üst, zigzag, sürfile). Simge, iş
+  maliyet=kucuk etki=orta kredi=False
+- Konstrüksiyon şartnamesi — dikiş payı ölçüsü, üst dikiş mesafesi, SPI (inç başına batkı), iplik tipi/rengi, punteriz noktaları, kenar temizleme
+  kim: The New Black (AI'ın ilk taslağını yazdığı konstrüksiyon notları), Refabric, Optitex Multi-Stitch, WFX, Techpacker kart 
+  neden: "Üst dikiş" demek yetmiyor, "kenardan 6 mm, 12 SPI" demek gerekiyor. Bizde dikiş TİPİ var ama hiçbir sayısal değer yok; alan eklemek saf form işi.
+  bizde: Yarım var. `Stitch = duz | ust | zigzag | surfile` parça başına seçiliyor ve tuvalde çiziliyor; üst dikiş ofseti 4 birim
+  maliyet=kucuk etki=orta kredi=False
+- Excel / CSV dışa aktarım (BOM ve ölçü tablosu için)
+  kim: Techpacker Professional, Refabric (tech pack çıktısı PDF+SVG+Excel), CLO-SET (BOM'un Excel'e otomatik aktarımı), Optitex
+  neden: Fabrika ve satın alma tarafı BOM'u tabloda istiyor; PDF okunur ama işlenemez. POM ve BOM tablosu bir kez kurulduğunda CSV üretmek birkaç satır.
+  bizde: Hiç yok — tablolar da olmadığı için aktarılacak veri de yok. POM ve BOM geldikten sonra maliyeti neredeyse sıfır.
+  maliyet=kucuk etki=orta kredi=False
+- Aksesuar / trim kütüphanesi (düğme, fermuar, cırt, kopça, toka, kordon ucu, perçin, kuş gözü)
+  kim: Illustrator sembol paketleri (Points of Measure: 30 düğme/perçin/kuşgözü/kopça, 21 fermuar çekeceği, 55 toka ve kanca — 
+  neden: Trim olmadan BOM da eksik kalıyor: malzeme listesindeki satırların çoğu trim. Ayrıca kullanıcı bunları şu an dışarıdan satın almak zorunda (24,95–55 USD) — kütüphaneyi biz vermek doğrudan bir sebep.
+  bizde: Hiç yok. Kütüphane kavramı yalnız kumaş kartelasında var (`lib/fabrics.ts`, dokuz kayıt) ve o da parçaya DOLGU olarak uy
+  maliyet=orta etki=orta kredi=False
+- Genişletilebilir dikiş kütüphanesi (kullanıcının kendi dikişini üretip kaydetmesi)
+  kim: Illustrator Pattern Brush (655 fırçalık paketler 24,95 USD: üst dikiş, punteriz, coverstitch, nakış, fırfır, büzgü, dant
+  neden: Dört sabit dikiş tipi gerçek bir giysi için yetmiyor; fırfır, büzgü, punteriz ve coverstitch günlük ihtiyaç. Yol boyunca desen tekrarı zaten `samplePath` ile yapıyoruz, genelleştirmek mümkün.
+  bizde: Kapalı bir liste var: `STITCHES` dört sabit kayıt, her biri kodda ayrı çiziliyor (zigzag, overlockTicks, inset). Kullanı
+  maliyet=orta etki=orta kredi=False
+- Sürüm geçmişi ve revizyon kaydı (tarihli, salt-okunur anlık görüntü; iki sürüm arası farkın işaretlenmesi)
+  kim: Techpacker (sürümler arası değişikliğin otomatik işaretlenmesi), CLO-SET, Browzwear StyleZone, Figma (sınırsız sürüm geç
+  neden: Tasarımcı–üretici trafiğinin yürüdüğü yer. Numune turu başına dondurulmuş bir sürüm olmadan "hangi dosyaya göre diktiniz" sorusu cevapsız kalıyor.
+  bizde: Yok. Yalnız oturum içi 30 adımlık geri al var (`undo: Doc[]`, flat-sketch.tsx:431) ve sayfa yenilenince o da gidiyor. Ka
+  maliyet=orta etki=orta kredi=False
+- Maliyet sayfası (metre başı kumaş maliyeti, trim, CMT işçiliği, hedef FOB)
+  kim: Refabric Cost Sheet, WFX (Cut-Make, FOB, Landed, Delivered maliyet tipleri, Excel benzeri ızgara), Mercer Enterprise (co
+  neden: "Bu parça kaça mal olur" sorusu tasarımın en erken sorusu ve bizde cevabın yarısı zaten elimizde. Öğrenci için de ders niteliğinde bir çıktı.
+  bizde: Hiç yok — ama `Fabric.price` (₺/metre) ve `Fabric.width` (kumaş eni, cm) dokuz katalog kaydında dolu, `bbox()` parça ala
+  maliyet=kucuk etki=orta kredi=False
+- Salt-okunur paylaşım bağlantısı (fabrikaya/hocaya gönderilen, hesap istemeyen görünüm)
+  kim: Techpack Builder (.tpv salt-okunur format), Mercer (hesabı olmayan üretim partnerleriyle koleksiyon linki), Techpacker (
+  neden: Segmentin ortak ticari kalıbı: fabrika/tedarikçi erişimi ücretsiz, koltuk sayılmıyor. Bizim için de büyüme kanalı — dosyayı alan kişi ürünü görüyor.
+  bizde: Hiç yok. Paylaşım bağlantısı hiçbir modülde yok. Kalıcılık geldikten sonra tek bir genel okuma ucu yetiyor.
+  maliyet=orta etki=orta kredi=False
+- Numune aşama takibi (proto / fit / size set / PP / TOP) ve fotoğraflı fit yorumu
+  kim: WFX (beş aşamayı sevk tarihine göre ad ad izliyor, fotoğraflı fit yorumu; numune turunu 3,2'den 1,8'e düşürdüğü iddiası)
+  neden: Bulk üretim öncesi sektör ortalaması 5–7 tur numune, her fit turu 7–10 gün. Belgeyi ayakta tutan asıl döngü bu; tech pack tek başına statik bir dosya.
+  bizde: Hiç yok. Ne aşama, ne durum, ne termin, ne sorumlu alanı var; hiçbir modülde kayıt tipi bulunmuyor.
+  maliyet=orta etki=orta kredi=False
+- Belge üzerinde yorum ve tedarikçi/ekip iş birliği
+  kim: Techpacker (gerçek zamanlı ortak çalışma, üretici portalı), Onbrand (canlı tech pack üzerinde yorum), Surefront (alan ba
+  neden: Üretim dosyasının hayatı geri bildirimle geçiyor. Ayrıca tek kişilik kullanımdan ekip satışına geçişin kapısı.
+  bizde: Hiç yok. Kimlik doğrulama Faz 4'te yeni başladı, kullanıcı kavramı henüz yerleşmedi (`supabase/schema.sql`'de `user_id` 
+  maliyet=buyuk etki=orta kredi=False
+- Yeniden kullanılabilir kütüphaneler (BOM kütüphanesi, ölçü/spec kütüphanesi, gradasyon kural seti)
+  kim: Techpacker (BOM Libraries, gradasyon kütüphaneleri, kart kütüphaneleri), Backbone PLM (çekirdek BOM ve beden spec kütüph
+  neden: İkinci stilden itibaren asıl tasarrufun geldiği yer. Bir kumaş kaydını on stilde tekrar tanımlamak kimsenin yapmadığı iş. Bizim kumaş kartelamız zaten böyle çalışıyor, kalıbı BOM ve ölçüye genişletmek
+  bizde: Kısmen benzer bir yapı var ama kalıcı değil: `lib/fabrics.ts` sabit dokuz kayıtlık bir kütüphane ve `Shape.fabricId` ona
+  maliyet=orta etki=orta kredi=False
+- Hazır giysi flat şablonu / kalıp bloğu kütüphanesi
+  kim: Digital Fashion Pro (3.000+ şablon, 129–375 USD tek seferlik), VecFashion (tekil eskiz 2,50 USD, paketler 25–112,50 USD)
+  neden: Boş tuvalden başlamak öğrenciyi ve acele eden profesyoneli kaçırıyor. Bizde bunun eşdeğeri var ve rakiplerde eşi yok — ama tek bir kroki ile sınırlı.
+  bizde: Tek bir sabit kroki (`components/croquis.tsx`, KROKI_ALAN x=-90..90, y=4..672) ve tek bir örnek belge (keten bluz: ön be
+  maliyet=orta etki=orta kredi=False
+- DXF / AAMA / ASTM dışa aktarım (kesim makinesi ve CAD verisi)
+  kim: Optitex (AAMA, ASTM, DXF, AI, HPGL, ISO; L-notch'ların gerçek L biçiminde aktarımı), Gerber AccuMark (DXF, PDF, SVG, NC,
+  neden: Kesim odasının dili. Bizim kullanıcı profilimiz (öğrenci + küçük marka) çoğunlukla fasona PDF gönderiyor, ama kalıpçıyla çalışan biri için DXF olmadan zincir kopuyor. Öncelik PDF'ten sonra.
+  bizde: Hiç yok; tek çıktı SVG. Poligon noktaları (`Pt[]`) DXF POLYLINE'a çevrilebilir ama katman/kertik/grainline eşleşmesi içi
+  maliyet=buyuk etki=dusuk kredi=False
+- Kalıp (pattern) üretimi — flat'ten kalıp parçası, parametrik taslak
+  kim: CLO 3D Pattern Drafter ve Flattening (avatarın üstüne çizip kalıp çıkarma), Refabric Pattern Block Generation, Optitex S
+  neden: Segmentin en derin ucu ve bizim kategorik olarak dışında kaldığımız yer. Sayfa başlığımız "Dijital kalıp ve çizim tuvali" diyor ama kalıp üretmiyoruz — bu bir vaat açığı. Kısa vadede kapatılamaz, ama 
+  bizde: Hiç yok. `app/hizmetler/teknik-cizim/page.tsx:6` başlıkta "Dijital kalıp" geçiyor; kodda kalıp, gradasyon ya da parametr
+  maliyet=buyuk etki=dusuk kredi=False
+- Fotoğraftan / bitmiş tasarımdan AI ile tech pack ilk taslağı (flat + BOM + ölçü + konstrüksiyon notu)
+  kim: The New Black AI Tech Pack Generator (AI ilk taslağı yazıyor: açıklama, ölçüler, malzemeler, konstrüksiyon notları), Ref
+  neden: Boş POM ve BOM tablosunu kullanıcıya doldurtmak yerine ilk taslağı biz yazarsak modül kullanılabilir hâle geliyor. Bizim akışımızda giysi silueti ve renkli teknik flat ZATEN üretiliyor — aynı işin dev
+  bizde: Hiç yok, ama üretim hattı kurulu: `app/api/teknik/route.ts` giysi siluetinden ön ve arka teknik çizimi üretiyor, `lib/ai
+  maliyet=orta etki=orta kredi=True
+- Üretilebilirlik / tutarsızlık denetimi (AI review)
+  kim: The New Black (fabrikaya gitmeden önce tutarsızlıkları yakalama), Refabric Production Intelligence (konstrüksiyon karmaş
+  neden: Fabrikaya yanlış dosya göndermenin bedeli 7–10 günlük bir numune turu. Denetimlerin bir kısmı kural motoruyla (kredi harcamadan) yapılabiliyor: ön ve arka omuz uzunluğu eşit mi, gradasyon toplamı tutu
+  bizde: Hiç yok teknik çizimde. Benzer bir kalıp var: `lib/ai/judge.ts` üretilen kareler için bir kabul kapısı (score/reason) iş
+  maliyet=orta etki=dusuk kredi=True
+- Etiket ve paketleme şartnamesi (etiket yerleşimi, katlama talimatı, polybag ölçüsü, koli içi adet, barkod yeri)
+  kim: Refabric (13 bölüm içinde bakım talimatları ve yerleşim kılavuzu), Points of Measure / Apparel Entrepreneurship şablonla
+  neden: Tech pack'in son sayfası ve bizde parçalarının çoğu BAŞKA bir modülde zaten duruyor — birleştirmek yeni bir şey inşa etmek değil, var olanı bağlamak.
+  bizde: Dağınık ve kopuk. `components/label-studio.tsx` dokuma/asma/bakım etiketi, gerçek ölçek önizlemesi, `care-symbols.tsx` b
+  maliyet=kucuk etki=dusuk kredi=False
+- Adobe Illustrator eklentisi / .ai ile çift yönlü senkron
+  kim: Backbone PLM (ücretsiz Illustrator eklentisi, çift yönlü senkron), Onbrand, Centric PLM, WFX, Raspberry AI (Adobe Creati
+  neden: Sektörün fiili standardı Illustrator (22,99 USD/ay, iş ilanlarında en çok geçen araç) ve teknik tasarımcıların çoğu flat'i orada çiziyor. Onları tuvalimize taşımak yerine dosyalarını kabul etmek daha 
+  bizde: Hiç yok, tek yönlü bile değil: SVG dışa aktarılıyor ama İÇERİ aktarma yok. Kullanıcı Illustrator'daki flat'ini getiremiy
+  maliyet=orta etki=dusuk kredi=False
+- Line sheet (koleksiyon satış föyü) — stil no, colorway, beden serisi, toptan fiyat, MSRP, MOQ, teslim penceresi
+  kim: Techpacker, Backbone PLM, Onbrand (dinamik line sheet), Digital Fashion Pro, JOOR (dijital line sheet), Brandboom (50 US
+  neden: Üretim dosyasının satış tarafındaki ikizi ve aynı verilerden (stil no, colorway, beden, kumaş) besleniyor. POM/BOM/colorway kurulduktan sonra ek maliyeti düşük; ama bizim kullanıcı profilimizin çoğu h
+  bizde: Hiç yok. Lookbook modülü sayfa dizgisi ve baskı yapıyor (`components/lookbook-studio.tsx`, `lib/lookbook.ts`) ama SKU, f
+  maliyet=orta etki=dusuk kredi=False
+
+## Teknik Cizim — cizim araclari (components/flat-sketch.tsx, lib/geometry.ts, components/croquis.tsx)
+Koddan dogrulandi: elimizde gercek bir SVG vektor editoru var (bes arac, kose taniyan centripetal Catmull-Rom egri, Sutherland-Hodgman ile parca bolme, dort dikis tipi, uc gorunum, kumas dolgusu, olculerek oturan AI teknik cizim altligi, 30 adim geri al, SVG indir) ama cizim yuzeyi bir vektor editorunun HIJYEN katmanindan yoksun — simetri, cogaltma, snap, hizalama, tutamak duzenleme, cizgi kalinligi, coklu secim, dondur/olcekle ve METIN hicbiri yok, sekil verisi hicbir yere KAYDEDILMIYOR (Doc yalnizca React state'inde, sayfa yenilenince gidiyor) ve bunlarin neredeyse tamami saf istemci isi, yani tek bir model kredisi harcamadan kapatilabilir.
+
+- Cizimin KAYDEDILMESI (belge kalicilgi)
+  kim: Adobe Illustrator (.ai + Creative Cloud surum gecmisi), Affinity Designer, CorelDRAW, Inkscape (.svg), Figma flat kitler
+  neden: Hem ogrenci hem profesyonel icin bu bir ozellik degil, ARACIN CALISIP CALISMADIGI meselesi. Kodda dogrulandi: `const [doc, setDoc] = useState<Doc>(initialDoc)` — parcalar, noktalar, dikis tipleri, kat
+  bizde: Hic yok. Sadece AI ile uretilen altlik karesi (gorsel) `/api/teknik` uzerinden calisma kaydina yaziliyor; cizim verisi (
+  maliyet=orta etki=yuksek kredi=False
+- Simetri / ayna (yarisini ciz, karsi yari otomatik)
+  kim: Adobe Illustrator (Mirror Repeat — canli; Object > Transform > Reflect), CorelDRAW (symmetry drawing mode, cizerken canl
+  neden: Flat cizimin ILK hamlesi budur: giysi simetriktir, tasarimci yarisini cizip aynalar. Bizde yok, yani kullanici her beden parcasini iki kez ve elle simetrik cizmek zorunda — ki fare ile birebir simetri
+  bizde: Hic yok. `grep -niE "mirror|ayna|simetri|reflect|flip"` flat-sketch.tsx ve geometry.ts icinde tek bir islev bulmuyor; ya
+  maliyet=kucuk etki=yuksek kredi=False
+- Cizgi kalinligi secimi ve kalinlik hiyerarsisi (dis hat kalin / ic dikis ince)
+  kim: Adobe Illustrator (Stroke paneli + Width Tool; sektorde ic dikis icin 0,15 pt kurali), Affinity Designer, CorelDRAW (gen
+  neden: Teknik cizimin OKUNMA DILI kalinlik farkidir: siluet kalin, dikis ince, yapisal cizgi orta. Tek kalinlikla cizilen bir flat sanayi standardinda okunmuyor — fabrika neyin kenar neyin dikis oldugunu ayi
+  bizde: Hic yok. Tuvaldeki HER path `strokeWidth="1"` ve `vectorEffect="non-scaling-stroke"` tasiyor (grep ile tum degerler tek 
+  maliyet=kucuk etki=yuksek kredi=False
+- Aksesuar / trim kutuphanesi (dugme, fermuar, cirt, kopca, toka, kordon ucu, percin, kusgozu)
+  kim: Illustrator varlik paketleri (Points of Measure Assets Bundle 55 USD: 30 dugme/percin/kusgozu, 21 fermuar cekecegi, 55 t
+  neden: Giysi flat'i dikis cizgisinden ibaret degil; dugme, fermuar ve kapama olmadan cizim eksik kaliyor. Rakiplerde bu ya urune gomulu ya da 24–55 USD'lik varlik paketi olarak satin aliniyor — yani pazarda 
+  bizde: Hic yok. flat-sketch.tsx'te sembol, damga, stamp ya da varlik kavrami yok; tuvale konabilen tek sey kullanicinin kalemle
+  maliyet=orta etki=yuksek kredi=False
+- Genisletilebilir dikis firca kutuphanesi (kullanici kendi dikisini uretip kaydediyor)
+  kim: Adobe Illustrator (Pattern Brush ile ozel dikis uretip firca kutuphanesine kaydetme), My Practical Skills 655 Fashion Br
+  neden: Bizim dort dikisimiz gercek ve calisiyor ama SABIT: punteriz, coverstitch, zincir dikis, firfir, buzgu, dantel, saçak, biye, sutasi, payet — hicbiri uretilemiyor. Ustelik parametreler de kodda gomulu 
+  bizde: Yarim var. Dort sabit tip (duz, ust, zigzag, surfile) lib/geometry.ts icinde `zigzag()`, `overlockTicks()`, `inset()` il
+  maliyet=buyuk etki=yuksek kredi=False
+- Kopyala-yapistir ve cogaltma (sembol / component / klon)
+  kim: Adobe Illustrator (Symbol), Affinity Designer (Symbols — bir kopyayi degistirince hepsi degisiyor), Inkscape (klon ve ti
+  neden: Bir cep cizip ikinci kez kullanmak, ayni manseti hem on hem arka gorunumde tekrarlamak, bir dugmeyi altiya cogaltmak — hepsinin on kosulu. Bizde yok, dolayisiyla her tekrarli oge sifirdan tekrar cizil
+  bizde: Hic yok. grep ile duplicate/kopyala/clipboard/paste islevi yok; klavye isleyicisinde Ctrl+C/Ctrl+V dinlenmiyor (yalniz C
+  maliyet=kucuk etki=yuksek kredi=False
+- Metin, aciklama balonu (callout) ve serbest not
+  kim: Adobe Illustrator (metin + Dimension tool), CorelDRAW (dimension araclari), Inkscape (metin, yol uzerinde metin, ok ucla
+  neden: Flat uzerinde konstruksiyonu anlatmanin TEK yolu callout'tur: 'burada 2 cm ust dikis', 'bu kenar surfileli', 'astar buradan doner'. Bunlar olmadan cizim fabrikaya gidebilecek bir belge degil, yalnizca
+  bizde: Hic yok. Tuvalde tek `<text>` dugumu MeasureLabel icindeki cm degeri (satir 1779) ve croquis.tsx'teki uc sabit kilavuz e
+  maliyet=orta etki=yuksek kredi=False
+- Egri tutamagi (Bezier handle) duzenleme
+  kim: Adobe Illustrator, Affinity Designer (nokta ve egri duzenleme), CorelDRAW (ayrintili node duzenleme), Inkscape (nokta ve
+  neden: Bes vektor editorunun tamaminda var. Bizde egri tamamen otomatik hesaplaniyor: kullanici noktayi tasiyabiliyor ama egrinin o noktadaki YONUNU ve GERGINLIGINI degistiremiyor. Kol oyuntusu, yaka dibi ve
+  bizde: Hic yok. Shape.points yalnizca {x,y} dizisi; tutamak verisi tipte bile yok. Drag turleri: pan, move, anchor, measure, cu
+  maliyet=buyuk etki=yuksek kredi=False
+- Var olan yol uzerine nokta EKLEME ve nokta SILME
+  kim: Adobe Illustrator (Add/Delete Anchor Point), Affinity Designer, Inkscape, CorelDRAW, Figma
+  neden: Cizim bitince duzeltme yapmanin en temel yolu. Bizim egri motorumuz 'az noktayla kose, cok noktayla egri' kuralina dayaniyor (geometry.ts yorumu bunu acikca soyluyor) — yani kullanicinin en cok ihtiya
+  bizde: Hic yok. Nokta ekleme yalnizca CIZERKEN (draft) mumkun; Delete/Backspace tuslari cizerken son draft noktasini, cizim bit
+  maliyet=kucuk etki=yuksek kredi=False
+- Yakalama (snap) ve akilli kilavuzlar
+  kim: Adobe Illustrator (Smart Guides), Affinity Designer, CorelDRAW, Inkscape (ince ayarli snap denetimleri), Figma
+  neden: Simetrik parca yerlestirmenin, iki parcayi dikis hattinda bulusturmanin ve izgaraya oturmanin on kosulu. Bizde 8 ve 40 birimlik izgara CIZILIYOR ama hicbir sey ona yakalanmiyor — izgara suslemeye donu
+  bizde: Hic yok. grep 'snap|yakala|align|hizala' flat-sketch.tsx ve geometry.ts icinde sifir sonuc. Izgara yalnizca `<pattern id
+  maliyet=orta etki=yuksek kredi=False
+- Coklu secim (birden fazla parcayi birlikte secip isleme)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma — istisnasiz hepsinde
+  neden: Hizalama, dagitma, birlikte tasima, toplu kumas atama, toplu silme ve gruplama — hepsi buna bagli. Tek secimli bir editor, birkac parcadan sonra kullanilamaz hale geliyor.
+  bizde: Hic yok. Tek bir `selectedId: string | null` var; Shift+tik ve secim dikdortgeni (marquee) yok.
+  maliyet=orta etki=yuksek kredi=False
+- Hizalama ve dagitma (Align & Distribute)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma — hepsinde ayri panel olarak
+  neden: Cep, dugme sirasi, patalet ve manset gibi tekrarli ogelerin duzgun durmasi icin sart. Coklu secimin hemen ardindan gelen ikinci adim.
+  bizde: Hic yok.
+  maliyet=kucuk etki=orta kredi=False
+- Parcayi DONDURME ve OLCEKLEME (serbest donusum kutusu)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma, Marvelous Designer (2B kalip olcekleme 3B formu koruya
+  neden: Cizilen bir kolu 15° dondurmek, bir cebi %80'e kucultmek gunluk islem. Bizde parca yalnizca TASINABILIYOR; dondurmek ve olceklemek icin her noktayi tek tek elle cekmek gerekiyor — pratikte imkansiz. B
+  bizde: Hic yok. Drag turleri pan/move/anchor/measure/cut ile sinirli; secim kutusu (selBox) yalniz panelde 'Boyut' yazmak icin 
+  maliyet=orta etki=yuksek kredi=False
+- Giysi/kalip simgeleri: dokuma yonu (grainline), kertik (notch), pile, buzgu, pens
+  kim: Seamly2D (kertik ve grainline simgeleri), Optitex (kertik destegi, L-notch'larin DXF'e gercek L bicimiyle aktarilmasi), 
+  neden: Bunlar teknik cizimin GRAMERI. Grainline oku olmayan bir flat, kesimhaneye kumasin hangi yone serilecegini soylemiyor; kertik olmadan iki parca birbirine nasil bulusacagi belirsiz. Ogrenci icin bunlar
+  bizde: Hic yok. grep 'notch|kertik|grainline|pens|dart|pile|pleat|buzgu' flat-sketch.tsx, croquis.tsx ve geometry.ts icinde sif
+  maliyet=orta etki=yuksek kredi=False
+- PDF disa aktarim
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Techpacker (tek tikla), Optitex, Gerber AccuMark, CLO-SET, Fr
+  neden: Tech pack'in fiili tasiyicisi PDF. Bizim SVG'miz Illustrator'da acilir ama fabrikaya, hocaya ya da musteriye gonderilecek dosya degil. Ustelik kendi kodumuz uyariyor: uretilen kumas dolgusu goreceli a
+  bizde: Hic yok. `exportSvg()` yalniz canli SVG dugumunun kopyasini Blob olarak indiriyor (satir 912-933).
+  maliyet=orta etki=yuksek kredi=False
+- Katman sirasi degistirme (one getir / arkaya gonder / suruklenerek yeniden siralama)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma — hepsinde katman paneli suruklenebilir
+  neden: Ceket on parcasi astarin ustunde mi altinda mi, cep bedenin uzerinde mi — cizim ust uste binmeye basladigi anda gerekiyor. Bizde ciziliş sirasi kader: sonradan cizilen hep ustte kaliyor.
+  bizde: Yarim var. Katman listesi var (ad degistirme, gizle/goster, silme) ama siralama yok; liste yalnizca `[...cur.shapes].rev
+  maliyet=kucuk etki=orta kredi=False
+- Hazir giysi flat sablonu / blok kutuphanesi
+  kim: Digital Fashion Pro (3.000+ sablon), VecFashion (tekil eskiz 2,50 USD, paketler 25–112,50 USD), Techpacks.co (.ai/.pdf s
+  neden: Segmentin giris bileti: kimse tisorto sifirdan cizmiyor, sablonu acip degistiriyor. Bizim tek altligimiz sabit bir manken silueti — kullanicinin uzerinden gececegi bir GIYSI cizgisi yok (AI uretimi ha
+  bizde: Yarim var. initialDoc icinde tek bir ornek belge gomulu (keten bluz: on beden, kol, arka beden, manset, cep) ve croquis.
+  maliyet=orta etki=yuksek kredi=False
+- Renk / colorway — parcaya duz renk verme ve renk varyanti sayfasi
+  kim: Adobe Illustrator (Recolor Artwork, Generative Recolor), CorelDRAW (color styles), Lectra Kaledo Style (renk kombinasyon
+  neden: Koleksiyon isinin belkemigi: ayni model uc renkte. Bizde parcaya kumas GORSELI atanabiliyor ama duz renk atanamiyor ve cizgi rengi degistirilemiyor — cizim tek renk siyah, dolgu ya kumas fotografi ya 
+  bizde: Yarim var. `fabricId` ile kartela deseni ya da uretilen kumas karesi dolgu oluyor; renk secici yok, kontur rengi her yer
+  maliyet=orta etki=orta kredi=False
+- Boole yol islemleri (birlestir, cikar, kesisim) ve Shape Builder
+  kim: Adobe Illustrator (Pathfinder, Shape Builder, Offset Path), Affinity Designer (Shape Builder), Inkscape (Boole yol islem
+  neden: Yaka oyuntusunu bedenden cikarmak, iki parcayi tek konturda birlestirmek icin standart yol. Bizim makasimiz bunun yalnizca bir yarisi: dogruyla ikiye boluyor ama parca CIKARAMIYOR, birlestiremiyor.
+  bizde: Yarim var. `splitPolygon` (Sutherland-Hodgman yari duzlem kirpma) yalniz duz bir dogruyla bolme yapiyor ve icbukey parca
+  maliyet=buyuk etki=orta kredi=False
+- Sekil ilkelleri: dikdortgen, elips, duz cizgi araci
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma — hepsinde ayri arac olarak
+  neden: Manset, etiket, cep kapagi, dugme deligi gibi ogeler duz geometri. Bizde bir dikdortgen icin dort kez tiklamak ve egriyi kapatmak gerekiyor — kose sonumu sayesinde dogru cikiyor (geometry.ts bunu ozel
+  bizde: Hic yok. Tek cizim araci Kalem; ornek belgedeki manset bile elle dort nokta olarak yazilmis.
+  maliyet=kucuk etki=orta kredi=False
+- Serbest el (suruklenerek) cizim
+  kim: Vizcom (gercek cizim araclariyla eskiz tuvali), Adobe Illustrator (Pencil/Blob Brush), Affinity Designer, Inkscape, Core
+  neden: Tablet ya da dokunmatikle calisan tasarimci icin dogal giris bicimi. Bizim kalem SADECE tiklama ile calisiyor; kavisli bir yaka icin on kez tiklamak gerekiyor. `samplePath` ve `simplify` altyapisi zat
+  bizde: Hic yok. `onPointerDown` icinde pen kolu her tiklamada tek nokta ekliyor; pointermove sirasinda nokta biriktirme yok.
+  maliyet=kucuk etki=orta kredi=False
+- Ileri al (redo)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma, Kittl (sinirsiz surum gecmisi + Time Machine) — hepsin
+  neden: 30 adimlik geri alimiz var ve iyi calisiyor, ama yanlislikla bir adim geri alan kullanici onu geri getiremiyor. Geri almanin yarisi eksik kalmis durumda.
+  bizde: Yarim var. `undo: Doc[]` yigini 30 adim tutuyor (`u.slice(-29)`), `undoLast()` var; redo yigini ve Ctrl+Shift+Z dinleyic
+  maliyet=kucuk etki=orta kredi=False
+- Sayisal koordinat ve olcu girisi (parcayi rakamla konumlandirma/boyutlandirma)
+  kim: Adobe Illustrator (Transform paneli), Affinity Designer, CorelDRAW, Inkscape (X/Y/W/H alanlari), Figma, Optitex, Seamly2
+  neden: 'Cebi bel cizgisinden tam 8 cm asagi koy' demenin tek yolu. Bizde her sey fare hassasiyetinde; panel boyutu YAZIYOR (fmtCm ile cm cinsinden) ama duzenlenemiyor — okunur, yazilamaz.
+  bizde: Yarim var. Sag panelde 'Boyut' satiri secili parcanin cm olcusunu gosteriyor; salt okunur. Yalnizca ALTLIK icin sayisal 
+  maliyet=kucuk etki=orta kredi=False
+- Olcum aracinin capaya yakalanmasi, olcuye ad ve tolerans verilmesi
+  kim: Techpacker (POM: olcu adi + tol(+)/tol(-)), CLO-SET Web Tech Pack POM, Optitex Dynamic Measurement Chart, Inkscape Measu
+  neden: Bizim mezuramiz gercekten calisiyor ve cm veriyor — segmentte karsiligi olan bir ozellik. Ama olcu SERBEST iki nokta arasi: capaya yakalanmiyor, ad verilemiyor, tolerans girilemiyor ve KAVISLI kenarin
+  bizde: Yarim var. `Measure = {id, a, b}`; MeasureMark cizgiyi, iki ucta dik centigi ve cm etiketini ciziyor. Ad, tolerans, yol 
+  maliyet=orta etki=orta kredi=False
+- Katman kilidi ve katman bazli opaklik
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma, Raspberry AI (katman bazinda sicaklik/ton/parlaklik/op
+  neden: Altlik uzerinden calisirken bitmis parcalari kilitlemek, sonrakileri yanlislikla tasimayi engelliyor. Opaklik ise ust uste binen parcalari ayirt etmek icin. Ikisi de kucuk ama gunluk.
+  bizde: Yarim var. Katmanda yalnizca gizle/goster var (`visible`); kilit ve opaklik alani Shape tipinde yok.
+  maliyet=kucuk etki=dusuk kredi=False
+- Kumas dolgusunun olcegi, donusu ve konumu
+  kim: Adobe Illustrator (Pattern Swatch — desen tekrar ayarlari), Lectra Kaledo Style (raster dolgu ile doku), CorelDRAW (dese
+  neden: Ekose ve cizgili kumaslarda desenin yonu ve olcegi giysinin gorunumunu belirliyor — bias kesim, cizgi eslestirme. Bizde desen sabit 96x96 birimlik kutu ve her parcada ayni yonde.
+  bizde: Yarim var. Kumas dolgusu var ve calisiyor (kartelada dokuz kayit + uretilen kare, tikla ya da surukle-birak) ama `<patte
+  maliyet=kucuk etki=dusuk kredi=False
+- Kroki (manken altligi) kutuphanesi: farkli poz, beden ve oran
+  kim: Digital Fashion Pro (cesitli pozlarda vektor figurler), VecFashion (croquis sablonlari), Techpacks.co (croquis PDF), Opt
+  neden: Cocuk giyim, erkek giyim ve buyuk beden ayni 9 bas oranli kadin siluetiyle cizilemez. Bizim kroki'miz iyi olculmus ve dogru (omuz ucu ±72, kalca y=400, ayak y=672) ama TEK.
+  bizde: Yarim var. croquis.tsx tek sabit figur; yalnizca `back` propu ile on/arka etiketi degisiyor, geometri ayni. Poz, beden v
+  maliyet=orta etki=orta kredi=False
+- Gruplama (birden fazla parcayi tek nesne gibi tutma)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma
+  neden: Kol + manset + dugme'yi birlikte tasimak, bir yaka takimini tek parca gibi kopyalamak icin. Coklu secim ve cogaltmanin dogal devami.
+  bizde: Hic yok. Shape'ler duz bir dizi; parent/child ya da grup kimligi yok.
+  maliyet=orta etki=dusuk kredi=False
+- DXF / AAMA disa aktarim (kesim ve kalip verisi)
+  kim: Optitex (AAMA, ASTM, DXF, HPGL, ISO — kesim makineleri icin DXF-AAMA), Gerber AccuMark (DXF, PDF, SVG, NC, HPGL), TUKAca
+  neden: Kalip ve kesim tarafinin ortak dili. Bizim isimiz kalip degil, o yuzden bu bize gore ust segment — ama Illustrator, CorelDRAW ve Inkscape gibi FLAT araclari da veriyor, yani beklenti cizimin oradan de
+  bizde: Hic yok.
+  maliyet=buyuk etki=dusuk kredi=False
+- SVG / .ai ice aktarma (disaridan cizim getirip uzerinde calisma)
+  kim: Adobe Illustrator, Affinity Designer, CorelDRAW, Inkscape, Figma, Backbone PLM (ucretsiz Illustrator eklentisi, cift yon
+  neden: Kullanicinin Illustrator'da cizdigi flat'i getirip bizim tuvalimizde devam etmesini saglar; ayrica satin alinan VecFashion sablonlarini kullanabilmesinin tek yolu. SVG'yi CIKARIYORUZ ama geri ALAMIYOR
+  bizde: Hic yok. Tuvale ice aktarilabilen tek sey `dataTransfer` ile surukleyip birakilan KUMAS kimligi (metin), dosya degil.
+  maliyet=buyuk etki=orta kredi=False
+- Gorselden otomatik teknik flat cizim (vektorlestirme / image-to-flat)
+  kim: The New Black AI (Image to flat sketch + duzenlenebilir SVG disa aktarim), Refabric (Design to Flat Drawing — dort stil,
+  neden: Bizim en ozgun tarafimiz: AI ile uretilen renkli teknik flat'i krokiye OLCEREK oturtuyoruz (giysiSiniriniOlc + zarfaOturt) — bu akis 17 uründe esi gorulmeyen bir sey. Ama urettigimiz sey GORSEL kaliyo
+  bizde: Yarim var. `/api/teknik` ile ön ve arka renkli teknik flat KARESI uretiliyor, beyaz olmayan pikseller taranip giysi sini
+  maliyet=buyuk etki=yuksek kredi=True
+- Dikis payi (seam allowance)
+  kim: CLO3D (custom seam allowance ve kose secenekleri), Seamly2D, Optitex, Gerber AccuMark, TUKAcad
+  neden: Kalip tarafinin isi, bizim kapsamimizin disi — ama `inset()` altyapisi zaten duruyor ve ust dikis paraleli icin kullaniliyor, yani teknik olarak en yakin oldugumuz 'uretim' ozelligi bu. Onceligi dusuk
+  bizde: Hic yok. `inset()` yalnizca ust dikis gorunumu icin, gercek offset degil (merkeze dogru orantili daraltma).
+  maliyet=orta etki=dusuk kredi=False
+- Kullanici tanimli kilavuz cizgisi ve cetvel
+  kim: Adobe Illustrator, Affinity Designer (izgara ve kilavuz sistemi), CorelDRAW, Inkscape, Figma
+  neden: Gogus, bel ve kalca hattini kendi olcune gore koyabilmek. Bizde uc sabit kilavuz var (croquis.tsx: y=200 Gogus, y=290 Bel, y=400 Kalca) ama kullanici ne tasiyabiliyor ne yenisini ekleyebiliyor.
+  bizde: Yarim var. Uc sabit yatay kilavuz + merkez dikey ekseni ciziliyor; hepsi kodda gomulu, duzenlenemiyor.
+  maliyet=kucuk etki=dusuk kredi=False
+- Secime yakinlastir ve gorunum yer imi
+  kim: Adobe Illustrator, Affinity Designer, Inkscape, CorelDRAW, Figma
+  neden: Detay uzerinde calisirken kucuk ama sik kullanilan bir kolaylik. Bizim zoom ve Sigdir islevimiz var (0,25x–8x, tekerlek, +/-), eksik olan yalniz secili parcaya odaklanma.
+  bizde: Yarim var. `fitView` gorunume gore sabit kadraj aciyor (on/arka icin 360x740, detay icin 340x180); secime gore kadraj yo
+  maliyet=kucuk etki=dusuk kredi=False
+
