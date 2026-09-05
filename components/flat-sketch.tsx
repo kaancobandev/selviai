@@ -37,7 +37,7 @@ import { Toast } from "@/components/ui/toast";
 /* ------------------------------------------------------------------
    Tipler ve sabitler
    ------------------------------------------------------------------ */
-type Tool = "select" | "pen" | "measure" | "cut" | "hand";
+type Tool = "select" | "pen" | "measure" | "not" | "cut" | "hand";
 type Stitch = "duz" | "ust" | "zigzag" | "surfile";
 type ViewId = "front" | "back" | "detail";
 
@@ -73,13 +73,27 @@ type Shape = {
   kalinlik: Kalinlik;
 };
 type Measure = { id: string; a: Pt; b: Pt };
-type ViewDoc = { shapes: Shape[]; measures: Measure[] };
+/**
+ * NOT / AÇIKLAMA BALONU (callout).
+ *
+ * Flat üzerinde konstrüksiyonu anlatmanın tek yolu bu: "kenardan 6 mm üst
+ * dikiş", "bu kenar sürfileli", "astar buradan döner". Dikiş TİPİ zaten
+ * parçada seçiliyor ama sayısal değer, sıra ve istisna yazıyla anlatılır.
+ * Bunlar olmadan çizim fabrikaya gidebilecek bir belge değil, yalnızca
+ * bir resim.
+ *
+ * `ok` isteğe bağlı: varsa metinden o noktaya ince bir kılavuz çizgi
+ * gidiyor (asıl callout), yoksa serbest bir not oluyor.
+ */
+type Not = { id: string; p: Pt; metin: string; ok?: Pt };
+type ViewDoc = { shapes: Shape[]; measures: Measure[]; notlar: Not[] };
 type Doc = Record<ViewId, ViewDoc>;
 
 const TOOLS: { id: Tool; label: string; key: string; hint: string }[] = [
   { id: "select", label: "Seç", key: "V", hint: "Shift çoğaltır · çift tık nokta ekler · Alt+çapa siler · köşe oranlı ölçekler, üstteki halka döndürür" },
   { id: "pen", label: "Kalem", key: "P", hint: "Tıkla nokta ekle · ilk noktaya dön kapat · Enter bitir" },
   { id: "measure", label: "Mezura", key: "M", hint: "İki nokta arasını sürükle · cm" },
+  { id: "not", label: "Not", key: "N", hint: "Tıkla not bırak · anlatacağın yerden sürükle, kılavuz çizgi çekilsin" },
   { id: "cut", label: "Makas", key: "C", hint: "Parçanın üzerinden bir çizgi çek · ikiye böler" },
   { id: "hand", label: "El", key: "H", hint: "Tuvali sürükle · tekerlek yakınlaştırır" },
 ];
@@ -124,10 +138,12 @@ const initialDoc: Doc = {
       { id: "s-sleeve", name: "Kol", points: [P(150, 124), P(181, 104), P(212, 124), P(206, 250), P(196, 332), P(166, 332), P(156, 250)], closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin" },
     ],
     measures: [{ id: "m1", a: P(-72, 122), b: P(72, 122) }],
+    notlar: [],
   },
   back: {
     shapes: [{ id: "s-back", name: "Arka beden", points: blouse(112), closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin" }],
     measures: [],
+    notlar: [],
   },
   detail: {
     shapes: [
@@ -135,6 +151,7 @@ const initialDoc: Doc = {
       { id: "s-pocket", name: "Cep", points: [P(120, 0), P(180, 0), P(180, 60), P(150, 72), P(120, 60)], closed: true, smooth: false, stitch: "zigzag", fabricId: "denim", visible: true, kalinlik: "orta" },
     ],
     measures: [{ id: "m2", a: P(-80, 52), b: P(80, 52) }],
+    notlar: [],
   },
 };
 
@@ -168,7 +185,7 @@ function belgeyiOnar(ham: unknown): Doc | null {
   const kaynak = ham as Partial<Record<ViewId, unknown>>;
   const cikti = {} as Doc;
   for (const v of VIEWS) {
-    const g = kaynak[v.id] as { shapes?: unknown; measures?: unknown } | undefined;
+    const g = kaynak[v.id] as { shapes?: unknown; measures?: unknown; notlar?: unknown } | undefined;
     if (!g) return null;
     const shapes = Array.isArray(g.shapes) ? g.shapes : [];
     const measures = Array.isArray(g.measures) ? g.measures : [];
@@ -177,6 +194,10 @@ function belgeyiOnar(ham: unknown): Doc | null {
         .filter((x): x is Shape => !!x && Array.isArray((x as Shape).points))
         .map((x) => ({ ...x, kalinlik: x.kalinlik ?? "orta", visible: x.visible !== false })),
       measures: measures as Measure[],
+      /* Eski kayıtlarda `notlar` yok; sürüm anahtarını değiştirmek yerine
+         burada boşa düşürüyoruz — kullanıcının çizimini bir alan eklendi
+         diye atmanın gerekçesi olmaz. */
+      notlar: Array.isArray(g.notlar) ? (g.notlar as Not[]) : [],
     };
   }
   return cikti;
@@ -521,6 +542,8 @@ type Drag =
       recorded: boolean;
     }
   | { kind: "measure"; a: Pt }
+  | { kind: "not"; a: Pt }
+  | { kind: "notTasi"; id: string; start: Pt; orij: Pt; okOrij?: Pt; recorded: boolean }
   | { kind: "cut"; a: Pt };
 
 /* ------------------------------------------------------------------
@@ -714,6 +737,14 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     }
     setEkSecim((e) => (e.includes(id) ? e.filter((x) => x !== id) : [...e, id]));
   };
+  const selectedNot = cur.notlar.find((n) => n.id === selectedId) ?? null;
+  const notGuncelle = (id: string, yama: Partial<Not>, kaydet = true) => {
+    const uygula = (d: ViewDoc): ViewDoc => ({ ...d, notlar: d.notlar.map((n) => (n.id === id ? { ...n, ...yama } : n)) });
+    /* Yazarken geri al yığınına HER TUŞ için giriş atmıyoruz — parça adı
+       alanı da aynı gerekçeyle böyle çalışıyor. */
+    if (kaydet) commit(uygula);
+    else setDoc((d) => ({ ...d, [view]: uygula(d[view]) }));
+  };
   const secimiTemizle = () => {
     setSelectedId(null);
     setEkSecim([]);
@@ -748,6 +779,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       ...d,
       shapes: d.shapes.filter((s) => !secimIdleri.includes(s.id)),
       measures: d.measures.filter((m) => !secimIdleri.includes(m.id)),
+      notlar: d.notlar.filter((n) => !secimIdleri.includes(n.id)),
     }));
     secimiTemizle();
   };
@@ -1135,6 +1167,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       if (k === "v") setTool("select");
       else if (k === "p") setTool("pen");
       else if (k === "m") setTool("measure");
+      else if (k === "n") setTool("not");
       else if (k === "c") setTool("cut");
       else if (k === "h") setTool("hand");
       else if (k === "escape") {
@@ -1211,6 +1244,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     } else if (tool === "measure") {
       setDrag({ kind: "measure", a: p });
       setTemp(p);
+    } else if (tool === "not") {
+      setDrag({ kind: "not", a: p });
+      setTemp(p);
     } else if (tool === "cut") {
       setDrag({ kind: "cut", a: p });
       setTemp(p);
@@ -1248,6 +1284,22 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         setDrag({ ...drag, recorded: true });
       }
       donusumUygula(drag, p, shiftDown || e.shiftKey);
+    } else if (drag.kind === "notTasi") {
+      const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+      if (!drag.recorded && Math.hypot(dx, dy) > 1 / vp.zoom) {
+        setUndo((u) => [...u.slice(-29), doc]);
+        setDrag({ ...drag, recorded: true });
+      }
+      /* Kılavuz çizgisinin UCU yerinde kalıyor, yalnız etiket taşınıyor:
+         ok neyi gösterdiğini söylüyor, etiket nereye sığdığını. İkisini
+         birlikte taşımak callout'u anlamsız kılardı. */
+      setDoc((d) => ({
+        ...d,
+        [view]: {
+          ...d[view],
+          notlar: d[view].notlar.map((n) => (n.id === drag.id ? { ...n, p: { x: drag.orij.x + dx, y: drag.orij.y + dy } } : n)),
+        },
+      }));
     } else if (drag.kind === "anchor") {
       const y = noktayiYakala(p, drag.id, drag.index);
       setDoc((d) => ({
@@ -1266,7 +1318,20 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     if (!drag) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
     const p = toCanvas(e.clientX, e.clientY);
-    if (drag.kind === "measure") {
+    if (drag.kind === "not") {
+      const id = uid();
+      /* Sürükleme uzunluğu callout ile serbest notu ayırıyor: kısa bir
+         tıklama "buraya not", uzun bir sürükleme "şurayı anlatan not".
+         Eşik mezuranınkiyle aynı, çünkü ikisi de aynı el hareketini
+         ayırt ediyor. */
+      const okVar = dist(drag.a, p) > 6 / vp.zoom;
+      commit((d) => ({
+        ...d,
+        notlar: [...d.notlar, { id, p: okVar ? p : drag.a, metin: "Not", ...(okVar ? { ok: drag.a } : {}) }],
+      }));
+      setSelectedId(id);
+      setEkSecim([]);
+    } else if (drag.kind === "measure") {
       if (dist(drag.a, p) > 6 / vp.zoom) {
         const id = uid();
         commit((d) => ({ ...d, measures: [...d.measures, { id, a: drag.a, b: p }] }));
@@ -1402,6 +1467,15 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       },
     }));
   };
+
+  function onNotDown(e: ReactPointerEvent<SVGGElement>, n: Not) {
+    if (tool !== "select") return;
+    e.stopPropagation();
+    setSelectedId(n.id);
+    setEkSecim([]);
+    svgRef.current?.setPointerCapture(e.pointerId);
+    setDrag({ kind: "notTasi", id: n.id, start: toCanvas(e.clientX, e.clientY), orij: n.p, okOrij: n.ok, recorded: false });
+  }
 
   function onAnchorDown(e: ReactPointerEvent<SVGRectElement>, id: string, index: number) {
     if (tool !== "select") return;
@@ -1895,6 +1969,17 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <MeasureMark key={m.id} a={m.a} b={m.b} zoom={vp.zoom} selected={m.id === selectedId} onSelect={() => { setSelectedId(m.id); setEkSecim([]); }} />
         ))}
 
+        {/* notlar */}
+        {cur.notlar.map((n) => (
+          <NotIsareti
+            key={n.id}
+            not={n}
+            zoom={vp.zoom}
+            selected={n.id === selectedId}
+            onDown={(e) => onNotDown(e, n)}
+          />
+        ))}
+
         {/* geçici ölçü / kesim */}
         {drag && (drag.kind === "measure" || drag.kind === "cut") && temp && (
           <g data-ui>
@@ -2354,7 +2439,40 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               </div>
             )}
 
-            {selected ? (
+            {selectedNot ? (
+              <div className="mt-3 space-y-3 text-[12px] leading-4">
+                <textarea
+                  value={selectedNot.metin}
+                  onChange={(e) => notGuncelle(selectedNot.id, { metin: e.target.value }, false)}
+                  rows={3}
+                  aria-label="Not metni"
+                  placeholder="Kenardan 6 mm üst dikiş"
+                  className="w-full resize-none border-b border-mist bg-transparent py-1.5 text-[13px] leading-5 outline-none focus:border-ink"
+                />
+                <Row k="Kılavuz">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      notGuncelle(
+                        selectedNot.id,
+                        selectedNot.ok
+                          ? { ok: undefined }
+                          : /* Ok yoksa etiketin biraz soluna koyuyoruz:
+                               tam altına konsa çizgi görünmez uzunlukta
+                               olur ve kullanıcı bir şey olmadı sanır. */
+                            { ok: { x: selectedNot.p.x - 40, y: selectedNot.p.y + 20 } },
+                      )
+                    }
+                    className="eyebrow text-ash u-line hover:text-ink"
+                  >
+                    {selectedNot.ok ? "Kaldır" : "Ekle"}
+                  </button>
+                </Row>
+                <p className="text-[11px] leading-4 text-ash">
+                  Notu sürükleyerek taşıyın. Silmek için Delete.
+                </p>
+              </div>
+            ) : selected ? (
               <div className="mt-3 space-y-2 text-[12px] leading-4">
                 <input
                   value={selected.name}
@@ -2608,6 +2726,8 @@ function ToolIcon({ id }: { id: Tool }) {
       return <svg {...c}><path d="M4 20l4-1 10-10-3-3L5 16z" /><path d="M13 8l3 3" /><path d="M4 20l1-4" /></svg>;
     case "measure":
       return <svg {...c}><rect x="3" y="9" width="18" height="6" /><path d="M7 9v2.5M11 9v3.5M15 9v2.5M19 9v3.5" /></svg>;
+    case "not":
+      return <svg {...c}><rect x="3" y="4" width="13" height="10" /><path d="M6 7.5h7M6 10.5h5" /><path d="M9 14l-2 6 6-6" /></svg>;
     case "cut":
       return <svg {...c}><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="6.5" cy="17.5" r="2.5" /><path d="M8.5 8.2L20 17M8.5 15.8L20 7" /></svg>;
     case "hand":
@@ -2678,6 +2798,77 @@ function Kaydirac({
         style={{ "--p": `${oran}%` } as CSSProperties}
       />
     </div>
+  );
+}
+
+/**
+ * Not / açıklama balonu.
+ *
+ * METİN EKRAN BOYUNDA, tuval boyunda değil. Ölçü etiketleri de böyle
+ * çalışıyor ve tutarlılık burada işlevsel: bir açıklama her yakınlaştırma
+ * kademesinde okunabilir olmalı, yoksa 0,25x'te not diye bir leke kalır.
+ * Bedeli, dışa aktarılan SVG'de metnin o anki kademeye göre donması —
+ * ölçü etiketlerinin bugün zaten yaptığı şey.
+ *
+ * Plaka ZORUNLU: notlar çoğu zaman altlık fotoğrafın ya da kumaş
+ * dolgusunun üstüne düşüyor ve düz metin orada okunmuyor.
+ */
+function NotIsareti({
+  not,
+  zoom,
+  selected,
+  onDown,
+}: {
+  not: Not;
+  zoom: number;
+  selected: boolean;
+  onDown: (e: ReactPointerEvent<SVGGElement>) => void;
+}) {
+  const fs = 11 / zoom;
+  const satirlar = not.metin.split("\n");
+  const en = Math.max(1, ...satirlar.map((x) => x.length)) * 6.1 / zoom;
+  const boy = satirlar.length * fs * 1.3;
+  const pay = 5 / zoom;
+  const x = not.p.x, y = not.p.y;
+  const stroke = selected ? SELECT : INK;
+  return (
+    <g onPointerDown={onDown} style={{ cursor: "move" }}>
+      {not.ok && (
+        <line
+          x1={x}
+          y1={y}
+          x2={not.ok.x}
+          y2={not.ok.y}
+          stroke={stroke}
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {not.ok && <circle cx={not.ok.x} cy={not.ok.y} r={2 / zoom} fill={stroke} />}
+      <rect
+        x={x - pay}
+        y={y - boy - pay}
+        width={en + pay * 2}
+        height={boy + pay * 2}
+        fill="#fff"
+        fillOpacity="0.92"
+        stroke={stroke}
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+      {satirlar.map((satir, i) => (
+        <text
+          key={i}
+          x={x}
+          y={y - boy + fs * (i + 0.95) * 1.3 - fs * 0.3}
+          fontSize={fs}
+          fontFamily="var(--font-sans)"
+          fill={INK}
+        >
+          {satir}
+        </text>
+      ))}
+    </g>
   );
 }
 
