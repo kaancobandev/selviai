@@ -535,6 +535,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      çubuğunda seçilen değer YENİ parçaya varsayılan oluyor, seçili parça
      varsa ona da uygulanıyor. */
   const [kalinlik, setKalinlik] = useState<Kalinlik>("orta");
+  const [yakalamaAcik, setYakalamaAcik] = useState(true);
   const [smooth, setSmooth] = useState(true);
   const [stitchOpen, setStitchOpen] = useState(false);
   /* SEÇİM İKİ PARÇALI: bir BİRİNCİL parça (`selectedId`) ve Shift ile
@@ -818,6 +819,97 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     });
   };
 
+  /* ---------- yakalama (snap) ----------
+
+     8 ve 40 birimlik ızgarayı ÇİZİYORDUK ama hiçbir şey ona yakalanmıyordu
+     — yani ızgara süstü. Yakalama üç hedefe bakıyor ve üçü de teknik
+     çizimde gerçek bir anlam taşıyor:
+
+       · ORTA ÇİZGİ (x=0) — kroki oraya simetrik; giysinin ön ortası,
+         yaka ortası ve pat hattı hep o çizgide.
+       · IZGARA (8 birim = 2 cm) — ölçülü çizim.
+       · BAŞKA PARÇALARIN NOKTALARI — iki parçayı dikiş hattında
+         buluşturmanın tek yolu.
+
+     Eşik EKRAN PİKSELİ cinsinden: yakınlaştırınca yakalama gücü
+     değişmemeli, yoksa 8x'te her şey birbirine yapışır, 0,25x'te hiçbir
+     şey tutmazdı. */
+  const YAKALAMA_PX = 6;
+  const IZGARA_ADIM = 8;
+
+  const [yakalamaCizgisi, setYakalamaCizgisi] = useState<{ x?: number; y?: number } | null>(null);
+
+  /** Bir eksende en yakın hedefi bulur; eşiğin dışındaysa değeri korur. */
+  const eksendeYakala = (deger: number, hedefler: number[], esik: number) => {
+    let enYakin = esik;
+    let sonuc: number | null = null;
+    for (const h of hedefler) {
+      const u = Math.abs(deger - h);
+      if (u < enYakin) {
+        enYakin = u;
+        sonuc = h;
+      }
+    }
+    return sonuc;
+  };
+
+  /**
+   * Bir noktayı yakalar ve kılavuz çizgisini günceller.
+   *
+   * X ve Y AYRI AYRI yakalanıyor: nokta yalnız dikeyde ızgaraya oturup
+   * yatayda serbest kalabilmeli. Tek bir "en yakın nokta" araması bunu
+   * yapamaz ve çizimi ızgaraya zincirlerdi.
+   */
+  const noktayiYakala = (p: Pt, hariçId?: string, hariçIndeks?: number): Pt => {
+    if (!yakalamaAcik) {
+      setYakalamaCizgisi(null);
+      return p;
+    }
+    const esik = YAKALAMA_PX / vp.zoom;
+    const digerler = cur.shapes
+      .filter((s) => s.visible)
+      .flatMap((s) => s.points.filter((_, i) => !(s.id === hariçId && i === hariçIndeks)));
+    const x = eksendeYakala(p.x, [0, Math.round(p.x / IZGARA_ADIM) * IZGARA_ADIM, ...digerler.map((q) => q.x)], esik);
+    const y = eksendeYakala(p.y, [Math.round(p.y / IZGARA_ADIM) * IZGARA_ADIM, ...digerler.map((q) => q.y)], esik);
+    setYakalamaCizgisi(x === null && y === null ? null : { x: x ?? undefined, y: y ?? undefined });
+    return { x: x ?? p.x, y: y ?? p.y };
+  };
+
+  /**
+   * Taşımada yakalanan şey noktanın kendisi değil, seçimin KUTUSU:
+   * sol kenarı, ortası ve sağ kenarı. Bir parçayı ızgaraya oturturken
+   * tasarımcının baktığı yer kenardır, rastgele bir çapa değil.
+   */
+  const tasimayiYakala = (noktalar: Pt[], dx: number, dy: number) => {
+    if (!yakalamaAcik) {
+      setYakalamaCizgisi(null);
+      return { dx, dy };
+    }
+    const esik = YAKALAMA_PX / vp.zoom;
+    const k = bbox(noktalar.map((q) => ({ x: q.x + dx, y: q.y + dy })));
+    const xler = [k.minX, k.minX + k.w / 2, k.maxX];
+    const yler = [k.minY, k.minY + k.h / 2, k.maxY];
+    let duzeltX: number | null = null;
+    let duzeltY: number | null = null;
+    let cizgi: { x?: number; y?: number } | null = null;
+    for (const v of xler) {
+      const h = eksendeYakala(v, [0, Math.round(v / IZGARA_ADIM) * IZGARA_ADIM], esik);
+      if (h !== null && (duzeltX === null || Math.abs(h - v) < Math.abs(duzeltX))) {
+        duzeltX = h - v;
+        cizgi = { ...(cizgi ?? {}), x: h };
+      }
+    }
+    for (const v of yler) {
+      const h = eksendeYakala(v, [Math.round(v / IZGARA_ADIM) * IZGARA_ADIM], esik);
+      if (h !== null && (duzeltY === null || Math.abs(h - v) < Math.abs(duzeltY))) {
+        duzeltY = h - v;
+        cizgi = { ...(cizgi ?? {}), y: h };
+      }
+    }
+    setYakalamaCizgisi(cizgi);
+    return { dx: dx + (duzeltX ?? 0), dy: dy + (duzeltY ?? 0) };
+  };
+
   /* ---------- hizalama ve dağıtma ----------
 
      HEDEF SEÇİMİN KUTUSU, "anahtar nesne" DEĞİL. Illustrator seçilen son
@@ -1084,7 +1176,11 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       if (draft.length >= 3 && dist(p, draft[0]) < 8 / vp.zoom) {
         finishDraft(true);
       } else {
-        setDraft((d) => [...d, p]);
+        /* Kalem de yakalıyor: ölçülü çizmenin tek yolu noktayı ızgaraya
+           oturtabilmek. Kapatma kontrolü (ilk noktaya dönme) YAKALAMADAN
+           ÖNCE yapılıyor — yakalanmış nokta ilk noktaya yapışırsa yol
+           kendiliğinden kapanmış gibi görünürdü. */
+        setDraft((d) => [...d, noktayiYakala(p)]);
       }
     } else if (tool === "measure") {
       setDrag({ kind: "measure", a: p });
@@ -1104,12 +1200,13 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       const dy = (e.clientY - drag.startClient.y) / vp.zoom;
       setUserView({ zoom: vp.zoom, x: drag.startView.x - dx, y: drag.startView.y - dy });
     } else if (drag.kind === "move") {
-      const dx = p.x - drag.start.x;
-      const dy = p.y - drag.start.y;
-      if (!drag.recorded && Math.hypot(dx, dy) > 1 / vp.zoom) {
+      const hamDx = p.x - drag.start.x;
+      const hamDy = p.y - drag.start.y;
+      if (!drag.recorded && Math.hypot(hamDx, hamDy) > 1 / vp.zoom) {
         setUndo((u) => [...u.slice(-29), doc]);
         setDrag({ ...drag, recorded: true });
       }
+      const { dx, dy } = tasimayiYakala(Object.values(drag.orij).flat(), hamDx, hamDy);
       setDoc((d) => ({
         ...d,
         [view]: {
@@ -1120,11 +1217,12 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         },
       }));
     } else if (drag.kind === "anchor") {
+      const y = noktayiYakala(p, drag.id, drag.index);
       setDoc((d) => ({
         ...d,
         [view]: {
           ...d[view],
-          shapes: d[view].shapes.map((s) => (s.id === drag.id ? { ...s, points: s.points.map((q, i) => (i === drag.index ? p : q)) } : s)),
+          shapes: d[view].shapes.map((s) => (s.id === drag.id ? { ...s, points: s.points.map((q, i) => (i === drag.index ? y : q)) } : s)),
         },
       }));
     } else {
@@ -1166,6 +1264,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     }
     setDrag(null);
     setTemp(null);
+    setYakalamaCizgisi(null);
   }
 
   function onAnchorDown(e: ReactPointerEvent<SVGRectElement>, id: string, index: number) {
@@ -1668,6 +1767,38 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           </g>
         )}
 
+        {/* YAKALAMA KILAVUZU. Görünmeyen bir yakalama, kullanıcı için
+            "noktam neden zıpladı" demek. Çizgi hangi hizaya oturduğunu
+            söylüyor ve sürükleme biter bitmez sönüyor. */}
+        {yakalamaCizgisi && (
+          <g data-ui pointerEvents="none">
+            {yakalamaCizgisi.x !== undefined && (
+              <line
+                x1={yakalamaCizgisi.x}
+                y1={vp.y}
+                x2={yakalamaCizgisi.x}
+                y2={vp.y + size.h / vp.zoom}
+                stroke={SELECT}
+                strokeWidth="1"
+                strokeDasharray="5 4"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+            {yakalamaCizgisi.y !== undefined && (
+              <line
+                x1={vp.x}
+                y1={yakalamaCizgisi.y}
+                x2={vp.x + size.w / vp.zoom}
+                y2={yakalamaCizgisi.y}
+                stroke={SELECT}
+                strokeWidth="1"
+                strokeDasharray="5 4"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+          </g>
+        )}
+
         {/* kalem taslağı */}
         {draft.length > 0 && (
           <g data-ui>
@@ -1737,6 +1868,16 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             }}
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round"><path d="M4 18c7 0 6-12 16-12" /><circle cx="4" cy="18" r="1.2" /><circle cx="20" cy="6" r="1.2" /></svg>
+          </ToolButton>
+          <ToolButton
+            label={yakalamaAcik ? "Yakalama · açık" : "Yakalama · kapalı"}
+            active={yakalamaAcik}
+            onClick={() => setYakalamaAcik((v) => !v)}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
+              <path d="M4 9h16M4 15h16M9 4v16M15 4v16" strokeOpacity="0.45" />
+              <circle cx="9" cy="9" r="2.2" />
+            </svg>
           </ToolButton>
           <Sep />
           <ToolButton label="Geri al · Ctrl+Z" onClick={undoLast} disabled={undo.length === 0}>
