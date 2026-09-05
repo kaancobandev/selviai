@@ -86,7 +86,29 @@ type Shape = {
  * veriyor. Elle girilseydi çizimle tablo birbirinden ayrı düşerdi ve
  * hangisinin doğru olduğu belirsiz kalırdı.
  */
-type Measure = { id: string; a: Pt; b: Pt; ad?: string; tolerans?: number };
+type Measure = { id: string; a: Pt; b: Pt; ad?: string; tolerans?: number; artis?: number };
+
+/**
+ * BEDEN SERİSİ VE GRADASYON.
+ *
+ * Tek bedenlik bir çizim ürün değil, NUMUNEDIR. Koleksiyon üretimine
+ * geçmenin eşiği burası: numune beden ölçülüyor, kalan bedenler ondan
+ * TÜRETİLİYOR. Türetme kuralı ölçü noktası başına tek bir sayı — beden
+ * başına artış — ve tech pack'lerde "grade rule" diye geçiyor.
+ *
+ * SERİ BELGE DÜZEYİNDE, görünüm düzeyinde değil: ön, arka ve detay aynı
+ * giysinin parçaları ve hepsi aynı beden serisinde üretiliyor. Görünüm
+ * başına ayrı seri tutmak, arka bedeni ön bedenden başka bir bedende
+ * dikmeye davet olurdu.
+ */
+type Seri = { bedenler: string[]; numune: number };
+const VARSAYILAN_SERI: Seri = { bedenler: ["XS", "S", "M", "L", "XL"], numune: 2 };
+
+/** Bir ölçünün istenen bedendeki değeri (cm). */
+function bedendeOlcu(m: Measure, seri: Seri, indeks: number): number {
+  const adim = indeks - seri.numune;
+  return toCm(dist(m.a, m.b)) + adim * (m.artis ?? 0);
+}
 
 /** Tech pack'lerde yaygın ölçüm noktaları — adlandırma hızlansın diye. */
 const POM_ONERILERI = [
@@ -257,7 +279,7 @@ function belgeyiOnar(ham: unknown): Doc | null {
          ad boş kalıyor (adsız satır tabloda "Adsız ölçü" diye görünüyor
          ve kullanıcıyı adlandırmaya çağırıyor — uydurma bir ad koymak
          ölçüyü yanlış tanımlamak olurdu). */
-      measures: (measures as Measure[]).map((m) => ({ ...m, tolerans: m.tolerans ?? VARSAYILAN_TOLERANS })),
+      measures: (measures as Measure[]).map((m) => ({ ...m, tolerans: m.tolerans ?? VARSAYILAN_TOLERANS, artis: m.artis ?? 0 })),
       /* Eski kayıtlarda `notlar` yok; sürüm anahtarını değiştirmek yerine
          burada boşa düşürüyoruz — kullanıcının çizimini bir alan eklendi
          diye atmanın gerekçesi olmaz. */
@@ -268,20 +290,37 @@ function belgeyiOnar(ham: unknown): Doc | null {
   return cikti;
 }
 
-function belgeOku(): Doc | null {
+/**
+ * Kayıt okuma — İKİ BİÇİMİ DE ANLIYOR.
+ *
+ * İlk sürüm belgeyi doğrudan yazıyordu; beden serisi eklenince kayıt
+ * `{ doc, seri }` oldu. Sürüm anahtarını değiştirmek en kolayıydı ama
+ * kullanıcının çizimini "bir alan eklendi" diye atmak demekti. Eski
+ * kayıtta `doc` anahtarı yok — bu ayrım iki biçimi ayırt etmeye yetiyor
+ * ve eski çizimler varsayılan seriyle açılıyor.
+ */
+function kayitOku(): { doc: Doc; seri: Seri } | null {
   /* try/catch ŞART: gizli sekmede ve site verisi kapalıyken erişimin
      KENDİSİ fırlatıyor — okumak değil, `localStorage`'a dokunmak. */
   try {
     const ham = window.localStorage.getItem(KAYIT_ANAHTARI);
-    return ham ? belgeyiOnar(JSON.parse(ham)) : null;
+    if (!ham) return null;
+    const cozulen = JSON.parse(ham) as Record<string, unknown>;
+    const eskiBicim = !("doc" in cozulen);
+    const doc = belgeyiOnar(eskiBicim ? cozulen : cozulen.doc);
+    if (!doc) return null;
+    const s = (eskiBicim ? null : (cozulen.seri as Partial<Seri> | undefined)) ?? null;
+    const bedenler = Array.isArray(s?.bedenler) && s.bedenler.length ? s.bedenler : VARSAYILAN_SERI.bedenler;
+    const numune = typeof s?.numune === "number" ? Math.min(Math.max(0, s.numune), bedenler.length - 1) : VARSAYILAN_SERI.numune;
+    return { doc, seri: { bedenler, numune } };
   } catch {
     return null;
   }
 }
 
-function belgeYaz(doc: Doc): void {
+function kayitYaz(doc: Doc, seri: Seri): void {
   try {
-    window.localStorage.setItem(KAYIT_ANAHTARI, JSON.stringify(doc));
+    window.localStorage.setItem(KAYIT_ANAHTARI, JSON.stringify({ doc, seri }));
   } catch {
     /* Kota dolu ya da depolama kapalı. Sessiz geçiyoruz: kaydedememek
        çizimi kaybettirmez, kullanıcıyı uyarı yağmuruna tutmak ise
@@ -629,6 +668,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   /* İLERİ AL. Geri al varken ileri alın olmaması, kullanıcıyı bir adım
      geri gittiği anda cezalandırıyordu: dönüş yolu yoktu. */
   const [redo, setRedo] = useState<Doc[]>([]);
+  const [seri, setSeri] = useState<Seri>(VARSAYILAN_SERI);
   /* Pano — kopyalanan parça. Tarayıcı panosu DEĞİL, bilerek: sistem
      panosuna yazmak izin istiyor ve başka uygulamalardan gelen içerikle
      karışıyor; buradaki kopyala yalnız bu tuval içinde anlamlı. */
@@ -1175,7 +1215,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      belgeyi üretir ve hidrasyon uyuşmazlığı çıkardı. */
   const hazirRef = useRef(false);
   useEffect(() => {
-    const kayit = belgeOku();
+    const kayit = kayitOku();
     if (kayit) {
       /* eslint-disable-next-line react-hooks/set-state-in-effect --
          Kural haklı ama bu durum onun hedefi değil. Etki BİR KEZ çalışıyor
@@ -1185,7 +1225,8 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
          olmadığı için hidrasyon uyuşmazlığı verir, `useSyncExternalStore`
          ise belgeyi türetilmiş değere çevirip `setDoc`'u imkânsızlaştırır.
          Aynı desen depoda tema anahtarında da var (tema-anahtari.tsx). */
-      setDoc(kayit);
+      setDoc(kayit.doc);
+      setSeri(kayit.seri);
       setKayitDurumu("yuklendi");
     }
     hazirRef.current = true;
@@ -1197,11 +1238,11 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
        karede çalışıyor. Geciktirilmezse saniyede altmış kez JSON
        üretilip diske yazılırdı. */
     const zaman = window.setTimeout(() => {
-      belgeYaz(doc);
+      kayitYaz(doc, seri);
       setKayitDurumu("yazildi");
     }, 400);
     return () => window.clearTimeout(zaman);
-  }, [doc]);
+  }, [doc, seri]);
 
   /* ---------- klavye ---------- */
   useEffect(() => {
@@ -1822,7 +1863,17 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      Ayırıcı noktalı virgül ve başta BOM: Türkçe Excel virgülü ondalık
      ayırıcı sayıyor ve BOM olmadan Türkçe karakterleri bozuk açıyor. */
   function pomCsv() {
-    const basliklar = ["Görünüm", "No", "Ölçüm noktası", "Numune (cm)", "Tolerans (±cm)"];
+    /* Numune beden başlıkta İŞARETLİ. Tabloda türetilmiş sayılarla
+       ölçülmüş sayı yan yana duruyor; hangisinin ölçüldüğünü söylemeyen
+       bir dosya gradasyon hatasını fark edilmez kılar. */
+    const basliklar = [
+      "Görünüm",
+      "No",
+      "Ölçüm noktası",
+      ...seri.bedenler.map((b, i) => (i === seri.numune ? `${b} (numune)` : b)),
+      "Tolerans (±cm)",
+      "Artış (cm/beden)",
+    ];
     const satirlar: string[][] = [];
     for (const v of VIEWS) {
       doc[v.id].measures.forEach((m, i) => {
@@ -1830,8 +1881,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           v.label,
           String(i + 1),
           m.ad?.trim() || "Adsız ölçü",
-          toCm(dist(m.a, m.b)).toFixed(1),
+          ...seri.bedenler.map((_, bi) => bedendeOlcu(m, seri, bi).toFixed(1)),
           (m.tolerans ?? VARSAYILAN_TOLERANS).toFixed(1),
+          (m.artis ?? 0).toFixed(1),
         ]);
       });
     }
@@ -2984,6 +3036,37 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               <p className="eyebrow text-ash">Ölçü tablosu · {VIEWS.find((v) => v.id === view)?.label}</p>
               <span className="eyebrow tabular-nums text-ash">{cur.measures.length}</span>
             </div>
+            {/* BEDEN SERİSİ. Numune beden tıklanarak seçiliyor; hangi
+                bedenin ÖLÇÜLDÜĞÜ, hangilerinin TÜRETİLDİĞİ ayrımı
+                gradasyonun tamamını belirliyor. */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {seri.bedenler.map((b, i) => (
+                <button
+                  key={`${b}-${i}`}
+                  type="button"
+                  onClick={() => setSeri((x) => ({ ...x, numune: i }))}
+                  title={i === seri.numune ? "Numune beden — ölçülen" : "Numune beden yap"}
+                  aria-pressed={i === seri.numune}
+                  className={cn(
+                    "border px-2 py-0.5 text-[11px] tabular-nums transition-colors",
+                    i === seri.numune ? "border-ink bg-ink text-bone" : "border-mist text-smoke hover:border-ink/40",
+                  )}
+                >
+                  {b}
+                </button>
+              ))}
+              <input
+                value={seri.bedenler.join(" ")}
+                aria-label="Beden serisi"
+                onChange={(e) => {
+                  const bedenler = e.target.value.split(/[\s,]+/).filter(Boolean);
+                  if (!bedenler.length) return;
+                  setSeri((x) => ({ bedenler, numune: Math.min(x.numune, bedenler.length - 1) }));
+                }}
+                className="ml-1 w-28 border-b border-mist bg-transparent py-0.5 text-[11px] outline-none focus:border-ink"
+              />
+            </div>
+
             <datalist id="pom-onerileri">
               {POM_ONERILERI.map((x) => (
                 <option key={x} value={x} />
@@ -3009,16 +3092,6 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                       className="min-w-0 flex-1 border-b border-transparent bg-transparent py-0.5 text-[12.5px] outline-none placeholder:text-ash focus:border-ink"
                     />
                     <span className="shrink-0 text-[12.5px] tabular-nums">{fmtCm(dist(m.a, m.b))}</span>
-                    <span className="shrink-0 text-[11px] text-ash">±</span>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={m.tolerans ?? VARSAYILAN_TOLERANS}
-                      aria-label={`${i + 1}. ölçünün toleransı`}
-                      onChange={(e) => olcumGuncelle(m.id, { tolerans: Math.max(0, Number(e.target.value) || 0) }, false)}
-                      className="w-10 shrink-0 border-b border-transparent bg-transparent py-0.5 text-right text-[12px] tabular-nums outline-none focus:border-ink"
-                    />
                     <button
                       type="button"
                       onClick={() => olcumSil(m.id)}
@@ -3027,6 +3100,34 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                     >
                       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                     </button>
+                  </div>
+                  {/* Tolerans ve artış ikinci satırda: ilk satıra sıkışınca
+                      ölçü ADI okunmaz hâle geliyordu ve asıl aranan o. */}
+                  <div className="mt-1 flex items-center gap-3 pl-[27px] text-[11px] text-ash">
+                    <label className="flex items-center gap-1">
+                      Tolerans ±
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={m.tolerans ?? VARSAYILAN_TOLERANS}
+                        aria-label={`${i + 1}. ölçünün toleransı`}
+                        onChange={(e) => olcumGuncelle(m.id, { tolerans: Math.max(0, Number(e.target.value) || 0) }, false)}
+                        className="w-9 border-b border-transparent bg-transparent py-0.5 text-right tabular-nums text-smoke outline-none focus:border-ink"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1" title="Beden başına artış — gradasyon kuralı">
+                      Artış
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={m.artis ?? 0}
+                        aria-label={`${i + 1}. ölçünün beden başına artışı`}
+                        onChange={(e) => olcumGuncelle(m.id, { artis: Number(e.target.value) || 0 }, false)}
+                        className="w-10 border-b border-transparent bg-transparent py-0.5 text-right tabular-nums text-smoke outline-none focus:border-ink"
+                      />
+                      cm
+                    </label>
                   </div>
                 </li>
               ))}
@@ -3129,6 +3230,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <BaskiSayfa
             key={v.id}
             g={doc[v.id]}
+            seri={seri}
             baslik={baslik}
             gorunum={v.label}
             tohumKumas={tohumKumas ?? null}
@@ -3293,11 +3395,13 @@ function baskiKutusu(g: ViewDoc) {
 
 function BaskiSayfa({
   g,
+  seri,
   baslik,
   gorunum,
   tohumKumas,
 }: {
   g: ViewDoc;
+  seri: Seri;
   baslik: string;
   gorunum: string;
   tohumKumas: string | null;
@@ -3372,9 +3476,9 @@ function BaskiSayfa({
         <table style={{ width: "calc(100% - 24mm)", margin: "0 12mm", borderCollapse: "collapse", fontSize: "2.7mm" }}>
           <tbody>
             <tr style={{ borderBottom: "0.2mm solid #1a1a1a" }}>
-              {["No", "Ölçüm noktası", "Numune (cm)", "Tolerans"].map((h, i) => (
+              {["No", "Ölçüm noktası", ...seri.bedenler, "Tol."].map((h, i) => (
                 <td
-                  key={h}
+                  key={`${h}-${i}`}
                   style={{
                     padding: "1.2mm 2mm",
                     fontSize: "2.4mm",
@@ -3382,7 +3486,12 @@ function BaskiSayfa({
                     textTransform: "uppercase",
                     color: "#55525c",
                     textAlign: i >= 2 ? "right" : "left",
-                    width: i === 0 ? "10mm" : i >= 2 ? "26mm" : undefined,
+                    width: i === 0 ? "9mm" : i >= 2 ? "17mm" : undefined,
+                    /* NUMUNE BEDEN İŞARETLİ. Türetilmiş sayılarla ölçülmüş
+                       sayı aynı tabloda duruyor; hangisinin ölçüldüğünü
+                       söylemeyen bir tablo, gradasyon hatasını fark
+                       edilmez kılar. */
+                    borderBottom: i - 2 === seri.numune ? "0.6mm solid #1a1a1a" : undefined,
                   }}
                 >
                   {h}
@@ -3393,8 +3502,20 @@ function BaskiSayfa({
               <tr key={m.id} style={{ borderBottom: "0.12mm solid #d8d6dc" }}>
                 <td style={{ padding: "1.2mm 2mm", fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
                 <td style={{ padding: "1.2mm 2mm" }}>{m.ad?.trim() || "Adsız ölçü"}</td>
-                <td style={{ padding: "1.2mm 2mm", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCm(dist(m.a, m.b))}</td>
-                <td style={{ padding: "1.2mm 2mm", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                {seri.bedenler.map((b, bi) => (
+                  <td
+                    key={`${b}-${bi}`}
+                    style={{
+                      padding: "1.2mm 2mm",
+                      textAlign: "right",
+                      fontVariantNumeric: "tabular-nums",
+                      color: bi === seri.numune ? "#1a1a1a" : "#55525c",
+                    }}
+                  >
+                    {bedendeOlcu(m, seri, bi).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                  </td>
+                ))}
+                <td style={{ padding: "1.2mm 2mm", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#55525c" }}>
                   ± {(m.tolerans ?? VARSAYILAN_TOLERANS).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                 </td>
               </tr>
