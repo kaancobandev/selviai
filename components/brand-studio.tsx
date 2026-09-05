@@ -27,20 +27,47 @@ type MonoShape = "circle" | "square" | "none";
 
 const ROLES: SwatchRole[] = ["primary", "secondary", "accent"];
 
+const MARKA_ANAHTARI = "selvi-marka-v1";
+
+type MarkaKayit = {
+  name: string;
+  manifesto: string;
+  monoEdit: string | null;
+  monoShape: MonoShape;
+  displayId: string;
+  bodyId: string;
+  presetId: string | null;
+  palette: BrandPalette;
+};
+
+/* Açılış durumu TEK YERDE. Hem başlangıç değerleri hem "kullanıcı bir şey
+   yaptı mı" ölçütü buradan okunuyor; iki ayrı yerde yazılsaydı biri
+   değişince öteki sessizce yanlış cevap verirdi. */
+const VARSAYILAN_MARKA: MarkaKayit = {
+  name: "Nar",
+  manifesto: "Sessizliğin de bir kesimi vardır.",
+  monoEdit: null,
+  monoShape: "circle",
+  displayId: displayFonts[0].id,
+  bodyId: bodyFonts[0].id,
+  presetId: palettePresets[0].id,
+  palette: palettePresets[0].palette,
+};
+
 /**
  * Marka sistemi stüdyosu — dört bölüm: 01 Logo, 02 Tipografi, 03 Renk, 04 Uygulama.
  * Solda bölüm başlığı ve kontroller (yapışkan), sağda canlı önizleme.
  */
 export function BrandStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
-  const [name, setName] = useState("Nar");
-  const [manifesto, setManifesto] = useState("Sessizliğin de bir kesimi vardır.");
+  const [name, setName] = useState(VARSAYILAN_MARKA.name);
+  const [manifesto, setManifesto] = useState(VARSAYILAN_MARKA.manifesto);
   const [logo, setLogo] = useState<{ url: string; file: string } | null>(null);
-  const [monoEdit, setMonoEdit] = useState<string | null>(null);
-  const [monoShape, setMonoShape] = useState<MonoShape>("circle");
-  const [displayId, setDisplayId] = useState(displayFonts[0].id);
-  const [bodyId, setBodyId] = useState(bodyFonts[0].id);
-  const [presetId, setPresetId] = useState<string | null>(palettePresets[0].id);
-  const [palette, setPalette] = useState<BrandPalette>(palettePresets[0].palette);
+  const [monoEdit, setMonoEdit] = useState<string | null>(VARSAYILAN_MARKA.monoEdit);
+  const [monoShape, setMonoShape] = useState<MonoShape>(VARSAYILAN_MARKA.monoShape);
+  const [displayId, setDisplayId] = useState(VARSAYILAN_MARKA.displayId);
+  const [bodyId, setBodyId] = useState(VARSAYILAN_MARKA.bodyId);
+  const [presetId, setPresetId] = useState<string | null>(VARSAYILAN_MARKA.presetId);
+  const [palette, setPalette] = useState<BrandPalette>(VARSAYILAN_MARKA.palette);
   const [toast, setToast] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef(logo);
@@ -54,6 +81,69 @@ export function BrandStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     },
     [],
   );
+
+  /* "İŞ VAR MI" SORUSU DURUMA BAKIYOR, ZAMANLAMAYA DEĞİL.
+     Önce bir "ilk geçişi atla" bayrağı denendi ve ÇALIŞMADI: geliştirme
+     kipindeki StrictMode etkileri iki kez çalıştırıyor, bayrak ikinci
+     geçişte delinip etiket kullanıcı hiçbir şeye dokunmadan
+     "kaydedildi" diyordu. Açılış durumuyla karşılaştırmak etkilerin
+     kaç kez çalıştığından bağımsız. */
+  const markaDurumu: MarkaKayit = { name, manifesto, monoEdit, monoShape, displayId, bodyId, presetId, palette };
+  const isVar = JSON.stringify(markaDurumu) !== JSON.stringify(VARSAYILAN_MARKA);
+
+  /* ---------- kayıt ----------
+
+     Başlıktaki "Taslak · Otomatik kaydedildi" yazısı DÜPEDÜZ YANLIŞTI:
+     bu bileşende tek bir `fetch` ya da `localStorage` çağrısı yoktu,
+     yani hiçbir şey kaydedilmiyordu ve sayfa yenilenince marka adı,
+     yazı tipleri ve palet gidiyordu. Yazıyı silmek de bir seçenekti;
+     kaydı gerçekten kurmak daha iyisi ve teknik çizimdeki desenin aynısı.
+
+     LOGO DOSYASI KAYDEDİLMİYOR: `URL.createObjectURL` ile üretilen adres
+     sayfa kapanınca ölüyor, saklamak "yüklediğim logo kayboldu" diyen
+     bozuk bir kayıt üretirdi. Sunucuya yükleme ayrı bir karar (Faz 5).
+     ------------------------------------------------------------------ */
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    try {
+      const ham = window.localStorage.getItem(MARKA_ANAHTARI);
+      if (ham) {
+        const k = JSON.parse(ham) as Partial<MarkaKayit>;
+        /* eslint-disable-next-line react-hooks/set-state-in-effect --
+           Tek seferlik geri yükleme; `useState` başlatıcısında okumak
+           sunucuda `localStorage` olmadığı için hidrasyon uyuşmazlığı
+           verirdi. Aynı gerekçe flat-sketch.tsx ve tema-anahtari.tsx'te
+           de yazılı. */
+        if (k.name !== undefined) setName(k.name);
+        if (k.manifesto !== undefined) setManifesto(k.manifesto);
+        if (k.monoEdit !== undefined) setMonoEdit(k.monoEdit);
+        if (k.monoShape) setMonoShape(k.monoShape);
+        if (k.displayId) setDisplayId(k.displayId);
+        if (k.bodyId) setBodyId(k.bodyId);
+        if (k.presetId !== undefined) setPresetId(k.presetId);
+        if (k.palette) setPalette(k.palette);
+      }
+    } catch {
+      /* Gizli sekmede erişimin kendisi fırlatıyor. */
+    }
+    hazirRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hazirRef.current) return;
+    const zaman = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(MARKA_ANAHTARI, JSON.stringify(markaDurumu));
+      } catch {
+        /* Kota dolu ya da depolama kapalı — sessiz geçiyoruz. */
+      }
+    }, 400);
+    return () => window.clearTimeout(zaman);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps --
+       `markaDurumu` bu sekiz alandan TÜRETİLİYOR ve her render'da yeniden
+       kuruluyor. Bağımlılığa eklemek etkiyi her render'da çalıştırır;
+       alanları tek tek saymak hem doğru hem daha dar. */
+  }, [name, manifesto, monoEdit, monoShape, displayId, bodyId, presetId, palette]);
 
   const display = displayFonts.find((f) => f.id === displayId) ?? displayFonts[0];
   const body = bodyFonts.find((f) => f.id === bodyId) ?? bodyFonts[0];
@@ -115,9 +205,13 @@ export function BrandStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <h1 className="mt-3 font-display text-2xl leading-none md:text-3xl">Marka sistemi</h1>
         </div>
         <div className="flex items-center gap-6">
-          <span className="hidden eyebrow text-fog sm:inline">Taslak · Otomatik kaydedildi</span>
-          <Button variant="ghost" onClick={() => setToast("Kimlik kılavuzu PDF olarak hazırlanıyor (prototip).")}>
-            Kılavuzu dışa aktar
+          {/* Kayıt TARAYICIYA ait; düz "kaydedildi" başka cihazda da
+              duracağını ima ederdi. Aynı ifade teknik çizimde de var. */}
+          <span className="hidden eyebrow text-fog sm:inline">
+            {isVar ? "Bu tarayıcıya kaydedildi" : "Taslak"}
+          </span>
+          <Button variant="ghost" onClick={() => window.print()}>
+            Kılavuzu yazdır · PDF
           </Button>
         </div>
       </header>
@@ -425,7 +519,7 @@ export function BrandStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           paylaşılır.
         </p>
         <div className="flex items-center gap-8">
-          <Button onClick={() => setToast("Kimlik kılavuzu PDF olarak hazırlanıyor (prototip).")}>Kılavuzu dışa aktar</Button>
+          <Button onClick={() => window.print()}>Kılavuzu yazdır · PDF</Button>
           <a
             href={`mailto:${site.email}?subject=${encodeURIComponent(`Branding: ${wordmark}`)}`}
             className="group inline-flex items-center gap-3 eyebrow u-line"
@@ -433,6 +527,96 @@ export function BrandStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             Stüdyoyla paylaş
             <Arrow className="transition-transform duration-500 group-hover:translate-x-1" />
           </a>
+        </div>
+      </div>
+
+      {/* KİMLİK KILAVUZU — baskı ağacı.
+
+          Bu sayfa "prototip" toast'ının yerini alıyor. İçindeki her şey
+          zaten ekranda üretiliyordu; eksik olan, markayı teslim edilebilir
+          tek bir belgede toplamaktı. Kılavuzun asgari işi üç soruyu
+          cevaplamak: marka nasıl yazılır, hangi yazıyla konuşur, hangi
+          renklerle görünür.
+
+          MAKETLER BASKIYA GİRMİYOR: onlar bir uygulama ÖRNEĞİ, kural
+          değil. Kılavuzun kural sayfası olması gerekiyor; örnek koymak
+          sayfayı şişirip asıl kuralı geri plana atardı. */}
+      <div className="lookbook-baski-kok" aria-hidden>
+        <div
+          className="lookbook-sayfa tuval"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "7mm",
+            padding: "14mm",
+            background: "#fff",
+            color: "#1a1a1a",
+            ...brandVars,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ fontSize: "2.8mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#6a6870" }}>
+              Kimlik kılavuzu
+            </span>
+            <span suppressHydrationWarning style={{ fontSize: "2.8mm", letterSpacing: "0.1em", color: "#6a6870" }}>
+              {new Date().toLocaleDateString("tr-TR")}
+            </span>
+          </div>
+
+          {/* 01 — Logotype ve monogram */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "12mm", borderBottom: "0.2mm solid #1a1a1a", paddingBottom: "6mm" }}>
+            <span style={{ fontFamily: displayFamily, fontSize: "22mm", lineHeight: 1, letterSpacing: "-0.01em" }}>{wordmark}</span>
+            <div style={{ width: "22mm", height: "22mm", flexShrink: 0 }}>
+              <Monogram letters={monogram} shape={monoShape} />
+            </div>
+            <span style={{ fontFamily: bodyFamily, fontSize: "3.6mm", lineHeight: 1.5, marginLeft: "auto", maxWidth: "70mm", textAlign: "right" }}>
+              {manifesto}
+            </span>
+          </div>
+
+          {/* 02 — Tipografi */}
+          <div style={{ display: "flex", gap: "12mm" }}>
+            {[
+              { rol: "Başlık", f: display, aile: displayFamily, ornek: "Sessiz Siluet" },
+              { rol: "Metin", f: body, aile: bodyFamily, ornek: "Koleksiyon anlatısı, etiket ve künye metinleri." },
+            ].map((x) => (
+              <div key={x.rol} style={{ flex: 1 }}>
+                <p style={{ fontSize: "2.6mm", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6a6870" }}>
+                  {x.rol} · {x.f.name}
+                </p>
+                <p style={{ fontFamily: x.aile, fontSize: x.rol === "Başlık" ? "9mm" : "4.4mm", lineHeight: 1.25, marginTop: "2mm" }}>
+                  {x.ornek}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* 03 — Palet */}
+          <div style={{ display: "flex", gap: "6mm", marginTop: "auto" }}>
+            {ROLES.map((rol) => {
+              const sw = palette[rol];
+              return (
+                <div key={rol} style={{ flex: 1 }}>
+                  <div style={{ height: "26mm", background: sw.hex, border: "0.15mm solid #d8d6dc" }} />
+                  <p style={{ fontSize: "2.6mm", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6a6870", marginTop: "2mm" }}>
+                    {swatchMeta[rol].label}
+                  </p>
+                  <p style={{ fontFamily: bodyFamily, fontSize: "3.4mm", marginTop: "0.8mm" }}>{sw.name}</p>
+                  {/* Pantone eşleşmesi YAKIN, birebir değil — kılavuzda
+                      bunu yazmak zorunlu, yoksa boyahaneye kesin kod diye
+                      gider. */}
+                  <p style={{ fontSize: "2.8mm", color: "#55525c", marginTop: "0.6mm" }}>
+                    {sw.hex.toUpperCase()}
+                    {sw.pantone ? ` · ${sw.pantone} (yakın eşleşme)` : " · Pantone eşleşmesi yok"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <p style={{ fontSize: "2.6mm", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6a6870" }}>
+            Selvi AI · marka sistemi
+          </p>
         </div>
       </div>
 
