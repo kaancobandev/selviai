@@ -25,20 +25,142 @@ export function bbox(pts: Pt[]) {
   return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY };
 }
 
-/** Catmull-Rom → kübik Bézier path verisi */
+/* ------------------------------------------------------------------
+   EĞRİ — köşeye saygılı centripetal Catmull-Rom
+
+   Kalem, tıklanan noktalardan GEÇEN bir eğri çiziyor. Eskiden bu düz
+   (uniform) Catmull-Rom idi ve KÖŞE DİYE BİR ŞEY TANIMIYORDU: dört
+   noktayla çizilen bir dikdörtgen, noktaların ellişer birim DIŞINA taşan
+   bir balona dönüşüyordu. Ölçüldü: 300×240 birimlik dikdörtgende teğet
+   ucu x=350'ye düşüyor. Kullanıcı çizdiği şeyi geri alamıyordu.
+
+   İKİ AYAR VAR ve ikisi AYRI şeyi düzeltiyor — biri ötekinin yerine
+   geçmiyor:
+
+   1. ALFA (centripetal parametreleme). Noktalar eşit aralıklı değilse
+      düz Catmull-Rom ilmek ve sivri uç üretir; aralıkları kiriş
+      uzunluğunun kareköküyle ölçmek bunu matematiksel olarak imkânsız
+      kılıyor. Elle tıklanan noktalar hiçbir zaman eşit aralıklı
+      olmadığı için burada kural.
+
+   2. KÖŞE SÖNÜMÜ. Alfa tek başına dikdörtgen sorununu ÇÖZMÜYOR — bu
+      ölçüldü, kare için centripetal ile uniform aynı eğriyi veriyor.
+      Sebebi şu: dört köşeden geçmek zorunda olan C1-sürekli bir eğri
+      dışa doğru bombelenmek ZORUNDA, hiçbir gerilim değeri bunu
+      kaldırmıyor. Tek çıkış eğriyi köşede bırakmak: dönüş açısı
+      büyüdükçe teğet kısalıyor, KOSE_DUZ_ACI'de sıfırlanıyor ve kenar
+      düz bir çizgiye dönüyor.
+
+   Eşikler tek cümleye oturuyor: DİK AÇI VE ÜSTÜ HER ZAMAN KÖŞEDİR,
+   60°'nin altı her zaman eğridir, arası oransal. İlk denemede üst eşik
+   110°'ydi ve YETMEDİ — tuvalde ölçüldü: dik açıda ağırlık 0,50 kalıyor,
+   344 birimlik bir kenar 20,5 birim dışa bombeleniyordu, yani kullanıcı
+   dikdörtgen çizip yuvarlak alıyordu. 90° sınıra çekilince o bombe
+   sıfırlandı.
+
+   Tohum belgesindeki gerçek parçalarla sağlaması: kol oyuntusu 4°–10°
+   ve yaka dibi 47,9° → hiç dokunulmuyor; kol başı 65,7° → 0,81, yani
+   hâlâ yuvarlak; omuz 83,1° → 0,23, keskin omuz (teknik çizimde zaten
+   köşedir); etek ucu 94,8° → tam köşe. Kural tek cümleyle: AZ NOKTAYLA
+   TIKLADIĞINI ALIRSIN, ÇOK NOKTAYLA EĞRİ ALIRSIN. Vektör araçlarının
+   bilinen davranışı bu; on beş noktalı serbest el çizgisi eskisiyle
+   bire bir aynı çıkıyor (ölçüldü).
+   ------------------------------------------------------------------ */
+const EGRI_ALFA = 0.5;
+const KOSE_TAM_ACI = 60;
+const KOSE_DUZ_ACI = 90;
+
+export type EgriParcasi = { p1: Pt; c1: Pt; c2: Pt; p2: Pt };
+
+/**
+ * Nokta dizisini kübik Bézier parçalarına çevirir.
+ *
+ * TEK KAYNAK OLMASI ŞART. Hem `smoothPath` (ekrana çizilen) hem
+ * `samplePath` (vuruş testi, zigzag, sürfile, makas) buradan besleniyor.
+ * Eskiden ikisi aynı matematiği AYRI AYRI yazıyordu; birini değiştirip
+ * ötekini unutmak, tıklamanın çizgiyi ıskaladığı sessiz bir hata
+ * demekti.
+ */
+export function egriParcalari(pts: Pt[], closed: boolean): EgriParcasi[] {
+  const n = pts.length;
+  if (n < 2) return [];
+
+  /* Açık yolda uçlar YANSITILIYOR, kopyalanmıyor. Kopyalamak sıfır
+     uzunlukta bir aralık üretir ve centripetal formülün paydası
+     sıfırlanır. Yansıma hem bu tekilliği kaldırıyor hem uca doğal bir
+     teğet veriyor. */
+  const get = (i: number): Pt => {
+    if (closed) return pts[((i % n) + n) % n];
+    if (i < 0) return { x: 2 * pts[0].x - pts[1].x, y: 2 * pts[0].y - pts[1].y };
+    if (i > n - 1) return { x: 2 * pts[n - 1].x - pts[n - 2].x, y: 2 * pts[n - 1].y - pts[n - 2].y };
+    return pts[i];
+  };
+
+  /** Bir noktadaki teğet çarpanı: 1 tam eğri, 0 keskin köşe. */
+  const agirlik = (i: number): number => {
+    const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1);
+    const ux = p1.x - p0.x, uy = p1.y - p0.y;
+    const vx = p2.x - p1.x, vy = p2.y - p1.y;
+    const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy);
+    if (lu < 1e-9 || lv < 1e-9) return 1;
+    const cos = Math.max(-1, Math.min(1, (ux * vx + uy * vy) / (lu * lv)));
+    const aci = (Math.acos(cos) * 180) / Math.PI;
+    if (aci <= KOSE_TAM_ACI) return 1;
+    if (aci >= KOSE_DUZ_ACI) return 0;
+    return (KOSE_DUZ_ACI - aci) / (KOSE_DUZ_ACI - KOSE_TAM_ACI);
+  };
+
+  const aralik = (a: Pt, b: Pt) => Math.max(Math.pow(dist(a, b), EGRI_ALFA), 1e-6);
+
+  const out: EgriParcasi[] = [];
+  const son = closed ? n : n - 1;
+  for (let i = 0; i < son; i++) {
+    const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2);
+    const d1 = aralik(p0, p1), d2 = aralik(p1, p2), d3 = aralik(p2, p3);
+    /* Barry–Goldman: Catmull-Rom parçasının Bézier karşılığı. d1=d2=d3
+       konursa eski `p1 + (p2-p0)/6` bağıntısına indirgeniyor. */
+    const payda1 = 3 * d1 * (d1 + d2);
+    const payda2 = 3 * d3 * (d3 + d2);
+    const k1 = 2 * d1 * d1 + 3 * d1 * d2 + d2 * d2;
+    const k2 = 2 * d3 * d3 + 3 * d3 * d2 + d2 * d2;
+    const b1 = {
+      x: (d1 * d1 * p2.x - d2 * d2 * p0.x + k1 * p1.x) / payda1,
+      y: (d1 * d1 * p2.y - d2 * d2 * p0.y + k1 * p1.y) / payda1,
+    };
+    const b2 = {
+      x: (d3 * d3 * p1.x - d2 * d2 * p3.x + k2 * p2.x) / payda2,
+      y: (d3 * d3 * p1.y - d2 * d2 * p3.y + k2 * p2.y) / payda2,
+    };
+    const w1 = agirlik(i), w2 = agirlik(i + 1);
+    out.push({
+      p1,
+      c1: { x: p1.x + (b1.x - p1.x) * w1, y: p1.y + (b1.y - p1.y) * w1 },
+      c2: { x: p2.x + (b2.x - p2.x) * w2, y: p2.y + (b2.y - p2.y) * w2 },
+      p2,
+    });
+  }
+  return out;
+}
+
+/** Bézier parçası üzerinde t noktası. */
+function bezierNokta(s: EgriParcasi, t: number): Pt {
+  const u = 1 - t;
+  const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+  return {
+    x: a * s.p1.x + b * s.c1.x + c * s.c2.x + d * s.p2.x,
+    y: a * s.p1.y + b * s.c1.y + c * s.c2.y + d * s.p2.y,
+  };
+}
+
+/** Yumuşatılmış yolun SVG path verisi. */
 export function smoothPath(pts: Pt[], closed: boolean): string {
   const n = pts.length;
   if (n === 0) return "";
   if (n === 1) return `M ${f(pts[0].x)} ${f(pts[0].y)}`;
   if (n === 2) return `M ${f(pts[0].x)} ${f(pts[0].y)} L ${f(pts[1].x)} ${f(pts[1].y)}`;
-  const get = (i: number) => (closed ? pts[((i % n) + n) % n] : pts[Math.min(Math.max(i, 0), n - 1)]);
   let d = `M ${f(pts[0].x)} ${f(pts[0].y)}`;
-  const last = closed ? n : n - 1;
-  for (let i = 0; i < last; i++) {
-    const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2);
-    const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
-    const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
-    d += ` C ${f(c1.x)} ${f(c1.y)} ${f(c2.x)} ${f(c2.y)} ${f(p2.x)} ${f(p2.y)}`;
+  for (const s of egriParcalari(pts, closed)) {
+    d += ` C ${f(s.c1.x)} ${f(s.c1.y)} ${f(s.c2.x)} ${f(s.c2.y)} ${f(s.p2.x)} ${f(s.p2.y)}`;
   }
   return closed ? d + " Z" : d;
 }
@@ -54,8 +176,8 @@ export function samplePath(pts: Pt[], closed: boolean, smooth: boolean, step = 3
   const n = pts.length;
   if (n < 2) return pts.slice();
   const out: Pt[] = [];
-  const segs = closed ? n : n - 1;
   if (!smooth) {
+    const segs = closed ? n : n - 1;
     for (let i = 0; i < segs; i++) {
       const a = pts[i], b = pts[(i + 1) % n];
       const len = dist(a, b);
@@ -65,18 +187,9 @@ export function samplePath(pts: Pt[], closed: boolean, smooth: boolean, step = 3
     if (!closed) out.push(pts[n - 1]);
     return out;
   }
-  const get = (i: number) => (closed ? pts[((i % n) + n) % n] : pts[Math.min(Math.max(i, 0), n - 1)]);
-  for (let i = 0; i < segs; i++) {
-    const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2);
-    const len = dist(p1, p2);
-    const k = Math.max(2, Math.round(len / step));
-    for (let j = 0; j < k; j++) {
-      const t = j / k, t2 = t * t, t3 = t2 * t;
-      out.push({
-        x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-        y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
-      });
-    }
+  for (const s of egriParcalari(pts, closed)) {
+    const k = Math.max(2, Math.round(dist(s.p1, s.p2) / step));
+    for (let j = 0; j < k; j++) out.push(bezierNokta(s, j / k));
   }
   if (!closed) out.push(pts[n - 1]);
   return out;

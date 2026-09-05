@@ -83,10 +83,18 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const fmtCm = (units: number) => toCm(units).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const P = (x: number, y: number): Pt => ({ x, y });
 
-/* Örnek doküman — keten bluz */
+/* Örnek doküman — keten bluz.
+
+   YAKA ÜÇ NOKTA DEĞİL BEŞ. Eğri artık köşeye saygılı (bkz. geometry.ts):
+   omuzdan yaka dibine tek sıçrayan üç nokta 112,6°'lik bir dönüş demek
+   ve o açı KÖŞE sayılıp yuvarlak yaka sivri bir V'ye dönüşüyordu. Araya
+   konan iki nokta dönüşü 47,9°'ye indiriyor, yani yaka eskisi gibi
+   yuvarlak kalıyor. Kuralın kendisi de burada görünür oluyor: eğri
+   isteyen nokta verir. */
 const blouse = (neck: number): Pt[] => [
   P(-16, 106), P(-72, 122), P(-64, 172), P(-54, 292), P(-64, 410),
-  P(64, 410), P(54, 292), P(64, 172), P(72, 122), P(16, 106), P(0, neck),
+  P(64, 410), P(54, 292), P(64, 172), P(72, 122), P(16, 106),
+  P(9, neck - 4), P(0, neck), P(-9, neck - 4),
 ];
 const initialDoc: Doc = {
   front: {
