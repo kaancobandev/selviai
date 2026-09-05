@@ -24,6 +24,7 @@ import {
   smoothPath,
   splitPolygon,
   toCm,
+  UNITS_PER_CM,
   zigzag,
   type Pt,
 } from "@/lib/geometry";
@@ -37,7 +38,7 @@ import { Toast } from "@/components/ui/toast";
 /* ------------------------------------------------------------------
    Tipler ve sabitler
    ------------------------------------------------------------------ */
-type Tool = "select" | "pen" | "measure" | "not" | "cut" | "hand";
+type Tool = "select" | "pen" | "measure" | "not" | "simge" | "cut" | "hand";
 type Stitch = "duz" | "ust" | "zigzag" | "surfile";
 type ViewId = "front" | "back" | "detail";
 
@@ -86,7 +87,32 @@ type Measure = { id: string; a: Pt; b: Pt };
  * gidiyor (asıl callout), yoksa serbest bir not oluyor.
  */
 type Not = { id: string; p: Pt; metin: string; ok?: Pt };
-type ViewDoc = { shapes: Shape[]; measures: Measure[]; notlar: Not[] };
+
+/* ------------------------------------------------------------------
+   GİYSİ SİMGELERİ — teknik çizimin grameri.
+
+   Bunlar süs değil, TALİMAT. Dokuma yönü (grainline) oku olmayan bir
+   flat, kesimhaneye kumaşın hangi yöne serileceğini söylemiyor; kertik
+   olmadan iki parçanın nerede buluşacağı belirsiz kalıyor. Çizimimiz
+   bugüne kadar yalnız çokgen ve dört dikiş tipi çizebiliyordu, yani bu
+   dilin hiçbir kelimesi yoktu.
+
+   Hepsi tek bir veri şekliyle tutuluyor — konum, AÇI ve BOY — çünkü
+   beşinin de anlamı yöne bağlı: dik duran bir grainline ile yatay duran
+   bir grainline iki ayrı kesim talimatı.
+   ------------------------------------------------------------------ */
+type SimgeTur = "grainline" | "kertik" | "pens" | "pile" | "katlama";
+type Simge = { id: string; tur: SimgeTur; p: Pt; aci: number; boy: number };
+
+const SIMGELER: { id: SimgeTur; label: string; ipucu: string; varsayilanBoy: number }[] = [
+  { id: "grainline", label: "Dokuma yönü", ipucu: "Kumaşın çözgü yönü — kesimhane buna göre seriyor", varsayilanBoy: 80 },
+  { id: "kertik", label: "Kertik", ipucu: "İki parçanın buluşma işareti", varsayilanBoy: 12 },
+  { id: "pens", label: "Pens", ipucu: "Alınan bolluk — uç noktaya kapanır", varsayilanBoy: 60 },
+  { id: "pile", label: "Pile", ipucu: "Katlama yönü oklu", varsayilanBoy: 48 },
+  { id: "katlama", label: "Katlama hattı", ipucu: "Kesilmez, katlanır", varsayilanBoy: 90 },
+];
+
+type ViewDoc = { shapes: Shape[]; measures: Measure[]; notlar: Not[]; simgeler: Simge[] };
 type Doc = Record<ViewId, ViewDoc>;
 
 const TOOLS: { id: Tool; label: string; key: string; hint: string }[] = [
@@ -94,6 +120,7 @@ const TOOLS: { id: Tool; label: string; key: string; hint: string }[] = [
   { id: "pen", label: "Kalem", key: "P", hint: "Tıkla nokta ekle · ilk noktaya dön kapat · Enter bitir" },
   { id: "measure", label: "Mezura", key: "M", hint: "İki nokta arasını sürükle · cm" },
   { id: "not", label: "Not", key: "N", hint: "Tıkla not bırak · anlatacağın yerden sürükle, kılavuz çizgi çekilsin" },
+  { id: "simge", label: "Simge", key: "S", hint: "Tıkla yerleştir · sürükle yönünü ve boyunu ver" },
   { id: "cut", label: "Makas", key: "C", hint: "Parçanın üzerinden bir çizgi çek · ikiye böler" },
   { id: "hand", label: "El", key: "H", hint: "Tuvali sürükle · tekerlek yakınlaştırır" },
 ];
@@ -139,11 +166,13 @@ const initialDoc: Doc = {
     ],
     measures: [{ id: "m1", a: P(-72, 122), b: P(72, 122) }],
     notlar: [],
+    simgeler: [],
   },
   back: {
     shapes: [{ id: "s-back", name: "Arka beden", points: blouse(112), closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin" }],
     measures: [],
     notlar: [],
+    simgeler: [],
   },
   detail: {
     shapes: [
@@ -152,6 +181,7 @@ const initialDoc: Doc = {
     ],
     measures: [{ id: "m2", a: P(-80, 52), b: P(80, 52) }],
     notlar: [],
+    simgeler: [],
   },
 };
 
@@ -185,7 +215,7 @@ function belgeyiOnar(ham: unknown): Doc | null {
   const kaynak = ham as Partial<Record<ViewId, unknown>>;
   const cikti = {} as Doc;
   for (const v of VIEWS) {
-    const g = kaynak[v.id] as { shapes?: unknown; measures?: unknown; notlar?: unknown } | undefined;
+    const g = kaynak[v.id] as { shapes?: unknown; measures?: unknown; notlar?: unknown; simgeler?: unknown } | undefined;
     if (!g) return null;
     const shapes = Array.isArray(g.shapes) ? g.shapes : [];
     const measures = Array.isArray(g.measures) ? g.measures : [];
@@ -198,6 +228,7 @@ function belgeyiOnar(ham: unknown): Doc | null {
          burada boşa düşürüyoruz — kullanıcının çizimini bir alan eklendi
          diye atmanın gerekçesi olmaz. */
       notlar: Array.isArray(g.notlar) ? (g.notlar as Not[]) : [],
+      simgeler: Array.isArray(g.simgeler) ? (g.simgeler as Simge[]) : [],
     };
   }
   return cikti;
@@ -543,6 +574,8 @@ type Drag =
     }
   | { kind: "measure"; a: Pt }
   | { kind: "not"; a: Pt }
+  | { kind: "simge"; a: Pt }
+  | { kind: "simgeTasi"; id: string; start: Pt; orij: Pt; recorded: boolean }
   | { kind: "notTasi"; id: string; start: Pt; orij: Pt; okOrij?: Pt; recorded: boolean }
   | { kind: "cut"; a: Pt };
 
@@ -575,6 +608,8 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      varsa ona da uygulanıyor. */
   const [kalinlik, setKalinlik] = useState<Kalinlik>("orta");
   const [yakalamaAcik, setYakalamaAcik] = useState(true);
+  const [simgeTur, setSimgeTur] = useState<SimgeTur>("grainline");
+  const [simgeAcik, setSimgeAcik] = useState(false);
   const [smooth, setSmooth] = useState(true);
   const [stitchOpen, setStitchOpen] = useState(false);
   /* SEÇİM İKİ PARÇALI: bir BİRİNCİL parça (`selectedId`) ve Shift ile
@@ -737,6 +772,12 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     }
     setEkSecim((e) => (e.includes(id) ? e.filter((x) => x !== id) : [...e, id]));
   };
+  const selectedSimge = cur.simgeler.find((x) => x.id === selectedId) ?? null;
+  const simgeGuncelle = (id: string, yama: Partial<Simge>, kaydet = true) => {
+    const uygula = (d: ViewDoc): ViewDoc => ({ ...d, simgeler: d.simgeler.map((x) => (x.id === id ? { ...x, ...yama } : x)) });
+    if (kaydet) commit(uygula);
+    else setDoc((d) => ({ ...d, [view]: uygula(d[view]) }));
+  };
   const selectedNot = cur.notlar.find((n) => n.id === selectedId) ?? null;
   const notGuncelle = (id: string, yama: Partial<Not>, kaydet = true) => {
     const uygula = (d: ViewDoc): ViewDoc => ({ ...d, notlar: d.notlar.map((n) => (n.id === id ? { ...n, ...yama } : n)) });
@@ -780,6 +821,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       shapes: d.shapes.filter((s) => !secimIdleri.includes(s.id)),
       measures: d.measures.filter((m) => !secimIdleri.includes(m.id)),
       notlar: d.notlar.filter((n) => !secimIdleri.includes(n.id)),
+      simgeler: d.simgeler.filter((x) => !secimIdleri.includes(x.id)),
     }));
     secimiTemizle();
   };
@@ -1168,6 +1210,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       else if (k === "p") setTool("pen");
       else if (k === "m") setTool("measure");
       else if (k === "n") setTool("not");
+      else if (k === "s") setTool("simge");
       else if (k === "c") setTool("cut");
       else if (k === "h") setTool("hand");
       else if (k === "escape") {
@@ -1207,6 +1250,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     const p = toCanvas(e.clientX, e.clientY);
     e.currentTarget.setPointerCapture(e.pointerId);
     setStitchOpen(false);
+    setSimgeAcik(false);
     if (tool === "select") {
       const hit = hitTest(p);
       if (hit) {
@@ -1247,6 +1291,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     } else if (tool === "not") {
       setDrag({ kind: "not", a: p });
       setTemp(p);
+    } else if (tool === "simge") {
+      setDrag({ kind: "simge", a: p });
+      setTemp(p);
     } else if (tool === "cut") {
       setDrag({ kind: "cut", a: p });
       setTemp(p);
@@ -1284,6 +1331,19 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         setDrag({ ...drag, recorded: true });
       }
       donusumUygula(drag, p, shiftDown || e.shiftKey);
+    } else if (drag.kind === "simgeTasi") {
+      const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+      if (!drag.recorded && Math.hypot(dx, dy) > 1 / vp.zoom) {
+        setUndo((u) => [...u.slice(-29), doc]);
+        setDrag({ ...drag, recorded: true });
+      }
+      setDoc((d) => ({
+        ...d,
+        [view]: {
+          ...d[view],
+          simgeler: d[view].simgeler.map((x) => (x.id === drag.id ? { ...x, p: { x: drag.orij.x + dx, y: drag.orij.y + dy } } : x)),
+        },
+      }));
     } else if (drag.kind === "notTasi") {
       const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
       if (!drag.recorded && Math.hypot(dx, dy) > 1 / vp.zoom) {
@@ -1318,7 +1378,22 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     if (!drag) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
     const p = toCanvas(e.clientX, e.clientY);
-    if (drag.kind === "not") {
+    if (drag.kind === "simge") {
+      const id = uid();
+      const uzunluk = dist(drag.a, p);
+      const varsayilan = SIMGELER.find((x) => x.id === simgeTur)?.varsayilanBoy ?? 60;
+      /* Sürükleme hem YÖNÜ hem BOYU veriyor; kısa bir tıklama ise dik
+         duran, varsayılan boyda bir simge bırakıyor. Dokuma yönü çoğu
+         zaman dikeydir, o yüzden varsayılan açı 90° (aşağı). */
+      const surukledi = uzunluk > 8 / vp.zoom;
+      const aci = surukledi ? (Math.atan2(p.y - drag.a.y, p.x - drag.a.x) * 180) / Math.PI : 90;
+      commit((d) => ({
+        ...d,
+        simgeler: [...d.simgeler, { id, tur: simgeTur, p: drag.a, aci, boy: surukledi ? uzunluk : varsayilan }],
+      }));
+      setSelectedId(id);
+      setEkSecim([]);
+    } else if (drag.kind === "not") {
       const id = uid();
       /* Sürükleme uzunluğu callout ile serbest notu ayırıyor: kısa bir
          tıklama "buraya not", uzun bir sürükleme "şurayı anlatan not".
@@ -1467,6 +1542,15 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       },
     }));
   };
+
+  function onSimgeDown(e: ReactPointerEvent<SVGGElement>, x: Simge) {
+    if (tool !== "select") return;
+    e.stopPropagation();
+    setSelectedId(x.id);
+    setEkSecim([]);
+    svgRef.current?.setPointerCapture(e.pointerId);
+    setDrag({ kind: "simgeTasi", id: x.id, start: toCanvas(e.clientX, e.clientY), orij: x.p, recorded: false });
+  }
 
   function onNotDown(e: ReactPointerEvent<SVGGElement>, n: Not) {
     if (tool !== "select") return;
@@ -1969,6 +2053,11 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <MeasureMark key={m.id} a={m.a} b={m.b} zoom={vp.zoom} selected={m.id === selectedId} onSelect={() => { setSelectedId(m.id); setEkSecim([]); }} />
         ))}
 
+        {/* giysi simgeleri */}
+        {cur.simgeler.map((x) => (
+          <SimgeIsareti key={x.id} simge={x} selected={x.id === selectedId} onDown={(e) => onSimgeDown(e, x)} />
+        ))}
+
         {/* notlar */}
         {cur.notlar.map((n) => (
           <NotIsareti
@@ -2148,6 +2237,49 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               </Glass>
             )}
           </div>
+
+          {/* SİMGE SEÇİCİ YALNIZ SİMGE ARACINDA. Araç çubuğu zaten
+              kalabalık; hiç kullanılmayacakken duran bir açılır liste
+              ötekilerin okunmasını zorlaştırıyor. */}
+          {tool === "simge" && (
+            <>
+              <Sep />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSimgeAcik((o) => !o)}
+                  aria-expanded={simgeAcik}
+                  className="flex h-9 items-center gap-2 px-3 eyebrow text-ink transition-colors hover:bg-ink/[0.04]"
+                >
+                  {SIMGELER.find((x) => x.id === simgeTur)?.label}
+                  <svg viewBox="0 0 16 16" className="h-2.5 w-2.5 text-ash" fill="none" stroke="currentColor" strokeWidth="1"><path d="M3 6l5 5 5-5" /></svg>
+                </button>
+                {simgeAcik && (
+                  <Glass className="absolute left-0 top-[calc(100%+6px)] z-20 flex w-56 flex-col py-1">
+                    {SIMGELER.map((x) => (
+                      <button
+                        key={x.id}
+                        type="button"
+                        onClick={() => {
+                          setSimgeTur(x.id);
+                          setSimgeAcik(false);
+                        }}
+                        title={x.ipucu}
+                        className={cn(
+                          "px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-ink/[0.04]",
+                          simgeTur === x.id ? "text-ink" : "text-smoke",
+                        )}
+                      >
+                        {x.label}
+                        <span className="block text-[10.5px] leading-4 text-ash">{x.ipucu}</span>
+                      </button>
+                    ))}
+                  </Glass>
+                )}
+              </div>
+            </>
+          )}
+
           <Sep />
           <ToolButton
             label={smooth ? "Eğri · açık" : "Eğri · kapalı"}
@@ -2439,7 +2571,41 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               </div>
             )}
 
-            {selectedNot ? (
+            {selectedSimge ? (
+              <div className="mt-3 space-y-2 text-[12px] leading-4">
+                <p className="font-display text-lg leading-6">{SIMGELER.find((x) => x.id === selectedSimge.tur)?.label}</p>
+                <p className="text-[11px] leading-4 text-ash">{SIMGELER.find((x) => x.id === selectedSimge.tur)?.ipucu}</p>
+                {/* Açı ve boy SAYIYLA giriliyor: simge bir talimat, "gözüne
+                    göre" değil ölçüyle konuyor. Dokuma yönünü 90° yerine
+                    88° bırakmak kesimhanede fark eder. */}
+                <Row k="Açı">
+                  <span className="inline-flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={Math.round(selectedSimge.aci)}
+                      onChange={(e) => simgeGuncelle(selectedSimge.id, { aci: Number(e.target.value) || 0 }, false)}
+                      aria-label="Simge açısı"
+                      className="w-14 border-b border-mist bg-transparent py-0.5 text-right tabular-nums outline-none focus:border-ink"
+                    />
+                    <span className="text-ash">°</span>
+                  </span>
+                </Row>
+                <Row k="Boy">
+                  <span className="inline-flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={Number(toCm(selectedSimge.boy).toFixed(1))}
+                      onChange={(e) => simgeGuncelle(selectedSimge.id, { boy: Math.max(2, (Number(e.target.value) || 0) * UNITS_PER_CM) }, false)}
+                      aria-label="Simge boyu"
+                      className="w-16 border-b border-mist bg-transparent py-0.5 text-right tabular-nums outline-none focus:border-ink"
+                    />
+                    <span className="text-ash">cm</span>
+                  </span>
+                </Row>
+                <p className="text-[11px] leading-4 text-ash">Sürükleyerek taşıyın. Silmek için Delete.</p>
+              </div>
+            ) : selectedNot ? (
               <div className="mt-3 space-y-3 text-[12px] leading-4">
                 <textarea
                   value={selectedNot.metin}
@@ -2728,6 +2894,8 @@ function ToolIcon({ id }: { id: Tool }) {
       return <svg {...c}><rect x="3" y="9" width="18" height="6" /><path d="M7 9v2.5M11 9v3.5M15 9v2.5M19 9v3.5" /></svg>;
     case "not":
       return <svg {...c}><rect x="3" y="4" width="13" height="10" /><path d="M6 7.5h7M6 10.5h5" /><path d="M9 14l-2 6 6-6" /></svg>;
+    case "simge":
+      return <svg {...c}><path d="M12 3v18" /><path d="M9 6l3-3 3 3M9 18l3 3 3-3" /></svg>;
     case "cut":
       return <svg {...c}><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="6.5" cy="17.5" r="2.5" /><path d="M8.5 8.2L20 17M8.5 15.8L20 7" /></svg>;
     case "hand":
@@ -2798,6 +2966,95 @@ function Kaydirac({
         style={{ "--p": `${oran}%` } as CSSProperties}
       />
     </div>
+  );
+}
+
+/**
+ * Giysi simgesi.
+ *
+ * Hepsi yerel koordinatta ÇİZİLİP tek bir `rotate` ile döndürülüyor:
+ * beş ayrı geometriyi beş kez açıyla hesaplamak yerine, her biri "sağa
+ * doğru duran" hâliyle yazılıyor. Okunması da bakımı da böyle kolay.
+ */
+function SimgeIsareti({
+  simge,
+  selected,
+  onDown,
+}: {
+  simge: Simge;
+  selected: boolean;
+  onDown: (e: ReactPointerEvent<SVGGElement>) => void;
+}) {
+  const L = simge.boy;
+  const renk = selected ? SELECT : INK;
+  const ortak = {
+    fill: "none",
+    stroke: renk,
+    strokeWidth: kalinlikPx(simge.tur === "grainline" ? "orta" : "ince"),
+    strokeLinecap: "round" as const,
+    vectorEffect: "non-scaling-stroke" as const,
+  };
+  /* Ok ucu boyun bir oranı değil sabit: uzun bir grainline'da orantılı ok
+     devasa olurdu, kısa bir kertikte görünmezdi. */
+  const ok = Math.min(7, L * 0.22);
+
+  const govde = () => {
+    switch (simge.tur) {
+      case "grainline":
+        return (
+          <>
+            <line x1={0} y1={0} x2={L} y2={0} {...ortak} />
+            <path d={`M ${ok} ${-ok * 0.6} L 0 0 L ${ok} ${ok * 0.6}`} {...ortak} />
+            <path d={`M ${L - ok} ${-ok * 0.6} L ${L} 0 L ${L - ok} ${ok * 0.6}`} {...ortak} />
+          </>
+        );
+      case "kertik":
+        /* Kertik dikiş hattını KESEN kısa bir çizgi; ortasındaki nokta
+           hangi noktada buluşulacağını işaretliyor. */
+        return (
+          <>
+            <line x1={0} y1={0} x2={L} y2={0} {...ortak} />
+            <circle cx={L / 2} cy={0} r={1.6} fill={renk} stroke="none" />
+          </>
+        );
+      case "pens": {
+        const g = L * 0.28;
+        return (
+          <>
+            <line x1={0} y1={-g / 2} x2={L} y2={0} {...ortak} />
+            <line x1={0} y1={g / 2} x2={L} y2={0} {...ortak} />
+            <line x1={0} y1={-g / 2} x2={0} y2={g / 2} {...ortak} strokeDasharray="3 3" />
+          </>
+        );
+      }
+      case "pile": {
+        const g = L * 0.3;
+        return (
+          <>
+            <line x1={0} y1={-g / 2} x2={L} y2={-g / 2} {...ortak} />
+            <line x1={0} y1={g / 2} x2={L} y2={g / 2} {...ortak} />
+            {/* Çapraz ok katlamanın hangi yöne yattığını söylüyor. */}
+            <line x1={L * 0.15} y1={g / 2} x2={L * 0.85} y2={-g / 2} {...ortak} />
+            <path d={`M ${L * 0.85 - ok} ${-g / 2 - ok * 0.2} L ${L * 0.85} ${-g / 2} L ${L * 0.85 - ok * 0.5} ${-g / 2 + ok * 0.7}`} {...ortak} />
+          </>
+        );
+      }
+      case "katlama":
+        return <line x1={0} y1={0} x2={L} y2={0} {...ortak} strokeDasharray="10 4 2 4" />;
+    }
+  };
+
+  return (
+    <g
+      transform={`translate(${simge.p.x} ${simge.p.y}) rotate(${simge.aci})`}
+      onPointerDown={onDown}
+      style={{ cursor: "move" }}
+    >
+      {/* Görünmez yakalama şeridi: ince çizgileri fareyle tutturmak
+          zorlaşıyor, tıklama alanı çizgiden kalın olmalı. */}
+      <rect x={-4} y={-10} width={L + 8} height={20} fill="transparent" />
+      {govde()}
+    </g>
   );
 }
 
