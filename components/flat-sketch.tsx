@@ -18,6 +18,7 @@ import {
   inset,
   overlockTicks,
   pointInPolygon,
+  polygonArea,
   polyPath,
   samplePath,
   simplify,
@@ -72,6 +73,8 @@ type Shape = {
   fabricId: string | null;
   visible: boolean;
   kalinlik: Kalinlik;
+  /** Giyside kaç kez kesiliyor — kol iki, ön beden bir. */
+  adet?: number;
 };
 /**
  * ÖLÇÜM NOKTASI (POM — point of measure).
@@ -214,7 +217,7 @@ const initialDoc: Doc = {
   front: {
     shapes: [
       { id: "s-front", name: "Ön beden", points: blouse(130), closed: true, smooth: true, stitch: "ust", fabricId: "organik-keten", visible: true, kalinlik: "kalin" },
-      { id: "s-sleeve", name: "Kol", points: [P(150, 124), P(181, 104), P(212, 124), P(206, 250), P(196, 332), P(166, 332), P(156, 250)], closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin" },
+      { id: "s-sleeve", name: "Kol", points: [P(150, 124), P(181, 104), P(212, 124), P(206, 250), P(196, 332), P(166, 332), P(156, 250)], closed: true, smooth: true, stitch: "duz", fabricId: "organik-keten", visible: true, kalinlik: "kalin", adet: 2 },
     ],
     measures: [{ id: "m1", a: P(-72, 122), b: P(72, 122) }],
     notlar: [],
@@ -228,7 +231,7 @@ const initialDoc: Doc = {
   },
   detail: {
     shapes: [
-      { id: "s-cuff", name: "Manşet", points: [P(-80, 0), P(80, 0), P(80, 40), P(-80, 40)], closed: true, smooth: false, stitch: "surfile", fabricId: "organik-keten", visible: true, kalinlik: "orta" },
+      { id: "s-cuff", name: "Manşet", points: [P(-80, 0), P(80, 0), P(80, 40), P(-80, 40)], closed: true, smooth: false, stitch: "surfile", fabricId: "organik-keten", visible: true, kalinlik: "orta", adet: 2 },
       { id: "s-pocket", name: "Cep", points: [P(120, 0), P(180, 0), P(180, 60), P(150, 72), P(120, 60)], closed: true, smooth: false, stitch: "zigzag", fabricId: "denim", visible: true, kalinlik: "orta" },
     ],
     measures: [{ id: "m2", a: P(-80, 52), b: P(80, 52) }],
@@ -274,7 +277,7 @@ function belgeyiOnar(ham: unknown): Doc | null {
     cikti[v.id] = {
       shapes: shapes
         .filter((x): x is Shape => !!x && Array.isArray((x as Shape).points))
-        .map((x) => ({ ...x, kalinlik: x.kalinlik ?? "orta", visible: x.visible !== false })),
+        .map((x) => ({ ...x, kalinlik: x.kalinlik ?? "orta", visible: x.visible !== false, adet: x.adet ?? 1 })),
       /* Eski kayıtlarda ad ve tolerans yok; varsayılan tolerans veriliyor,
          ad boş kalıyor (adsız satır tabloda "Adsız ölçü" diye görünüyor
          ve kullanıcıyı adlandırmaya çağırıyor — uydurma bir ad koymak
@@ -925,7 +928,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       const n = cur.shapes.length + 1;
       commit((d) => ({
         ...d,
-        shapes: [...d.shapes, { id, name: `Parça ${n}`, points: pts, closed: close, smooth, stitch, fabricId: null, visible: true, kalinlik }],
+        shapes: [...d.shapes, { id, name: `Parça ${n}`, points: pts, closed: close, smooth, stitch, fabricId: null, visible: true, kalinlik, adet: 1 }],
       }));
       setSelectedId(id);
     }
@@ -1905,6 +1908,40 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       adsiz
         ? `CSV indirildi — ${satirlar.length} ölçü, ${adsiz} tanesi adsız`
         : `CSV indirildi — ${satirlar.length} ölçü`,
+    );
+  }
+
+  function bomCsv() {
+    const satirlar = bomHesapla(doc);
+    if (!satirlar.length) {
+      setToast("Malzeme yok — parçalara kumaş uygulayın");
+      return;
+    }
+    const basliklar = ["Malzeme", "Kompozisyon", "Parçalar", "Alan (m2)", "En (cm)", "Kayipsiz alt sinir (m)", "Fiyat (TRY/m)", "Tutar (TRY)"];
+    const veri = satirlar.map((r) => [
+      r.ad,
+      r.kompozisyon ?? "",
+      r.parcalar.join(", "),
+      r.alanM2.toFixed(3),
+      r.enCm === null ? "" : String(r.enCm),
+      r.altSinirM === null ? "" : r.altSinirM.toFixed(3),
+      r.fiyat === null ? "" : r.fiyat.toFixed(2),
+      r.tutar === null ? "" : r.tutar.toFixed(2),
+    ]);
+    const kacir = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const govde = [basliklar, ...veri].map((r) => r.map(kacir).join(";")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + govde], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "malzeme-listesi.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const eksik = satirlar.filter((r) => r.altSinirM === null).length;
+    setToast(
+      eksik
+        ? `CSV indirildi — ${satirlar.length} malzeme, ${eksik} tanesinde en bilinmediği için sınır boş`
+        : `CSV indirildi — ${satirlar.length} malzeme`,
     );
   }
 
@@ -2897,6 +2934,20 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 />
                 <Row k="Boyut">{selBox ? `${fmtCm(selBox.w)} × ${fmtCm(selBox.h)} cm` : "—"}</Row>
                 <Row k="Nokta">{selected.points.length}{selected.closed ? " · kapalı" : " · açık"}</Row>
+                {/* ADET malzeme listesine doğrudan giriyor: kol iki kez
+                    kesiliyor ve tek sayılırsa kumaş yarı yarıya eksik
+                    sipariş edilir. */}
+                <Row k="Adet">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={selected.adet ?? 1}
+                    aria-label="Parça adedi"
+                    onChange={(e) => updateShape(selected.id, { adet: Math.max(1, Math.round(Number(e.target.value) || 1)) }, false)}
+                    className="w-12 border-b border-mist bg-transparent py-0.5 text-right tabular-nums outline-none focus:border-ink"
+                  />
+                </Row>
                 <Row k="Dikiş">{STITCHES.find((s) => s.id === selected.stitch)?.label}</Row>
                 <Row k="Kalınlık">
                   <span className="inline-flex items-center gap-1">
@@ -3151,7 +3202,10 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               PDF olarak yazdır
             </button>
             <button type="button" onClick={pomCsv} className="eyebrow u-line">
-              Ölçü tablosu · CSV
+              Ölçü · CSV
+            </button>
+            <button type="button" onClick={bomCsv} className="eyebrow u-line">
+              Malzeme · CSV
             </button>
           </div>
         </Glass>
@@ -3236,6 +3290,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             tohumKumas={tohumKumas ?? null}
           />
         ))}
+        {/* Malzeme listesi KENDİ SAYFASINDA: tech pack'lerde de ayrı bir
+            sayfa ve görünüm başına değil, giysi başına tek tablo. */}
+        <BomSayfasi doc={doc} baslik={baslik} />
       </div>
     </div>
   );
@@ -3365,6 +3422,74 @@ function Kaydirac({
 }
 
 /* ------------------------------------------------------------------
+   MALZEME LİSTESİ (BOM)
+
+   Maliyet ve satın alma buradan çıkıyor. Veri zaten elimizdeydi ve
+   birbirine bağlanmamıştı: parçanın kumaşı `Shape.fabricId`'de, kumaşın
+   kompozisyonu/eni/fiyatı `lib/fabrics.ts`'te, parçanın ALANI ise
+   çizimin kendisinde.
+
+   METRAJ UYDURULMUYOR — ALT SINIR VERİLİYOR. Alandan gerçek kumaş
+   tüketimi ÇIKMAZ: pastal verimi (%75–90), dikiş payı, hav yönü ve desen
+   raporu hesaba giriyor ve hiçbirini bilmiyoruz. "Tahmini metraj" yazmak
+   tam da bu ürünün her yerde reddettiği türden uydurma olurdu. Onun
+   yerine `alan / en` veriliyor ve adı açıkça "kayıpsız alt sınır":
+   matematiksel bir taban, bir tahmin değil. Gerçek sipariş bunun
+   üstünde olacak ve ne kadar üstünde olduğu pastalı çeken kişinin
+   bilgisi.
+
+   EĞRİLİ PARÇADA ALAN ÖRNEKLENEREK ölçülüyor: kontrol çokgeninin alanı
+   yumuşatılmış parçanın alanı değil.
+   ------------------------------------------------------------------ */
+type BomSatiri = {
+  fabricId: string;
+  ad: string;
+  kompozisyon: string | null;
+  enCm: number | null;
+  fiyat: number | null;
+  parcalar: string[];
+  alanM2: number;
+  altSinirM: number | null;
+  tutar: number | null;
+};
+
+/** Birim kare → metrekare. 4 birim = 1 cm, yani 1 birim² = 0,0625 cm². */
+const birimKareyeM2 = (birimKare: number) => birimKare / 16 / 10000;
+
+function bomHesapla(doc: Doc): BomSatiri[] {
+  const havuz = new Map<string, BomSatiri>();
+  for (const v of VIEWS) {
+    for (const sekil of doc[v.id].shapes) {
+      if (!sekil.visible || !sekil.closed || !sekil.fabricId) continue;
+      const adet = Math.max(1, sekil.adet ?? 1);
+      const alan = birimKareyeM2(polygonArea(samplePath(sekil.points, true, sekil.smooth, 4))) * adet;
+      const mevcut = havuz.get(sekil.fabricId);
+      if (mevcut) {
+        mevcut.alanM2 += alan;
+        mevcut.parcalar.push(`${sekil.name}${adet > 1 ? ` ×${adet}` : ""}`);
+        continue;
+      }
+      const f = fabrics.find((x) => x.id === sekil.fabricId) ?? null;
+      havuz.set(sekil.fabricId, {
+        fabricId: sekil.fabricId,
+        ad: kumasAdi(sekil.fabricId),
+        kompozisyon: f?.composition ?? null,
+        enCm: f?.width ?? null,
+        fiyat: f?.price ?? null,
+        parcalar: [`${sekil.name}${adet > 1 ? ` ×${adet}` : ""}`],
+        alanM2: alan,
+        altSinirM: null,
+        tutar: null,
+      });
+    }
+  }
+  return [...havuz.values()].map((r) => {
+    const altSinirM = r.enCm ? r.alanM2 / (r.enCm / 100) : null;
+    return { ...r, altSinirM, tutar: altSinirM !== null && r.fiyat !== null ? altSinirM * r.fiyat : null };
+  });
+}
+
+/* ------------------------------------------------------------------
    BASKI AĞACI
 
    Depoda çalışan bir baskı hattı zaten vardı (lookbook, moodboard,
@@ -3391,6 +3516,66 @@ function baskiKutusu(g: ViewDoc) {
     }),
   ];
   return noktalar.length ? bbox(noktalar) : null;
+}
+
+/** Malzeme listesi sayfası — tech pack'lerde kendi sayfası olan tablo. */
+function BomSayfasi({ doc, baslik }: { doc: Doc; baslik: string }) {
+  const satirlar = bomHesapla(doc);
+  if (!satirlar.length) return null;
+  const toplam = satirlar.reduce((t, r) => t + (r.tutar ?? 0), 0);
+  const eksikVar = satirlar.some((r) => r.altSinirM === null);
+  const hucre = { padding: "1.4mm 2mm", fontVariantNumeric: "tabular-nums" as const };
+  return (
+    <div
+      className="lookbook-sayfa tuval"
+      style={{ display: "flex", flexDirection: "column", padding: "12mm", background: "#fff", color: INK }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: `0.2mm solid ${INK}`, paddingBottom: "3mm", fontSize: "3mm", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{baslik}</span>
+        <span>Malzeme listesi</span>
+      </div>
+
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "2.9mm", marginTop: "6mm" }}>
+        <tbody>
+          <tr style={{ borderBottom: `0.2mm solid ${INK}` }}>
+            {["Malzeme", "Kompozisyon", "Parçalar", "Alan (m²)", "En (cm)", "Alt sınır (m)", "Fiyat (₺/m)", "Tutar (₺)"].map((h, i) => (
+              <td key={h} style={{ ...hucre, fontSize: "2.4mm", letterSpacing: "0.08em", textTransform: "uppercase", color: "#55525c", textAlign: i >= 3 ? "right" : "left" }}>
+                {h}
+              </td>
+            ))}
+          </tr>
+          {satirlar.map((r) => (
+            <tr key={r.fabricId} style={{ borderBottom: "0.12mm solid #d8d6dc" }}>
+              <td style={hucre}>{r.ad}</td>
+              <td style={{ ...hucre, color: "#55525c" }}>{r.kompozisyon ?? "—"}</td>
+              <td style={{ ...hucre, color: "#55525c" }}>{r.parcalar.join(", ")}</td>
+              <td style={{ ...hucre, textAlign: "right" }}>{r.alanM2.toFixed(2)}</td>
+              <td style={{ ...hucre, textAlign: "right" }}>{r.enCm ?? "—"}</td>
+              <td style={{ ...hucre, textAlign: "right" }}>{r.altSinirM === null ? "—" : r.altSinirM.toFixed(2)}</td>
+              <td style={{ ...hucre, textAlign: "right" }}>{r.fiyat === null ? "—" : r.fiyat.toLocaleString("tr-TR")}</td>
+              <td style={{ ...hucre, textAlign: "right" }}>{r.tutar === null ? "—" : Math.round(r.tutar).toLocaleString("tr-TR")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* SINIRIN ADI SAYFADA YAZIYOR. Bu satır olmadan "alt sınır" sütunu
+          sipariş miktarı sanılır ve kumaş eksik gelir. */}
+      <p style={{ marginTop: "5mm", fontSize: "2.7mm", lineHeight: 1.5, color: "#55525c", maxWidth: "150mm" }}>
+        Alt sınır = alan ÷ en. Kayıpsız, yani pastal verimi, dikiş payı, hav yönü ve desen
+        raporu hesaba katılmadan hesaplanmış matematiksel taban. Gerçek sipariş bunun üstündedir;
+        ne kadar üstünde olacağı pastalı çeken kişinin bilgisidir.
+        {eksikVar ? " Ölçüsü bilinmeyen malzemede sınır hesaplanmadı ve boş bırakıldı." : ""}
+      </p>
+
+      <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", fontSize: "3mm", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <span style={{ color: "#6a6870" }}>
+          Selvi AI · <span suppressHydrationWarning>{new Date().toLocaleDateString("tr-TR")}</span>
+        </span>
+        <span>Alt sınır tutarı · {Math.round(toplam).toLocaleString("tr-TR")} ₺</span>
+      </div>
+    </div>
+  );
 }
 
 function BaskiSayfa({

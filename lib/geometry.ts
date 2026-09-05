@@ -236,6 +236,29 @@ export function inset(pts: Pt[], amount: number): Pt[] {
   });
 }
 
+/**
+ * Kapalı bir çokgenin alanı (ayakkabı bağı formülü), birim kare cinsinden.
+ *
+ * İşaret ALINMIYOR: sarım yönü çizim sırasına göre değişiyor ve alanın
+ * eksi çıkması bir hata değil, yalnız yönün tersi. Aynalanan parçalar
+ * bilerek ters sarımlı (bkz. flat-sketch `yansit`), yani mutlak değer
+ * almamak malzeme listesinde eksi alan üretirdi.
+ *
+ * EĞRİLİ PARÇALARDA ÖNCE ÖRNEKLE. Bu fonksiyon kontrol noktalarını
+ * çokgen sayar; yumuşatılmış bir parçada gerçek alan ondan farklı.
+ * Çağıran taraf `samplePath` ile yoğunlaştırılmış diziyi vermeli.
+ */
+export function polygonArea(pts: Pt[]): number {
+  const n = pts.length;
+  if (n < 3) return 0;
+  let toplam = 0;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    toplam += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(toplam) / 2;
+}
+
 export function pointInPolygon(p: Pt, poly: Pt[]): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -292,8 +315,7 @@ export function splitPolygon(poly: Pt[], a: Pt, b: Pt): [Pt[], Pt[]] | null {
   const left = clipHalfPlane(poly, a, b, true);
   const right = clipHalfPlane(poly, a, b, false);
   if (left.length < 3 || right.length < 3) return null;
-  const areaOf = (p: Pt[]) => Math.abs(p.reduce((s, q, i) => s + q.x * p[(i + 1) % p.length].y - p[(i + 1) % p.length].x * q.y, 0)) / 2;
-  if (areaOf(left) < 4 || areaOf(right) < 4) return null;
+  if (polygonArea(left) < 4 || polygonArea(right) < 4) return null;
   return [simplify(left), simplify(right)];
 }
 
