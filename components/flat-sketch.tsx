@@ -1737,28 +1737,143 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     };
   }, [teknikIsId, teknikUygula]);
 
-  /* ---------- dışa aktar ---------- */
-  function exportSvg() {
+  /* ---------- dışa aktar ----------
+
+     ESKİ HÂLİ ÜÇ YERDEN BOZUKTU ve üçü de sessizdi:
+
+       1. GÖRSELLER BAĞLANTI KALIYORDU. Kartela kumaşları mutlak adres
+          taşıdığı için çevrimiçi açılınca çözülüyordu ama üretilen kare
+          göreceli (`/api/kare/...`) ve diskteki dosyada BOŞ kalıyordu.
+          Kod bunu biliyor ve toast'la itiraf ediyordu — itiraf, düzeltme
+          değil.
+       2. KADRAJ EKRANIN KADRAJIYDI. `viewBox` canlı görünümden
+          kopyalanıyordu; yakınlaşmış bir kullanıcı çiziminin KIRPILMIŞ
+          hâlini indiriyordu ve bunu hiçbir yerde yazmıyorduk.
+       3. TUVAL KROMU DOSYAYA GİRİYORDU: 40.000 birimlik ızgara
+          dikdörtgeni ve eksen çizgileri.
+
+     Şimdi dosya çizimin KENDİ sınırına kırpılıyor ve boyutu SANTİMETRE
+     cinsinden yazılıyor — 4 birim = 1 cm olduğu için Illustrator'da
+     gerçek ölçüsüyle açılıyor. Teknik çizimde bir dosyanın en temel
+     şartı bu: gönderildiği yerde aynı ölçüde görünmesi. */
+  const [disaAktariliyor, setDisaAktariliyor] = useState(false);
+
+  async function gorseliGom(src: string): Promise<string> {
+    const yanit = await fetch(src);
+    if (!yanit.ok) throw new Error(String(yanit.status));
+    const blob = await yanit.blob();
+    return new Promise<string>((coz, hata) => {
+      const okuyucu = new FileReader();
+      okuyucu.onload = () => coz(String(okuyucu.result));
+      okuyucu.onerror = () => hata(okuyucu.error ?? new Error("okunamadı"));
+      okuyucu.readAsDataURL(blob);
+    });
+  }
+
+  async function exportSvg() {
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!svg || disaAktariliyor) return;
+    setDisaAktariliyor(true);
+    setToast("SVG hazırlanıyor…");
     const clone = svg.cloneNode(true) as SVGSVGElement;
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
     clone.querySelectorAll("[data-ui]").forEach((el) => el.remove());
-    const blob = new Blob([clone.outerHTML], { type: "image/svg+xml" });
+    clone.removeAttribute("class");
+    clone.removeAttribute("style");
+
+    /* KULLANILMAYAN TANIMLAR ATILIYOR — kimliğe göre değil, KULLANIMA
+       göre. Dokuz kartela deseni her zaman `defs` içinde duruyor ve
+       hepsini gömmek dosyaya dokuz makro fotoğraf eklerdi; ızgara
+       desenleri ise onları kullanan dikdörtgen krom olduğu için zaten
+       öksüz kalıyor. Önce hangi kimliklerin gerçekten `url(#…)` ile
+       çağrıldığını topluyoruz, sonra çağrılmayan her tanımı atıyoruz.
+       Kimliğe göre elemek (`pattern[id^='fab-']`) ızgarayı dosyada
+       bırakıyordu — ölçüldü. */
+    const cagrilanlar = () => {
+      const k = new Set<string>();
+      clone.querySelectorAll("*").forEach((el) => {
+        for (const oz of Array.from(el.attributes)) {
+          const eslesme = oz.value.match(/url\(#([^)]+)\)/);
+          if (eslesme) k.add(eslesme[1]);
+        }
+      });
+      return k;
+    };
+    /* TEK GEÇİŞ YETMİYOR, ölçüldü. `grid-major` deseninin İÇİNDE
+       `grid-minor` çağrılıyor; ilk geçişte major atılıyor ama minor
+       "çağrılmış" sayıldığı için dosyada kalıyordu. Zincir tükenene
+       kadar tekrarlıyoruz; beş tur, sonsuz döngüye karşı üst sınır. */
+    for (let tur = 0; tur < 5; tur++) {
+      const cagrilan = cagrilanlar();
+      const atilacak = [...clone.querySelectorAll("defs > *")].filter((el) => el.id && !cagrilan.has(el.id));
+      if (!atilacak.length) break;
+      atilacak.forEach((el) => el.remove());
+    }
+
+    let gomulemeyen = 0;
+    await Promise.all(
+      [...clone.querySelectorAll("image")].map(async (im) => {
+        const src = im.getAttribute("href") ?? im.getAttribute("xlink:href");
+        if (!src || src.startsWith("data:")) return;
+        try {
+          const veri = await gorseliGom(src);
+          im.setAttribute("href", veri);
+          im.removeAttribute("xlink:href");
+        } catch {
+          /* Çevrimdışıyken ya da uzak sunucu izin vermediğinde olur.
+             Bağlantıyı bozmuyoruz — dosya çevrimiçi açılınca yine
+             çalışsın — ama kaç tanesinin gömülemediğini SÖYLÜYORUZ. */
+          gomulemeyen += 1;
+        }
+      }),
+    );
+
+    /* `var(--font-sans)` uygulamanın dışında tanımsız: dosyayı tek başına
+       açan kişi ölçü etiketlerini ve notları varsayılan yazıyla görürdü. */
+    clone.querySelectorAll("[font-family]").forEach((el) => {
+      el.setAttribute("font-family", "ui-sans-serif, system-ui, Segoe UI, Helvetica, Arial, sans-serif");
+    });
+
+    /* Sınır ölçülebilmek için klon belgeye GİRİYOR: `getBBox` yalnız
+       yerleştirilmiş öğelerde çalışıyor. Görünmez ve akış dışı. */
+    clone.style.position = "absolute";
+    clone.style.left = "-99999px";
+    clone.style.width = "1000px";
+    clone.style.height = "1000px";
+    document.body.appendChild(clone);
+    let kutu: DOMRect | null = null;
+    try {
+      kutu = clone.getBBox() as DOMRect;
+    } catch {
+      kutu = null;
+    }
+    document.body.removeChild(clone);
+    clone.removeAttribute("style");
+
+    if (kutu && kutu.width > 0 && kutu.height > 0) {
+      const pay = 16; // 4 cm kenar payı
+      const en = kutu.width + pay * 2;
+      const boy = kutu.height + pay * 2;
+      clone.setAttribute("viewBox", `${(kutu.x - pay).toFixed(2)} ${(kutu.y - pay).toFixed(2)} ${en.toFixed(2)} ${boy.toFixed(2)}`);
+      clone.setAttribute("width", `${toCm(en).toFixed(2)}cm`);
+      clone.setAttribute("height", `${toCm(boy).toFixed(2)}cm`);
+    }
+
+    const metin = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([metin], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `teknik-cizim-${view}.svg`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    /* DIŞA AKTARMA SINIRI. Dosya SVG METNİ; görseller bağlantı olarak
-       kalıyor. Kartela kumaşları mutlak adres (unsplash) taşıdığı için
-       diskten açılan dosyada da çözülüyor, üretilen kare ise göreceli
-       (`/api/kare/...`) ve BOŞ kalır. Altlık `data-ui` ile zaten düşüyor;
-       dolguyu da yasaklamak yerine indirme anında söylüyoruz — sessizce
-       bozuk dosya vermek daha kötü. */
-    const tohumlu = cur.shapes.some((s) => s.visible && s.fabricId === TOHUM_KUMAS);
-    setToast(tohumlu ? "SVG indirildi — üretilen kumaş dolgusu dosyada boş kalır" : "SVG indirildi");
+    setDisaAktariliyor(false);
+    setToast(
+      gomulemeyen
+        ? `SVG indirildi — ${gomulemeyen} görsel gömülemedi, dosya çevrimiçi açılmalı`
+        : "SVG indirildi — görseller dosyanın içinde",
+    );
   }
 
   /* ---------- türetilen ---------- */
@@ -1942,10 +2057,13 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           )}
         </defs>
 
-        {/* sonsuz zemin */}
-        <rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#grid-major)" />
-        {/* eksenler */}
-        <g stroke={INK} strokeOpacity="0.18" strokeWidth="1" vectorEffect="non-scaling-stroke">
+        {/* Sonsuz zemin ve eksenler TUVAL KROMU, çizimin parçası değil —
+            `data-ui` ile dışa aktarmada düşüyorlar. Eskiden düşmüyorlardı
+            ve indirilen dosyanın içinde 40.000 birimlik bir ızgara
+            dikdörtgeni ile aynı boyda iki eksen çizgisi kalıyordu; hem
+            dosyayı şişiriyor hem çizimin sınırını anlamsız kılıyordu. */}
+        <rect data-ui x="-20000" y="-20000" width="40000" height="40000" fill="url(#grid-major)" />
+        <g data-ui stroke={INK} strokeOpacity="0.18" strokeWidth="1" vectorEffect="non-scaling-stroke">
           <line x1="-20000" y1="0" x2="20000" y2="0" vectorEffect="non-scaling-stroke" />
           <line x1="0" y1="-20000" x2="0" y2="20000" vectorEffect="non-scaling-stroke" />
         </g>
@@ -1990,13 +2108,24 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           />
         )}
 
-        {view !== "detail" && <Croquis back={view === "back"} />}
+        {/* Kroki de `data-ui`: tuvalde bir çizim yardımcısı, üstünden
+            çizilsin diye var. Şartnamede giysinin kendisi olmalı, onu
+            tutan figür değil — baskı ağacı da aynı kararı veriyor.
+            Ölçülünce görüldü: kroki dosyada kalınca dışa aktarılan SVG
+            "181 cm boy" diye açılıyordu, yani giysinin değil mankenin
+            ölçüsünü söylüyordu. */}
+        {view !== "detail" && (
+          <g data-ui>
+            <Croquis back={view === "back"} />
+          </g>
+        )}
 
         {/* parçalar */}
         {cur.shapes.map((s) => {
           if (!s.visible) return null;
+          /* Yol seçim çerçevesi için burada da hesaplanıyor; gövdeyi
+             `ParcaGovde` çiziyor. */
           const d = s.smooth ? smoothPath(s.points, s.closed) : polyPath(s.points, s.closed);
-          const sampled = s.stitch === "zigzag" || s.stitch === "surfile" ? samplePath(s.points, s.closed, s.smooth, 4) : [];
           const isSel = secimIdleri.includes(s.id);
           /* ÇAPALAR YALNIZ TEK SEÇİMDE. Çoklu seçimde her parçanın
              noktalarını basmak tuvali okunmaz hâle getiriyor ve nokta
@@ -2006,25 +2135,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           const capaliGoster = s.id === selectedId && !cokluSecim;
           return (
             <g key={s.id}>
-              <path
-                d={d}
-                fill={s.closed ? (s.fabricId ? `url(#fab-${s.fabricId})` : "rgba(26,26,26,0.035)") : "none"}
-                fillOpacity={s.fabricId ? 0.95 : 1}
-                stroke={INK}
-                strokeOpacity={s.stitch === "zigzag" ? 0.45 : 1}
-                strokeWidth={kalinlikPx(s.kalinlik)}
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-              {/* DİKİŞLER HER ZAMAN İNCE. Kalınlık seçimi parçanın DIŞ
-                  HATTINA ait; dikiş, üst dikiş ve sürfile sanayi kuralı
-                  gereği ondan ince çiziliyor. Dikişi de kalınlaştırmak
-                  hiyerarşiyi yok eder ve kalınlık seçimini süse çevirirdi. */}
-              {s.stitch === "ust" && s.closed && (
-                <path d={s.smooth ? smoothPath(inset(s.points, 4), true) : polyPath(inset(s.points, 4), true)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
-              )}
-              {s.stitch === "zigzag" && <path d={zigzag(sampled, s.closed, 2)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
-              {s.stitch === "surfile" && <path d={overlockTicks(sampled, s.closed, 3.5)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} vectorEffect="non-scaling-stroke" />}
+              <ParcaGovde s={s} />
               {isSel && (
                 <g data-ui>
                   <path d={d} fill="none" stroke={SELECT} strokeWidth="1" vectorEffect="non-scaling-stroke" />
@@ -2774,9 +2885,17 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               {cur.shapes.length === 0 && <li className="py-3 text-[11px] text-ash">Bu görünümde parça yok — kalemle çizin.</li>}
             </ul>
           </div>
-          <div className="border-t border-ink/10 px-4 py-3">
-            <button type="button" onClick={exportSvg} className="eyebrow u-line">
-              SVG indir
+          <div className="flex items-center gap-5 border-t border-ink/10 px-4 py-3">
+            <button
+              type="button"
+              onClick={exportSvg}
+              disabled={disaAktariliyor}
+              className="eyebrow u-line disabled:opacity-40"
+            >
+              {disaAktariliyor ? "Hazırlanıyor…" : "SVG indir"}
+            </button>
+            <button type="button" onClick={() => window.print()} className="eyebrow u-line">
+              PDF olarak yazdır
             </button>
           </div>
         </Glass>
@@ -2842,6 +2961,25 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
       </div>
 
       <Toast message={toast} onHide={() => setToast(null)} />
+
+      {/* BASKI AĞACI — ekranda görünmez, DOM'da durur. Yazdırma anında
+          üretilemez: görsellerin çoktan yüklenmiş olması gerekiyor
+          (lookbook baskısındaki yorum aynı gerekçeyi anlatıyor).
+
+          İçi boş görünümler sayfa AÇMIYOR: parçası olmayan bir "Detay"
+          sekmesi için boş bir A4 basmak, dosyayı alan kişiye eksik iş
+          teslim etmek gibi görünürdü. */}
+      <div className="lookbook-baski-kok" aria-hidden>
+        {VIEWS.map((v) => (
+          <BaskiSayfa
+            key={v.id}
+            g={doc[v.id]}
+            baslik={baslik}
+            gorunum={v.label}
+            tohumKumas={tohumKumas ?? null}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -2966,6 +3104,168 @@ function Kaydirac({
         style={{ "--p": `${oran}%` } as CSSProperties}
       />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------
+   BASKI AĞACI
+
+   Depoda çalışan bir baskı hattı zaten vardı (lookbook, moodboard,
+   kolaj) ama teknik çizim ona hiç bağlanmamıştı — yani üründeki en
+   "gönderilecek" belge, gönderilemeyen tek belgeydi.
+
+   MANKEN BASKIYA GİRMİYOR. Kroki tuvalde bir çizim yardımcısı: üstünden
+   çizilsin diye var. Şartnamede giysinin kendisi olmalı, onu tutan
+   figür değil — altlık fotoğrafın dışarıda kalmasıyla aynı gerekçe.
+
+   Sayfa A4 YATAY, çünkü baskı hattının `@page` kuralı öyle ve tek bir
+   stüdyo için ikinci bir sayfa boyu tanımlamak, bugün üç stüdyoda
+   çalışan kuralı dallandırmak demekti. Çizim sayfaya oranını koruyarak
+   sığıyor, yani yatay kâğıt bir kayıp değil.
+   ------------------------------------------------------------------ */
+function baskiKutusu(g: ViewDoc) {
+  const noktalar: Pt[] = [
+    ...g.shapes.filter((x) => x.visible).flatMap((x) => x.points),
+    ...g.measures.flatMap((m) => [m.a, m.b]),
+    ...g.notlar.flatMap((n) => (n.ok ? [n.p, n.ok] : [n.p])),
+    ...g.simgeler.flatMap((x) => {
+      const r = (x.aci * Math.PI) / 180;
+      return [x.p, { x: x.p.x + x.boy * Math.cos(r), y: x.p.y + x.boy * Math.sin(r) }];
+    }),
+  ];
+  return noktalar.length ? bbox(noktalar) : null;
+}
+
+function BaskiSayfa({
+  g,
+  baslik,
+  gorunum,
+  tohumKumas,
+}: {
+  g: ViewDoc;
+  baslik: string;
+  gorunum: string;
+  tohumKumas: string | null;
+}) {
+  const k = baskiKutusu(g);
+  if (!k) return null;
+  const pay = 24;
+  const en = k.w + pay * 2;
+  const boy = k.h + pay * 2;
+  /* Metin boyu KÂĞITTAN türetiliyor. `NotIsareti` yazıyı `11/zoom` ile
+     çiziyor; kâğıtta ~3 mm istiyoruz ve 297 mm genişlik `en` birime denk
+     geliyor, yani zoom = 11·297/(3·en). Sabit bir sayı yazsaydık küçük
+     bir detay çiziminde not devasa, uzun bir paltoda okunmaz çıkardı. */
+  const baskiZoom = (11 * 297) / (3 * en);
+  const kullanilan = new Set(g.shapes.filter((x) => x.visible && x.fabricId).map((x) => x.fabricId));
+
+  return (
+    <div className="lookbook-sayfa" style={{ background: "#fff", color: INK, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "8mm",
+          padding: "9mm 12mm 3mm",
+          fontSize: "3mm",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          borderBottom: `0.2mm solid ${INK}`,
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{baslik}</span>
+        <span style={{ whiteSpace: "nowrap" }}>{gorunum}</span>
+      </div>
+      <svg
+        viewBox={`${(k.minX - pay).toFixed(2)} ${(k.minY - pay).toFixed(2)} ${en.toFixed(2)} ${boy.toFixed(2)}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ flex: 1, minHeight: 0, width: "100%", padding: "4mm 12mm" }}
+      >
+        <defs>
+          {fabrics
+            .filter((f) => kullanilan.has(f.id))
+            .map((f) => (
+              <pattern key={f.id} id={`bfab-${f.id}`} width="96" height="96" patternUnits="userSpaceOnUse">
+                <image href={f.image} width="96" height="96" preserveAspectRatio="xMidYMid slice" />
+              </pattern>
+            ))}
+          {tohumKumas && kullanilan.has(TOHUM_KUMAS) && (
+            <pattern id={`bfab-${TOHUM_KUMAS}`} width="96" height="96" patternUnits="userSpaceOnUse">
+              <image href={tohumKumas} width="96" height="96" preserveAspectRatio="xMidYMid slice" />
+            </pattern>
+          )}
+        </defs>
+        {g.shapes.filter((x) => x.visible).map((x) => (
+          <ParcaGovde key={x.id} s={x} desenOneki="bfab" />
+        ))}
+        {g.simgeler.map((x) => (
+          <SimgeIsareti key={x.id} simge={x} selected={false} onDown={() => {}} />
+        ))}
+        {g.measures.map((m) => (
+          <g key={m.id}>
+            <line x1={m.a.x} y1={m.a.y} x2={m.b.x} y2={m.b.y} stroke={INK} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <MeasureLabel a={m.a} b={m.b} zoom={baskiZoom} />
+          </g>
+        ))}
+        {g.notlar.map((n) => (
+          <NotIsareti key={n.id} not={n} zoom={baskiZoom} selected={false} onDown={() => {}} />
+        ))}
+      </svg>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "3mm 12mm 9mm",
+          fontSize: "2.6mm",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "#6a6870",
+        }}
+      >
+        <span>Selvi AI · teknik çizim</span>
+        <span suppressHydrationWarning>{new Date().toLocaleDateString("tr-TR")}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Bir parçanın GÖVDESİ — yol, dolgu ve dikişi.
+ *
+ * Tuval ile BASKI aynı bileşeni kullanıyor. Eskiden yalnız tuvalde vardı;
+ * baskı ağacı eklenirken aynı otuz satırı ikinci kez yazmak, birinde
+ * düzeltilen bir dikiş hatasının ötekinde yaşaması demekti — depo bu
+ * hatayı baskı CSS'inde zaten bir kez yapmış ve yorumunda anlatıyor.
+ * Seçim çerçevesi ve çapalar burada YOK: onlar tuvalin kromu.
+ */
+function ParcaGovde({ s, desenOneki = "fab" }: { s: Shape; desenOneki?: string }) {
+  const d = s.smooth ? smoothPath(s.points, s.closed) : polyPath(s.points, s.closed);
+  const sampled = s.stitch === "zigzag" || s.stitch === "surfile" ? samplePath(s.points, s.closed, s.smooth, 4) : [];
+  return (
+    <>
+      <path
+        d={d}
+        /* Desen kimliği ÖNEKLE geliyor: baskı ağacının kendi SVG'si var
+           ve desen tanımları SVG'ye özel. İki ağaç aynı kimliği
+           kullansaydı tarayıcı ilkini bulur, baskıda kumaş dolgusu
+           tuvalinkine bağlanırdı. */
+        fill={s.closed ? (s.fabricId ? `url(#${desenOneki}-${s.fabricId})` : "rgba(26,26,26,0.035)") : "none"}
+        fillOpacity={s.fabricId ? 0.95 : 1}
+        stroke={INK}
+        strokeOpacity={s.stitch === "zigzag" ? 0.45 : 1}
+        strokeWidth={kalinlikPx(s.kalinlik)}
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      {/* DİKİŞLER HER ZAMAN İNCE. Kalınlık seçimi parçanın DIŞ HATTINA
+          ait; dikişi de kalınlaştırmak hiyerarşiyi yok eder ve kalınlık
+          seçimini süse çevirirdi. */}
+      {s.stitch === "ust" && s.closed && (
+        <path d={s.smooth ? smoothPath(inset(s.points, 4), true) : polyPath(inset(s.points, 4), true)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+      )}
+      {s.stitch === "zigzag" && <path d={zigzag(sampled, s.closed, 2)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
+      {s.stitch === "surfile" && <path d={overlockTicks(sampled, s.closed, 3.5)} fill="none" stroke={INK} strokeWidth={kalinlikPx("ince")} vectorEffect="non-scaling-stroke" />}
+    </>
   );
 }
 
