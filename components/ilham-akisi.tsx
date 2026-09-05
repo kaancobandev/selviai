@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Hero, type Ipucu } from "@/components/hero";
+import { Hero } from "@/components/hero";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 /* ------------------------------------------------------------------
    İLHAM AKIŞI — hero'nun altında, ana sayfada.
 
-   Akış: metin + çip → 4 ilham karesi → biri seçilir → seçilenden
+   Akış: metin → 4 ilham karesi → biri seçilir → seçilenden
    moodboard + kumaş + marka + giysi silueti.
 
    NEDEN HERO'YU SARIYOR. `app/page.tsx` bir SUNUCU bileşeni; hero ise
@@ -19,9 +19,10 @@ import { cn } from "@/lib/utils";
    Alternatif (state'i URL'e ya da sunucuya taşımak) her karede tur
    atardı ve üretim zaten oturum kaydında duruyor.
 
-   ÇİP KATEGORİ DEĞİL YÖNELİM. Bugün tek kategori var ("moda"); dört
-   çip aynı kategorinin farklı girişleri. Çip metnin YERİNE geçmiyor,
-   brief'e yönelim olarak ekleniyor — kullanıcının yazdığı silinmemeli.
+   BRIEF ARTIK OLDUĞU GİBİ GİDİYOR. Hero'da dört çip vardı ve seçilen
+   çipin yönelim cümlesi brief'in sonuna ekleniyordu; dördü de aynı
+   kategorinin (moda) farklı girişleri olduğu için tek sektör rozetine
+   indirildi ve eklenecek bir şey kalmadı (bkz. SEKTOR, hero.tsx).
    ------------------------------------------------------------------ */
 
 type Kare = { eksen: string; url?: string; dataUrl?: string };
@@ -47,21 +48,12 @@ const EKSEN_ADI: Record<string, string> = {
   siluet: "Giysi siluet",
 };
 
-/** Çipin brief'e kattığı yönelim. Metnin yerine geçmiyor, ekleniyor. */
-const IPUCU_YONELIM: Record<Ipucu, string> = {
-  Koleksiyon: "bir koleksiyon parçası olarak",
-  "Ürün": "tek bir ürün olarak",
-  Lookbook: "lookbook karesi olarak",
-  "Teknik çizim": "teknik çizime dönüşecek netlikte",
-};
-
 const YOKLAMA_MS = 2500;
 /** Bu süre sonunda yoklama bırakılır; sunucu tarafı zaten kendi bekçisini işletiyor. */
 const YOKLAMA_TAVANI_MS = 4 * 60 * 1000;
 
 export function IlhamAkisi() {
   const [istek, setIstek] = useState("");
-  const [ipucu, setIpucu] = useState<Ipucu | null>(null);
 
   const [ilhamIs, setIlhamIs] = useState<string | null>(null);
   const [ilham, setIlham] = useState<IsGorunum | null>(null);
@@ -152,7 +144,10 @@ export function IlhamAkisi() {
     setTuret(null);
     setTuretIs(null);
 
-    const brief = ipucu ? `${metin} — ${IPUCU_YONELIM[ipucu]}` : metin;
+    /* Brief artık kullanıcının yazdığının AYNISI. Eskiden seçili çipin
+       yönelim cümlesi sonuna ekleniyordu; çipler tek sektör rozetine
+       indiği için eklenecek bir şey kalmadı (bkz. SEKTOR, hero.tsx). */
+    const brief = metin;
     /* Pencere İSTEK GİDER GİTMEZ açılıyor, yanıt beklenmeden: kullanıcı
        gönderdiğini anında görmeli. Yanıtı bekleseydi arada bir saniye
        hiçbir şey olmamış gibi görünürdü. */
@@ -306,8 +301,6 @@ export function IlhamAkisi() {
       <Hero
         istek={istek}
         onIstek={setIstek}
-        ipucu={ipucu}
-        onIpucu={setIpucu}
         onGonder={baslat}
         mesgul={mesgul}
       />
