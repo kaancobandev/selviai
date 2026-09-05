@@ -89,6 +89,66 @@ export function LabelStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     care: `${lab(careMaterials, care.material)} · ${care.wash}°`,
   };
 
+  /* ---------- şartname çıktısı ----------
+
+     Bu düğme eskiden yalnız "(prototip)" toast'ı gösteriyordu. Şartname
+     verisinin TAMAMI zaten ekranda duruyordu — boyut, malzeme, renk,
+     adet, birim fiyat, toplam — yani eksik olan hesap değil, dosyaydı.
+
+     İKİ AYRI ÇIKTI, çünkü iki ayrı okuyucu var: üretici tabloyu Excel'de
+     istiyor (CSV), müşteri ve baskıcı ise etiketi GERÇEK ÖLÇÜSÜNDE
+     görmek istiyor (A4). Tek bir çıktı ikisinden birini yarım bırakırdı.
+
+     CSV'de AYIRICI NOKTALI VİRGÜL ve başta BOM var: Türkçe Excel virgülü
+     ondalık ayırıcı sayıyor ve BOM olmadan Türkçe karakterleri bozuk
+     açıyor. İkisi de "dosya açılmıyor" diye geri gelen türden ayrıntı. */
+  function sartnameSatirlari(): string[][] {
+    const eklenenler = (Object.keys(added) as LabelType[]).filter((t) => added[t]);
+    const basliklar = ["Etiket", "Boyut (mm)", "Özellik 1", "Özellik 2", "Özellik 3", "Adet", "Birim (TRY)", "Toplam (TRY)"];
+    const satirlar = eklenenler.map((t) => {
+      const ad = labelTypes.find((x) => x.id === t)?.name ?? t;
+      const spec = specLines(t, { woven, hang, care });
+      const ozellikler = spec.slice(1).map(([k, v]) => `${k}: ${v}`);
+      return [
+        ad,
+        `${sizeOf[t].w} × ${sizeOf[t].h}`,
+        ozellikler[0] ?? "",
+        ozellikler[1] ?? "",
+        ozellikler[2] ?? "",
+        String(q(t)),
+        unit(t).toFixed(2),
+        total(t).toFixed(2),
+      ];
+    });
+    return [basliklar, ...satirlar];
+  }
+
+  function csvIndir() {
+    const kimlik = [
+      ["Marka", content.brand],
+      ["Ürün", content.product],
+      ["Beden", content.size],
+      ["Kompozisyon", content.composition],
+      ["Menşe", content.origin],
+    ];
+    const kacir = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const govde = [
+      ...kimlik.map((r) => r.map(kacir).join(";")),
+      "",
+      ...sartnameSatirlari().map((r) => r.map(kacir).join(";")),
+      "",
+      ["Şartname toplamı", "", "", "", "", "", "", setTotal.toFixed(2)].join(";"),
+    ].join("\r\n");
+    const blob = new Blob(["\uFEFF" + govde], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `etiket-sartnamesi-${(content.brand || "marka").toLowerCase().replace(/\s+/g, "-")}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setToast(`CSV indirildi — ${addedCount} etiket`);
+  }
+
   function toggleAdded(t: LabelType) {
     const next = !added[t];
     setAdded((a) => ({ ...a, [t]: next }));
@@ -327,9 +387,19 @@ export function LabelStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               <p className="eyebrow text-fog">Şartname toplamı</p>
               <p className="mt-1.5 font-display text-2xl tabular-nums">{formatTRY(setTotal)}</p>
             </div>
-            <Button variant="ghost" disabled={addedCount === 0} onClick={() => setToast("Üretim şartnamesi PDF olarak hazırlanıyor (prototip).")}>
-              Şartnameyi dışa aktar
-            </Button>
+            <div className="flex items-center gap-5">
+              <Button variant="ghost" disabled={addedCount === 0} onClick={() => window.print()}>
+                Yazdır · PDF
+              </Button>
+              <button
+                type="button"
+                disabled={addedCount === 0}
+                onClick={csvIndir}
+                className="eyebrow u-line disabled:opacity-40"
+              >
+                CSV indir
+              </button>
+            </div>
           </div>
         </div>
 
@@ -379,6 +449,81 @@ export function LabelStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           })}
         </div>
       </section>
+
+      {/* BASKI AĞACI — ekranda görünmez, DOM'da durur.
+
+          `--mm: 1mm` ÖNEMLİ: etiket önizlemeleri boyutlarını bu değişkene
+          göre çiziyor ve kâğıtta bir milimetre gerçekten bir milimetre.
+          Yani basılan sayfadaki etiket, kesilecek etiketin ta kendisi —
+          baskıcı cetvelle ölçüp doğrulayabiliyor. Ekranda bunu ancak
+          "1:1" rozetiyle İDDİA edebiliyorduk. */}
+      <div className="lookbook-baski-kok" aria-hidden>
+        <div
+          className="lookbook-sayfa tuval"
+          style={{
+            ["--mm" as string]: "1mm",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6mm",
+            padding: "12mm",
+            background: "#fff",
+            color: "#1a1a1a",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "0.2mm solid #1a1a1a", paddingBottom: "3mm" }}>
+            <span style={{ fontSize: "5mm", letterSpacing: "0.02em" }}>{content.brand || "Marka"}</span>
+            <span style={{ fontSize: "3mm", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              Etiket şartnamesi · {content.product}
+            </span>
+          </div>
+
+          {/* Etiketler gerçek ölçekte, yan yana. */}
+          <div style={{ display: "flex", gap: "10mm", alignItems: "flex-start", flexWrap: "wrap" }}>
+            {labelTypes
+              .filter((t) => added[t.id])
+              .map((t) => (
+                <div key={t.id} style={{ display: "flex", flexDirection: "column", gap: "2mm" }}>
+                  <div style={{ border: "0.2mm dashed #8a8792", padding: "2mm", background: "#fff" }}>{preview(t.id)}</div>
+                  <span style={{ fontSize: "2.6mm", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    {t.name} · {sizeOf[t.id].w} × {sizeOf[t.id].h} mm · 1:1
+                  </span>
+                </div>
+              ))}
+          </div>
+
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "2.9mm", marginTop: "auto" }}>
+            <tbody>
+              {sartnameSatirlari().map((satir, i) => (
+                <tr key={i} style={{ borderBottom: "0.15mm solid #d8d6dc" }}>
+                  {satir.map((h, j) => (
+                    <td
+                      key={j}
+                      style={{
+                        padding: "1.6mm 2mm",
+                        textAlign: j >= 5 ? "right" : "left",
+                        letterSpacing: i === 0 ? "0.08em" : undefined,
+                        textTransform: i === 0 ? "uppercase" : undefined,
+                        fontSize: i === 0 ? "2.5mm" : undefined,
+                        color: i === 0 ? "#55525c" : undefined,
+                        whiteSpace: j >= 5 ? "nowrap" : undefined,
+                      }}
+                    >
+                      {h}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "3mm", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <span style={{ color: "#6a6870" }}>
+              Selvi AI · <span suppressHydrationWarning>{new Date().toLocaleDateString("tr-TR")}</span>
+            </span>
+            <span>Şartname toplamı · {formatTRY(setTotal)}</span>
+          </div>
+        </div>
+      </div>
 
       <Toast message={toast} onHide={() => setToast(null)} />
     </div>
