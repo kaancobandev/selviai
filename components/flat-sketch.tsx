@@ -77,7 +77,7 @@ type ViewDoc = { shapes: Shape[]; measures: Measure[] };
 type Doc = Record<ViewId, ViewDoc>;
 
 const TOOLS: { id: Tool; label: string; key: string; hint: string }[] = [
-  { id: "select", label: "Seç", key: "V", hint: "Tıkla seç · Shift çoğaltır · çift tık nokta ekler · Alt+çapa siler" },
+  { id: "select", label: "Seç", key: "V", hint: "Shift çoğaltır · çift tık nokta ekler · Alt+çapa siler · köşe oranlı ölçekler, üstteki halka döndürür" },
   { id: "pen", label: "Kalem", key: "P", hint: "Tıkla nokta ekle · ilk noktaya dön kapat · Enter bitir" },
   { id: "measure", label: "Mezura", key: "M", hint: "İki nokta arasını sürükle · cm" },
   { id: "cut", label: "Makas", key: "C", hint: "Parçanın üzerinden bir çizgi çek · ikiye böler" },
@@ -504,6 +504,22 @@ type Drag =
      hesaplanıyor. */
   | { kind: "move"; ids: string[]; start: Pt; orij: Record<string, Pt[]>; recorded: boolean }
   | { kind: "anchor"; id: string; index: number }
+  /* Dönüşüm — ölçekleme ve döndürme tek sürükleme türünde.
+     `sabit` ölçeklemenin çıpası (tutulan tutamağın KARŞISI), `merkez`
+     döndürmenin ekseni, `orij` her parçanın başlangıç noktaları.
+     `baslangic` tutamağın basıldığı andaki konumu: oran ve açı hep ona
+     göre hesaplanıyor, bir önceki kareye göre DEĞİL — aksi hâlde
+     sürükleme boyunca yuvarlama hatası birikirdi. */
+  | {
+      kind: "transform";
+      mod: "olcek" | "dondur";
+      eksen: "iki" | "yatay" | "dikey";
+      sabit: Pt;
+      merkez: Pt;
+      baslangic: Pt;
+      orij: Record<string, Pt[]>;
+      recorded: boolean;
+    }
   | { kind: "measure"; a: Pt }
   | { kind: "cut"; a: Pt };
 
@@ -552,6 +568,12 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [userView, setUserView] = useState<{ x: number; y: number; zoom: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
+  /* AÇI KİLİDİ İŞARETÇİDEN DEĞİL KLAVYEDEN OKUNUYOR.
+     `e.shiftKey` yalnız o olayın taşıdığı anlık durumu veriyor ve
+     kullanıcının gerçek alışkanlığını karşılamıyor: insanlar döndürmeye
+     BAŞLAYIP sonra Shift'e basarak kilitliyor, sonra bırakıp serbest
+     bırakıyor. Ayrı bir bayrak ikisini de çalıştırıyor. */
+  const [shiftDown, setShiftDown] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   /* AÇILIŞTA ÖNCEKİ ÇİZİMLER GERİ YÜKLENİYOR. Teknik çizim ÜCRETLİ çıktı:
@@ -1068,6 +1090,9 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   /* ---------- klavye ---------- */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      /* Shift takibi metin alanı denetiminden ÖNCE: bir alanda basılıp
+         dışarıda bırakılan Shift bayrağı asılı bırakırdı. */
+      if (e.key === "Shift") setShiftDown(true);
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       if (e.code === "Space") {
@@ -1126,6 +1151,7 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     };
     const onUp = (e: KeyboardEvent) => {
       if (e.code === "Space") setSpaceDown(false);
+      if (e.key === "Shift") setShiftDown(false);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onUp);
@@ -1216,6 +1242,12 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           ),
         },
       }));
+    } else if (drag.kind === "transform") {
+      if (!drag.recorded && dist(p, drag.baslangic) > 2 / vp.zoom) {
+        setUndo((u) => [...u.slice(-29), doc]);
+        setDrag({ ...drag, recorded: true });
+      }
+      donusumUygula(drag, p, shiftDown || e.shiftKey);
     } else if (drag.kind === "anchor") {
       const y = noktayiYakala(p, drag.id, drag.index);
       setDoc((d) => ({
@@ -1266,6 +1298,110 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
     setTemp(null);
     setYakalamaCizgisi(null);
   }
+
+  /* ---------- dönüşüm kutusu ----------
+
+     KÖŞE ORANLI, KENAR TEK EKSENLİ. Çoğu vektör aracında köşe serbest,
+     Shift'le oranlı. Burada tersi bilerek: teknik çizimde bir parçayı
+     yanlışlıkla ezmek sessiz ve pahalı bir hata (kalıp oranı bozulur,
+     ölçü tablosu yanlış çıkar), oysa TEK EKSENDE esnetmek ayrı ve bilinçli
+     bir istek. İkisini iki ayrı tutamağa ayırmak, kimseyi kısayol
+     ezberlemeye mecbur bırakmadan doğruyu varsayılan yapıyor.
+
+     Ölçekleme TUTULAN TUTAMAĞIN KARŞISINI sabit tutuyor: kullanıcı bir
+     köşeyi çekerken karşı köşenin yerinde kalmasını bekliyor. */
+  const TUTAMAK_PAY = 8;
+
+  const donusumKutusu = secililer.length ? bbox(secililer.flatMap((x) => x.points)) : null;
+
+  type TutamakId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "dondur";
+  const tutamakYerleri = (k: NonNullable<typeof donusumKutusu>, pay: number) => {
+    const sol = k.minX - pay, sag = k.maxX + pay, ust = k.minY - pay, alt = k.maxY + pay;
+    const ox = (sol + sag) / 2, oy = (ust + alt) / 2;
+    return {
+      nw: { x: sol, y: ust }, n: { x: ox, y: ust }, ne: { x: sag, y: ust },
+      e: { x: sag, y: oy }, se: { x: sag, y: alt }, s: { x: ox, y: alt },
+      sw: { x: sol, y: alt }, w: { x: sol, y: oy },
+      dondur: { x: ox, y: ust - pay * 2.5 },
+    } as Record<TutamakId, Pt>;
+  };
+  const KARSI: Record<Exclude<TutamakId, "dondur">, Exclude<TutamakId, "dondur">> = {
+    nw: "se", n: "s", ne: "sw", e: "w", se: "nw", s: "n", sw: "ne", w: "e",
+  };
+  const EKSEN: Record<Exclude<TutamakId, "dondur">, "iki" | "yatay" | "dikey"> = {
+    nw: "iki", ne: "iki", se: "iki", sw: "iki", n: "dikey", s: "dikey", e: "yatay", w: "yatay",
+  };
+
+  function onTutamakDown(e: ReactPointerEvent<SVGElement>, tutamak: TutamakId) {
+    if (tool !== "select" || !donusumKutusu) return;
+    e.stopPropagation();
+    svgRef.current?.setPointerCapture(e.pointerId);
+    /* ÇIPA PARÇANIN KUTUSU, TUTAMAĞIN KUTUSU DEĞİL. Tutamaklar görünürlük
+       için parçadan pay kadar dışarıda duruyor; çıpayı oraya koymak
+       ölçeklemede parçanın karşı köşesini pay oranında kaydırıyordu
+       (ölçüldü: 144 birimlik parça 1,268 kat büyürken sol kenar -72'den
+       -69,59'a kayıyordu). Payın kendisi ekran pikseline bağlı ve sabit
+       olduğu için, parça köşesi sabitken kutu köşesi de sabit kalıyor —
+       yani doğru çıpa ikisini birden yerinde tutuyor.
+
+       BAŞLANGIÇ İŞARETÇİNİN GERÇEK KONUMU, tutamağın merkezi değil: oran
+       ona göre hesaplandığı için basıldığı anda 1 olmalı. Tutamağın kutu
+       konumu alınsaydı, fare basıldığı anda parça pay kadar sıçrardı. */
+    const yerler = tutamakYerleri(donusumKutusu, 0);
+    const merkez = { x: donusumKutusu.minX + donusumKutusu.w / 2, y: donusumKutusu.minY + donusumKutusu.h / 2 };
+    const orij: Record<string, Pt[]> = {};
+    for (const x of secililer) orij[x.id] = x.points;
+    setDrag({
+      kind: "transform",
+      mod: tutamak === "dondur" ? "dondur" : "olcek",
+      eksen: tutamak === "dondur" ? "iki" : EKSEN[tutamak],
+      sabit: tutamak === "dondur" ? merkez : yerler[KARSI[tutamak]],
+      merkez,
+      baslangic: toCanvas(e.clientX, e.clientY),
+      orij,
+      recorded: false,
+    });
+  }
+
+  /** Sürükleme boyunca dönüşümü uygular. */
+  const donusumUygula = (d: Extract<Drag, { kind: "transform" }>, p: Pt, shift: boolean) => {
+    const donustur = (q: Pt): Pt => {
+      if (d.mod === "dondur") {
+        const a0 = Math.atan2(d.baslangic.y - d.merkez.y, d.baslangic.x - d.merkez.x);
+        let aci = Math.atan2(p.y - d.merkez.y, p.x - d.merkez.x) - a0;
+        /* Shift 15°'ye kilitliyor — teknik çizimde açılar genelde yuvarlak
+           ve serbest döndürme "biraz eğri" parçalar bırakıyor. */
+        if (shift) aci = Math.round(aci / (Math.PI / 12)) * (Math.PI / 12);
+        const c = Math.cos(aci), sn = Math.sin(aci);
+        const dx = q.x - d.merkez.x, dy = q.y - d.merkez.y;
+        return { x: d.merkez.x + dx * c - dy * sn, y: d.merkez.y + dx * sn + dy * c };
+      }
+      /* Ölçek, sabit noktaya olan UZAKLIK oranından: köşede iki eksene
+         birden uygulanınca parça oranını koruyor, kenarda tek eksene
+         uygulanınca esniyor. Alt sınır sıfırdan geçip parçayı aynalamayı
+         engelliyor; aynalamanın kendi düğmesi var. */
+      const enAz = 0.02;
+      let sx = 1, sy = 1;
+      if (d.eksen === "iki") {
+        const b = dist(d.baslangic, d.sabit);
+        sx = sy = b < 1e-6 ? 1 : Math.max(enAz, dist(p, d.sabit) / b);
+      } else if (d.eksen === "yatay") {
+        const b = d.baslangic.x - d.sabit.x;
+        sx = Math.abs(b) < 1e-6 ? 1 : Math.max(enAz, (p.x - d.sabit.x) / b);
+      } else {
+        const b = d.baslangic.y - d.sabit.y;
+        sy = Math.abs(b) < 1e-6 ? 1 : Math.max(enAz, (p.y - d.sabit.y) / b);
+      }
+      return { x: d.sabit.x + (q.x - d.sabit.x) * sx, y: d.sabit.y + (q.y - d.sabit.y) * sy };
+    };
+    setDoc((belge) => ({
+      ...belge,
+      [view]: {
+        ...belge[view],
+        shapes: belge[view].shapes.map((x) => (d.orij[x.id] ? { ...x, points: d.orij[x.id].map(donustur) } : x)),
+      },
+    }));
+  };
 
   function onAnchorDown(e: ReactPointerEvent<SVGRectElement>, id: string, index: number) {
     if (tool !== "select") return;
@@ -1766,6 +1902,75 @@ export function FlatSketch({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             {drag.kind === "measure" && <MeasureLabel a={drag.a} b={temp} zoom={vp.zoom} />}
           </g>
         )}
+
+        {/* DÖNÜŞÜM KUTUSU. Kutu parçanın kendi çapalarından PAY kadar
+            dışarıda duruyor: içeride olsaydı köşe tutamakları çapaların
+            üstüne biner ve nokta çekmek isteyen kullanıcı parçayı
+            ölçeklerdi. Sürükleme sırasında da görünüyor — kaybolan bir
+            kutu, neyi dönüştürdüğünü göstermeyi bırakmak demek. */}
+        {tool === "select" && donusumKutusu && (() => {
+          const pay = TUTAMAK_PAY / vp.zoom;
+          const yerler = tutamakYerleri(donusumKutusu, pay);
+          /* Tutamak boyu EKRAN PİKSELİ. 7 denendi ve küçüktü: döndürme
+             halkası 5 piksel çapa düşüyor, fareyle tutturmak zorlaşıyordu.
+             Karo 9, halka yarıçapı da karo boyu — yani ~9 piksellik hedef,
+             vektör araçlarının kullandığı bantta. */
+          const b = 9 / vp.zoom;
+          const imlec: Record<TutamakId, string> = {
+            nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize",
+            n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", dondur: "grab",
+          };
+          return (
+            <g data-ui>
+              <rect
+                x={donusumKutusu.minX - pay}
+                y={donusumKutusu.minY - pay}
+                width={donusumKutusu.w + pay * 2}
+                height={donusumKutusu.h + pay * 2}
+                fill="none"
+                stroke={SELECT}
+                strokeOpacity="0.55"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                vectorEffect="non-scaling-stroke"
+              />
+              <line
+                x1={yerler.n.x}
+                y1={yerler.n.y}
+                x2={yerler.dondur.x}
+                y2={yerler.dondur.y}
+                stroke={SELECT}
+                strokeOpacity="0.55"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+              <circle
+                cx={yerler.dondur.x}
+                cy={yerler.dondur.y}
+                r={b * 0.62}
+                fill="#fff"
+                stroke={SELECT}
+                strokeWidth={1 / vp.zoom}
+                style={{ cursor: imlec.dondur }}
+                onPointerDown={(e) => onTutamakDown(e, "dondur")}
+              />
+              {(Object.keys(KARSI) as Exclude<TutamakId, "dondur">[]).map((t) => (
+                <rect
+                  key={t}
+                  x={yerler[t].x - b / 2}
+                  y={yerler[t].y - b / 2}
+                  width={b}
+                  height={b}
+                  fill="#fff"
+                  stroke={SELECT}
+                  strokeWidth={1 / vp.zoom}
+                  style={{ cursor: imlec[t] }}
+                  onPointerDown={(e) => onTutamakDown(e, t)}
+                />
+              ))}
+            </g>
+          );
+        })()}
 
         {/* YAKALAMA KILAVUZU. Görünmeyen bir yakalama, kullanıcı için
             "noktam neden zıpladı" demek. Çizgi hangi hizaya oturduğunu
