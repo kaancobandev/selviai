@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { DOKUMALAR, fabrics, tohumdanKumas, type Fabric, type Weave } from "@/lib/fabrics";
 import { cn, formatTRY } from "@/lib/utils";
 import { TohumReferans, referanslar } from "@/components/tohum-referans";
@@ -9,7 +9,6 @@ import type { StudyoTohum } from "@/lib/ai/tohum";
 import { Arrow, Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Toast } from "@/components/ui/toast";
-import { Ruler } from "@/components/ui/ruler";
 import { site } from "@/lib/site";
 
 const nf = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 });
@@ -26,16 +25,30 @@ const specOf = (f: Fabric): Spec => ({ weight: f.weight, stretch: f.stretch, dra
 type Olcum = { composition: string; weave: Weave | ""; width: string; price: string };
 const BOS_OLCUM: Olcum = { composition: "", weave: "", width: "", price: "" };
 
+const KUMAS_ANAHTARI = "selvi-kumas-v1";
+
+/**
+ * Tarayıcıya yazılan durum.
+ *
+ * Kullanıcının elle girdiği ölçüm, seçtiği kartela ve istediği metraj —
+ * yani bu sayfada üretilen TEK şey. Eskiden hiçbiri saklanmıyordu ve
+ * panelde "Kaydedilmiyor" yazıyordu; yazı dürüsttü ama davranış yanlıştı.
+ * Kod da bunu biliyordu: "kalıcılık ayrı bir karar ve sahibi henüz
+ * vermedi."
+ *
+ * `uretilenSpec` de giriyor çünkü o da kullanıcının girdiği bir ölçüm;
+ * `katalogSpec` girmiyor çünkü onun kaynağı kartelanın kendi verisi ve
+ * kumaş değişince zaten oradan tazeleniyor.
+ */
+type KumasKayit = { olcum: Olcum; kartela: string[]; length: string; uretilenSpec: Spec };
+const VARSAYILAN_KUMAS: KumasKayit = { olcum: BOS_OLCUM, kartela: [], length: "3", uretilenSpec: BOS_SPEC };
+
 /** Boş ya da anlamsız giriş "ölçülmedi" demek — 0 demek değil. */
 function pozitif(metin: string): number | null {
   const v = parseFloat(metin.replace(",", "."));
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
-/* Makro görselin temsil ettiği gerçek ölçü (1:1) — YALNIZCA katalog
-   kayıtları için geçerli; üretilen fotoğrafın ölçeğini bilmiyoruz. */
-const SCALE_W_CM = 10;
-const SCALE_H_CM = 7.5;
 
 /**
  * Kumaş — dijital kartela ve ölçüm laboratuvarı.
@@ -57,17 +70,15 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
      duruyor. Üretilen karede dönemez: oradaki tek kaynak kullanıcının
      kendi girdiği ölçüm ve kütüphanede gezinirken silinmemeli. */
   const [katalogSpec, setKatalogSpec] = useState<Spec>(() => specOf(fabrics[1]));
-  const [uretilenSpec, setUretilenSpec] = useState<Spec>(BOS_SPEC);
+  const [uretilenSpec, setUretilenSpec] = useState<Spec>(VARSAYILAN_KUMAS.uretilenSpec);
   const spec = active.uretilen ? uretilenSpec : katalogSpec;
   const setSpec = active.uretilen ? setUretilenSpec : setKatalogSpec;
 
-  /* Elle girilen alanlar yalnız bileşen durumunda duruyor: kalıcılık
-     ayrı bir karar (/api/calisma) ve sahibi henüz vermedi. */
-  const [olcum, setOlcum] = useState<Olcum>(BOS_OLCUM);
-  const [length, setLength] = useState("3");
+  const [olcum, setOlcum] = useState<Olcum>(VARSAYILAN_KUMAS.olcum);
+  const [length, setLength] = useState(VARSAYILAN_KUMAS.length);
   const [zoom, setZoom] = useState(false);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
-  const [kartela, setKartela] = useState<string[]>([]);
+  const [kartela, setKartela] = useState<string[]>(VARSAYILAN_KUMAS.kartela);
   const [toast, setToast] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -96,7 +107,6 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const price = active.uretilen ? pozitif(olcum.price) : active.price;
   const kompozisyon = active.uretilen ? olcum.composition.trim() || null : active.composition;
   const dokuma = active.uretilen ? olcum.weave || null : active.weave;
-  const olcekli = !active.uretilen;
 
   const area = width !== null ? (width / 100) * meters : null;
   const grams = area !== null && spec.weight !== null ? area * spec.weight : null;
@@ -104,6 +114,94 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
   const inKartela = kartela.includes(active.id);
   const specChanged =
     spec.weight !== active.weight || spec.stretch !== active.stretch || spec.drape !== active.drape;
+
+  /* ---------- kayıt ---------- */
+  const kumasDurumu: KumasKayit = { olcum, kartela, length, uretilenSpec };
+  /* "İş var mı" sorusu duruma bakıyor, etkilerin kaç kez çalıştığına
+     değil — branding'de zamanlamaya dayalı ölçüt StrictMode'un çift
+     çalıştırması yüzünden yanlış cevap vermişti. */
+  const isVar = JSON.stringify(kumasDurumu) !== JSON.stringify(VARSAYILAN_KUMAS);
+
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    try {
+      const ham = window.localStorage.getItem(KUMAS_ANAHTARI);
+      if (ham) {
+        const k = JSON.parse(ham) as Partial<KumasKayit>;
+        /* eslint-disable-next-line react-hooks/set-state-in-effect --
+           Tek seferlik geri yükleme; `useState` başlatıcısında okumak
+           sunucuda `localStorage` olmadığı için hidrasyon uyuşmazlığı
+           verirdi. Aynı gerekçe flat-sketch ve brand-studio'da da yazılı. */
+        if (k.olcum) setOlcum({ ...BOS_OLCUM, ...k.olcum });
+        if (Array.isArray(k.kartela)) setKartela(k.kartela);
+        if (typeof k.length === "string") setLength(k.length);
+        if (k.uretilenSpec) setUretilenSpec({ ...BOS_SPEC, ...k.uretilenSpec });
+      }
+    } catch {
+      /* Gizli sekmede erişimin kendisi fırlatıyor. */
+    }
+    hazirRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hazirRef.current) return;
+    const zaman = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(KUMAS_ANAHTARI, JSON.stringify({ olcum, kartela, length, uretilenSpec }));
+      } catch {
+        /* Kota dolu ya da depolama kapalı. */
+      }
+    }, 400);
+    return () => window.clearTimeout(zaman);
+  }, [olcum, kartela, length, uretilenSpec]);
+
+  /* ---------- kartela çıktısı ----------
+
+     Kartelanın işi tedarikçiye gitmek: hangi kumaş, ne kadar, kaç para.
+     Ekranda hesaplanıyordu ama hiçbir yere çıkmıyordu.
+
+     ÖLÇÜLMEMİŞ ALAN BOŞ GİDİYOR, sıfır değil. Ürünün bu sayfadaki bütün
+     disiplini buna dayanıyor; CSV'de 0 yazmak, üretilen karenin
+     bilinmeyen gramajını "sıfır gram" diye tedarikçiye göndermek olurdu. */
+  function kartelaCsv() {
+    const secilenler = kutuphane.filter((f) => kartela.includes(f.id));
+    const say = (v: number | null) => (v === null ? "" : String(v));
+    const basliklar = ["Kumaş", "Kompozisyon", "Dokuma", "Gramaj (g/m2)", "Esneme (%)", "Döküm", "En (cm)", "Fiyat (TRY/m)", "Metraj (m)", "Tutar (TRY)"];
+    const satirlar = secilenler.map((f) => {
+      const kendiSpec = f.uretilen ? uretilenSpec : specOf(f);
+      const en = f.uretilen ? pozitif(olcum.width) : f.width;
+      const fiyat = f.uretilen ? pozitif(olcum.price) : f.price;
+      const komp = f.uretilen ? olcum.composition.trim() || null : f.composition;
+      const dok = f.uretilen ? olcum.weave || null : f.weave;
+      return [
+        f.name,
+        komp ?? "",
+        dok ?? "",
+        say(kendiSpec.weight),
+        say(kendiSpec.stretch),
+        say(kendiSpec.drape),
+        say(en),
+        fiyat === null ? "" : fiyat.toFixed(2),
+        String(meters),
+        fiyat === null ? "" : (fiyat * meters).toFixed(2),
+      ];
+    });
+    const kacir = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const govde = [basliklar, ...satirlar].map((r) => r.map(kacir).join(";")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + govde], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "kumas-kartelasi.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const eksik = satirlar.filter((r) => r.includes("")).length;
+    setToast(
+      eksik
+        ? `CSV indirildi — ${satirlar.length} kumaş, ${eksik} satırda ölçülmemiş alan boş bırakıldı`
+        : `CSV indirildi — ${satirlar.length} kumaş`,
+    );
+  }
 
   function toggleKartela() {
     if (inKartela) {
@@ -135,6 +233,21 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <span className="eyebrow tabular-nums text-fog">
             {fabrics.length} kumaş{uretilen ? " · 1 üretilen" : ""} · Kartela ({kartela.length})
           </span>
+          {/* Kayıt göstergesi BAŞLIKTA, ölçüm panelinde değil. Panel yalnız
+              üretilen kare seçiliyken açılıyor; oysa kaydedilen asıl iş
+              kartelanın kendisi ve tohumsuz gelen kullanıcı göstergeyi
+              hiç görmüyordu. */}
+          <span className="hidden eyebrow text-fog sm:inline">
+            {isVar ? "Bu tarayıcıya kaydedildi" : "Taslak"}
+          </span>
+          <button
+            type="button"
+            onClick={kartelaCsv}
+            disabled={kartela.length === 0}
+            className="eyebrow u-line disabled:opacity-40"
+          >
+            Kartelayı indir · CSV
+          </button>
           <div className="hidden items-center gap-1.5 md:flex">
             <ScrollButton label="Kütüphaneyi geri kaydır" onClick={() => scrollLibrary(-1)} back />
             <ScrollButton label="Kütüphaneyi ileri kaydır" onClick={() => scrollLibrary(1)} />
@@ -214,22 +327,20 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           aria-label="Makro doku"
           className="px-6 py-8 md:px-10 md:py-10 lg:col-span-7 lg:border-r lg:border-hair"
         >
-          {/* Cetveller ve 1:1 rozeti yalnız ölçeği BİLİNEN kayıtlarda.
-              Üretilen kare bir fotoğraf; kaç santimetre gösterdiğini
-              bilmiyoruz, cetvel koymak uydurma bir ölçek iddiası olurdu. */}
-          <div
-            className={cn(
-              "grid gap-1.5",
-              olcekli ? "grid-cols-[20px_1fr] grid-rows-[20px_auto]" : "grid-cols-1",
-            )}
-          >
-            {olcekli && (
-              <>
-                <span aria-hidden />
-                <Ruler orientation="h" cm={SCALE_W_CM} className="h-5" />
-                <Ruler orientation="v" cm={SCALE_H_CM} className="h-full w-5" />
-              </>
-            )}
+          {/* CETVEL VE "1:1" ROZETİ KALDIRILDI — ikisi de UYDURMA ölçek
+              iddiasıydı.
+
+              Kod kendi kuralını üretilen kare için doğru uyguluyordu
+              ("kaç santimetre gösterdiğini bilmiyoruz") ama katalog için
+              çiğniyordu: `SCALE_W_CM = 10` tek bir varsayım olarak DOKUZ
+              AYRI stok fotoğrafın hepsine uygulanıyordu. Hiçbiri
+              ölçülmemişti. Cetvel, ölçülmemiş bir sayıyı milimetre
+              taksimatıyla sunduğu için iddianın en inandırıcı biçimiydi.
+
+              Ölçek gerçekten bilinirse dönebilir: `Fabric` tipine
+              ölçülmüş bir alan eklenir ve cetvel ona bağlanır. Bugün o
+              alan yok, o yüzden iddia da yok. */}
+          <div className="grid gap-1.5 grid-cols-1">
             <div
               role="button"
               tabIndex={0}
@@ -263,13 +374,7 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 }}
               />
               <span className="absolute left-3 top-3 bg-paper/85 px-2.5 py-2 eyebrow text-ink backdrop-blur-sm">
-                {olcekli ? (
-                  <>
-                    1:1 · <span className="normal-case">{SCALE_W_CM} × {nf.format(SCALE_H_CM)} cm</span>
-                  </>
-                ) : (
-                  "Üretilen · ölçek bilinmiyor"
-                )}
+                {active.uretilen ? "Üretilen · ölçek bilinmiyor" : "Makro doku · ölçek bilinmiyor"}
               </span>
               <span
                 aria-hidden
@@ -287,7 +392,6 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
           <div
             className={cn(
               "mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 eyebrow text-fog",
-              olcekli && "pl-[26px]",
             )}
           >
             <span>
@@ -300,7 +404,7 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
               {active.repeat ? `${active.repeat} cm` : active.uretilen ? "Ölçülmedi" : "Yok"}
             </span>
           </div>
-          <p className={cn("mt-2 text-[11px] leading-4 text-fog", olcekli && "pl-[26px]")}>
+          <p className={cn("mt-2 text-[11px] leading-4 text-fog",)}>
             {zoom ? "İmleci gezdirerek dokuyu inceleyin; kapatmak için tıklayın." : "Yakınlaştırmak için dokuya tıklayın."}
           </p>
         </section>
@@ -319,7 +423,10 @@ export function FabricLab({ tohum }: { tohum?: StudyoTohum | null } = {}) {
             <section className="mt-10 border-t border-hair pt-8">
               <div className="flex items-baseline justify-between">
                 <h3 className="eyebrow">Ölçüm girişi</h3>
-                <span className="eyebrow text-fog">Kaydedilmiyor</span>
+                {/* Eskiden burada "Kaydedilmiyor" yazıyordu ve doğruydu;
+                    artık kaydediliyor. Durum göstergesi başlıkta, burada
+                    tekrarlamıyoruz. */}
+                <span className="eyebrow text-fog">Elle ölçülen değerler</span>
               </div>
               {/* Karenin ne olduğunu olduğu gibi söylüyoruz. Üretim istemi
                   (lib/ai/prompt.ts) dört ilâ altı FARKLI parça istiyor;
