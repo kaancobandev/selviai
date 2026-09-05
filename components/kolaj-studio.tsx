@@ -10,6 +10,7 @@ import {
   macentayiAc,
   ornekKolaj,
   tohumdanKolaj,
+  zeminAcikMi,
   type Kolaj,
   type Parca,
 } from "@/lib/kolaj";
@@ -404,7 +405,16 @@ export function KolajStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
         <section className="flex flex-col gap-6 bg-zemin px-6 py-8 md:px-10">
           <div
             ref={tuvalRef}
-            className="lookbook-tuval relative w-full max-w-3xl overflow-hidden border border-hair"
+            /* `tuval` / `koyu-ada`: token'lar SAYFA temasına değil SEÇİLEN
+               ZEMİNE bağlanıyor. İkisi de yalnız token yeniden bağlıyor;
+               satır içi `background` ikisinin de zeminini eziyor, yani
+               tuval seçilen rengi göstermeye devam ediyor. Kazancı şu:
+               içerideki `text-fog` ve `ring-odak` zemin koyulaşınca
+               kendiliğinden dönüyor. */
+            className={cn(
+              "lookbook-tuval relative w-full max-w-3xl overflow-hidden border border-hair",
+              zeminAcikMi(kolaj.zemin) ? "tuval" : "koyu-ada",
+            )}
             style={{ aspectRatio: String(KOLAJ_ORANI), background: kolaj.zemin }}
             onPointerDown={(e) => {
               // Boşluğa tıklamak seçimi bırakıyor.
@@ -416,7 +426,7 @@ export function KolajStudio({ tohum }: { tohum?: StudyoTohum | null } = {}) {
                 söylemeden boş bir dikdörtgen göstermek kullanıcıyı
                 "bozuk mu?" diye bırakır. */}
             {!kolaj.parcalar.length && (
-              <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-[14px] leading-7 text-ink/50">
+              <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-[14px] leading-7 text-fog">
                 Tuval boş. Ana sayfada bir yön yazıp kare üretin; kolaj
                 onlarla açılır.
               </p>

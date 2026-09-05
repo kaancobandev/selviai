@@ -57,6 +57,29 @@ export type Kolaj = {
 
 export const ZEMINLER = ["#f4f2ee", "#ffffff", "#1c1b19", "#c9c2b6", "#2f3a3f"] as const;
 
+/**
+ * Zemin AÇIK mı?
+ *
+ * Tuvalin zeminini KULLANICI seçiyor ve liste hem açık (#f4f2ee,
+ * #ffffff, #c9c2b6) hem koyu (#1c1b19, #2f3a3f) uçları kapsıyor. Bu
+ * yüzden tuvalin üstündeki hiçbir şey sayfa temasına bakamaz: boş tuval
+ * yönergesi de seçim halkası da ZEMİNE bakmak zorunda. Sabit bir renk
+ * beş zeminden en az ikisinde kayboluyordu (ölçüldü: yönerge metni
+ * #1c1b19 üstünde 1,08:1, seçim halkası 1,14:1).
+ *
+ * Eşik 0,18: sRGB bağıl parlaklıkta beş zemini iki gruba temiz ayırıyor
+ * (en koyu açık zemin #c9c2b6 → 0,55; en açık koyu zemin #2f3a3f → 0,04).
+ */
+export function zeminAcikMi(hex: string): boolean {
+  const s = hex.replace("#", "");
+  if (s.length !== 6) return true;
+  const kanal = (i: number) => {
+    const v = parseInt(s.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * kanal(0) + 0.7152 * kanal(2) + 0.0722 * kanal(4) > 0.18;
+}
+
 export const ornekKolaj: Kolaj = {
   baslik: "Kolaj",
   not: "Parçaları üst üste bindirerek siluet arayın.",

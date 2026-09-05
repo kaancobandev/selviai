@@ -594,7 +594,13 @@ function GuideTile({ label, note, dark, children }: { label: string; note: strin
       <div
         className={cn(
           "relative aspect-square border",
-          dark ? "border-ink bg-ink text-bone" : "border-mist bg-paper text-ink",
+          /* Koyu karonun kenarlığı `border-ink`ti, yani #0b0b0b — koyu
+             temada sayfa zemini de #0b0b0b olduğu için karo tamamen
+             kayboluyordu (1,00:1). Açık kardeşleri beyaz DOLGULARIYLA
+             ayrışıyor; koyu karonun dolgusu ayrışamaz, o yüzden ayıran
+             şey kenar olmak zorunda. `border-hair` sitenin ayraç
+             token'ı: koyu sayfada saç çizgisi, açık sayfada belirgin. */
+          dark ? "border-hair bg-ink text-bone" : "border-mist bg-paper text-ink",
         )}
       >
         {/* İnşa çizgileri */}
@@ -680,7 +686,13 @@ function SwatchCard({ role, swatch, onChange }: { role: SwatchRole; swatch: Swat
   return (
     <div>
       <label
-        className="relative block aspect-[4/3] cursor-pointer border border-kalem/10 transition-transform duration-500 ease-[var(--ease-out-expo)] hover:scale-[1.01]"
+        /* ODAK HALKASI ETİKETTE, GİRİŞTE DEĞİL. İçerideki
+           `<input type="color">` `sr-only` ile 1px'e kırpılıyor ve
+           `clip-path` öğenin ANA HATTINI da kırpıyor — yani halka
+           çiziliyor ama görünür alanı sıfır. Giriş odaklanabilir KALMAK
+           zorunda (rengi klavyeyle değiştirmenin tek yolu o), bu yüzden
+           çözüm halkayı görünür sarmalayıcıya taşımak. */
+        className="relative block aspect-[4/3] cursor-pointer border border-kalem/10 transition-transform duration-500 ease-[var(--ease-out-expo)] hover:scale-[1.01] has-[:focus-visible]:outline has-[:focus-visible]:outline-1 has-[:focus-visible]:outline-odak has-[:focus-visible]:outline-offset-4"
         style={{ background: swatch.hex }}
         title="Rengi değiştir"
       >

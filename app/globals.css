@@ -268,6 +268,38 @@ html.dark {
     radial-gradient(circle, #95909f var(--nokta-r), transparent var(--nokta-r)) calc(var(--nokta-aralik) / 2) calc(var(--nokta-aralik) / 2) / var(--nokta-aralik) var(--nokta-aralik);
 }
 
+/* Prompt halkası ve alt çubuğu. Kardeş hero katmanlarının hepsinin
+   `:root:not(.dark)` karşılığı vardı, bu ikisinin YOKTU: koyu temaya
+   göre seçilmiş açık lila duraklar açık temada beyaz zemine düşüyordu.
+   Ölçüldü — halkanın en parlak durağı #efe8ff beyazda 1,19:1, yani yayın
+   124°–192° arası tamamen kayboluyor. Halka döndüğü için o boşluk kutunun
+   çevresinde geziyor ve sitenin ana giriş kutusu kenarını kaybediyordu.
+
+   Kavislerdeki eşlemenin AYNISI kullanıldı, yeni renk uydurulmadı:
+   #efe8ff → #20006a, #bfa6ee → #5422b3, #6e51a0 → #9075c3. Hue ve
+   doygunluk korunuyor, yalnız açıklık aynalanıyor.
+
+   `background-image` yazılıyor, `background` DEĞİL: kısayol
+   `background-size`'ı auto'ya sıfırlar ve çubuğun `selvi-suzul`
+   süzülmesi (200% 0 → -200% 0) sessizce ölürdü. */
+:root:not(.dark) .selvi-donen {
+  background-image: conic-gradient(
+    from 0deg,
+    #c8bade 0deg,
+    #9075c3 62deg,
+    #5422b3 124deg,
+    #20006a 158deg,
+    #5422b3 192deg,
+    #9075c3 254deg,
+    #bcabd6 312deg,
+    #c8bade 360deg
+  );
+}
+
+:root:not(.dark) .selvi-cubuk {
+  background-image: linear-gradient(to right, transparent, #5422b3, transparent);
+}
+
 /* Fiyat zemini: kartların ARKASINDAKİ doku. Beyaz şeritler siyaha
    dönüyor — beyaz üstünde beyaz şeridin kontrastı tam 1,000:1 olurdu,
    yani camın bulanıklaştıracağı sinyal hiç kalmazdı. */
@@ -571,6 +603,23 @@ body {
   --color-ash: #6a6870;
   --color-vurgu: #6e51a0;
   --color-vurgu-kalem: #ffffff;
+}
+
+/* TUVALİN KENDİSİ ODAKLANABİLİRSE HALKA İÇERİ ALINIR.
+
+   Küresel kural `outline-offset: 4px` — halkayı öğenin DIŞINA çiziyor.
+   Bu, sayfa zemininde duran normal düğmeler için doğru. Ama tuval bir
+   ADA: beyaz kalıyor ve `--color-odak`'ı #0b0b0b'ye bağlıyor. Halka 4px
+   dışarı çıkınca o siyah halka KOYU SAYFA ZEMİNİNE düşüyor —
+   #0b0b0b üstüne #0b0b0b, yani 1,00:1. Klavyeyle gezen kullanıcı için
+   gösterge tamamen yok oluyordu.
+
+   İki yer bundan etkileniyordu: inspiration panosu (bölümün kendisi
+   `tabIndex={0}`, ok tuşlarıyla parça taşınıyor) ve etiket stüdyosunun
+   üç önizleme düğmesi. Halkayı içeri almak ikisini de çözüyor ve tuval
+   her iki temada da beyaz kaldığı için Faz 5'te de doğru kalır. */
+.tuval:focus-visible {
+  outline-offset: -5px;
 }
 
 /* Koyu sayfada ters kart AÇIK olur. */
@@ -1210,6 +1259,29 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+}
+
+/* AÇILIR LİSTE SATIRLARI — beyaz üstüne beyazın kaynağı buydu.
+
+   Kontrolün kendisi bilerek saydam: alt çizgili form sistemi kutu
+   istemiyor. Ama Chrome açılan listenin ZEMİNİNİ de kontrolün
+   `background-color`'ından türetiyor ve saydam bir zemin beyaza
+   düşüyor. Satırların rengi ise bir üstteki `color: inherit` ile
+   text-kalem'den geliyor — koyu temada BEYAZ. Sonuç: seçili satır
+   dışında hiçbir seçenek okunmuyordu (kumaş atölyesindeki "Dokuma"
+   alanı böyle bulundu).
+
+   `color-scheme: dark` bunu KURTARMIYOR, denendi: yazarın verdiği arka
+   plan kromun varsayılanını eziyor, yani krom koyu olsa da liste beyaz
+   kalıyor. Tek çözüm satırları açıkça boyamak.
+
+   İki değer de token olduğu için `.tuval` / `.ters-kart` gibi tersine
+   bağlanan yüzeylerde kendiliğinden dönüyor; ileride eklenecek her
+   <select> de doğru doğuyor. */
+option,
+optgroup {
+  background-color: var(--color-zemin);
+  color: var(--color-kalem);
 }
 input::placeholder,
 textarea::placeholder {
